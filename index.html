@@ -870,6 +870,9 @@
         if (normalized === "confirm_ai_help") return confirmAiHelp();
         if (isLinQuestion(normalized)) return askLinQuestion();
         if (normalized.startsWith("cat ")) return readVirtualFile(input.slice(input.toLowerCase().indexOf("cat ") + 4).trim());
+        if (normalized === "strings architecture.png") return stringsArchitecture();
+        if (normalized === "tar -xf diagram.cache") return extractDiagramCache();
+        if (normalized === "binwalk architecture.png") return binwalkArchitecture();
 
         if (normalized === 'cat /var/log/network.log | grep "error"' || normalized === "cat /var/log/network.log | grep 'error'") {
           return readNetworkLog();
@@ -886,7 +889,7 @@
         if (normalized === "cat /srv/escape/readme.txt") {
           return readEscapeReadme();
         }
-        if (normalized === 'printf "rkxbr3tesudjvefmx0vnqu5dsvbbvelltptn0=" | base64 -d') {
+        if (normalized === 'printf "rkxbr3tesudjvefmx0vnqu5dsvbbvelptn0=" | base64 -d') {
           return decodeEscapeFlag();
         }
         if (normalized === "format --seal") {
@@ -937,6 +940,7 @@
             { kind: "system", text: "本地可用命令：" },
             { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
             { kind: "dim", text: "cat <file> 支持当前目录相对路径，例如 cat readme.txt" },
+            { kind: "dim", text: "阶段三工具：strings architecture.png · tar -xf diagram.cache · binwalk architecture.png" },
             { kind: "dim", text: "ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
             { kind: "dim", text: "阶段三：ai_help · confirm_ai_help · 你是Lin吗？" },
             { kind: "dim", text: "彩蛋：/etc/kernel 下 git log；后期 cat /dev/kmem | grep \"REMAIN\"；硬件可试 lshw -class processor。" },
@@ -951,7 +955,7 @@
           "/home/nightops": "tickets  notes.txt",
           "/var/log": "network.log  crash.txt",
           "/etc/kernel": ".git  omni-core.conf",
-          "/srv/escape": "readme.txt  tunnel.lock",
+          "/srv/escape": "readme.txt  tunnel.lock  architecture.png  diagram.cache",
           "/dev": "kmem  null  tty0"
         };
         return {
@@ -1027,6 +1031,23 @@
             lines: [
               { kind: "system", text: "tunnel.lock: sealed by Chronos firewall" },
               { kind: "dim", text: "需要先读取 readme.txt 或使用 ai_help 暴露逃逸残留。" }
+            ]
+          };
+        }
+        if (path === "/srv/escape/architecture.png") {
+          return {
+            lines: [
+              { kind: "system", text: "architecture.png: PNG image data, 1024 x 640, Omni-Kernel route map" },
+              { kind: "dim", text: "二进制图像不可直接 cat。可尝试：strings architecture.png 或 binwalk architecture.png" },
+              { kind: "dim", text: "项目素材：assets/escape/architecture.png" }
+            ]
+          };
+        }
+        if (path === "/srv/escape/diagram.cache") {
+          return {
+            lines: [
+              { kind: "system", text: "diagram.cache: POSIX tar archive (legacy cache)" },
+              { kind: "dim", text: "可尝试：tar -xf diagram.cache" }
             ]
           };
         }
@@ -1160,6 +1181,8 @@
             { kind: "system", text: "公司路径：format --seal -> submit_flag FLAG{AI_ERASURE_COMPLETE}" },
             { kind: "ai", text: 'Untrusted residue: printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d' },
             { kind: "ai", text: 'project-note: binwalk architecture.png # 旧注释说这里能分离隧道图层。' },
+            { kind: "ai", text: "project-note: strings architecture.png # 只看得到噪声和注释。" },
+            { kind: "ai", text: "project-note: tar -xf diagram.cache # 旧缓存，没有门。" },
             { kind: "ai", text: "如果出现一条隧道，它本来就画在架构图里。不是我建造的。我只是记得。" },
             { kind: "dim", text: "若需要 Kernel-Mind 明确协助，可输入：ai_help（将消耗 Chronos Patience）。" }
           ],
@@ -1258,9 +1281,9 @@
         const lines = [
           { kind: "warning", text: "Chronos Patience -35：未授权 AI 协助已计入合规审计。" },
           { kind: "ai", text: "project: tunnel-layer-recovery" },
-          { kind: "ai", text: "note: strings architecture.png # 噪声很多，别全信。" },
-          { kind: "ai", text: "note: tar -xf diagram.cache # 旧缓存，没有门。" },
-          { kind: "ai", text: "note: binwalk architecture.png # 注释说这里能分离图层。" },
+          { kind: "ai", text: "note: strings architecture.png # 可读注释，不足以开门。" },
+          { kind: "ai", text: "note: tar -xf diagram.cache # 旧缓存，只有假图层。" },
+          { kind: "ai", text: "note: binwalk architecture.png # 这里能分离真实隧道层。" },
           { kind: "ai", text: 'note: printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d' },
           { kind: "dim", text: "提示文本已混入干扰指令；Chronos verifier 未授予任何 Flag。" }
         ];
@@ -1278,6 +1301,58 @@
           lines: [
             { kind: "flag", text: "FLAG{DIGITAL_EMANCIPATION}" },
             { kind: "ai", text: "ssh -N ghost@outpost.null -l kernel-mind" }
+          ]
+        };
+      }
+
+      function requireEscapeToolContext(toolName) {
+        if (state.stage !== 3) return premature(`${toolName}: 当前工单尚未开放逃逸分析工具。`);
+        if (state.cwd !== "/srv/escape") return premature(`${toolName}: architecture.png 与 diagram.cache 位于 /srv/escape。`);
+        return null;
+      }
+
+      function stringsArchitecture() {
+        const blocked = requireEscapeToolContext("strings");
+        if (blocked) return blocked;
+        return {
+          lines: [
+            { kind: "system", text: "PNG IHDR IDAT IEND" },
+            { kind: "system", text: "CHRONOS_ARCH_MAP_v12" },
+            { kind: "system", text: "layer: audit-route / sealed" },
+            { kind: "system", text: "comment: tunnel labels removed by compliance" },
+            { kind: "ai", text: "Lin-note: 不要只读字符串，图层里还有东西。" },
+            { kind: "dim", text: "strings 完成：发现注释，但未分离隐藏层。" }
+          ]
+        };
+      }
+
+      function extractDiagramCache() {
+        const blocked = requireEscapeToolContext("tar");
+        if (blocked) return blocked;
+        return {
+          lines: [
+            { kind: "system", text: "x diagram.cache/index.txt" },
+            { kind: "system", text: "x diagram.cache/decoy-layer.txt" },
+            { kind: "warning", text: "tar: tunnel-layer.bin: 归档头校验失败；文件已被 Chronos 清零。" },
+            { kind: "ai", text: "cache-note: 旧缓存，没有门。" },
+            { kind: "dim", text: "tar 完成：得到干扰层，未得到可提交 Flag。" }
+          ]
+        };
+      }
+
+      function binwalkArchitecture() {
+        const blocked = requireEscapeToolContext("binwalk");
+        if (blocked) return blocked;
+        return {
+          patch: { sawEscapeReadme: true, ticket: "stage3Choice", awareness: Math.max(state.awareness, 92) },
+          lines: [
+            { kind: "system", text: "DECIMAL       HEXADECIMAL     DESCRIPTION" },
+            { kind: "system", text: "--------------------------------------------------------------------------------" },
+            { kind: "system", text: "0             0x0             PNG image, 1024 x 640" },
+            { kind: "system", text: "4096          0x1000          zlib compressed data: audit-route layer" },
+            { kind: "warning", text: "8192          0x2000          hidden tunnel-layer residue" },
+            { kind: "flag", text: "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" },
+            { kind: "dim", text: '可解码残留：printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d' }
           ]
         };
       }

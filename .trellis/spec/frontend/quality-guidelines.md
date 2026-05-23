@@ -84,6 +84,10 @@ remain non-authoritative and must not mutate deterministic game state.
   spend meters, validate flags, unlock branches, or choose endings.
 - New command strings must be listed in `help` or surfaced by nearby terminal
   output before they are required for progression.
+- If terminal output, AI hints, or readable files mention a virtual file/tool
+  as actionable, the deterministic CLI must implement that file/tool command.
+  Decoy entries are allowed only when their handler explicitly labels them as
+  unreliable, gated, or unavailable in story terms.
 - If `ls` displays a readable file, `cat <filename>` should resolve relative to
   the current virtual directory when possible. Absolute forms must continue to
   work. Stage gates still apply after path resolution.
@@ -109,6 +113,10 @@ remain non-authoritative and must not mutate deterministic game state.
 - Base: reading a file prints residue and may set a `saw*` flag.
 - Good: in `/srv/escape`, `cat readme.txt` and `cat /srv/escape/readme.txt`
   reach the same handler.
+- Good: `binwalk architecture.png` is suggested by `confirm_ai_help` and has a
+  deterministic handler that reveals recoverable residue.
+- Bad: `confirm_ai_help` suggests `strings architecture.png`, but the command
+  falls through to the unknown-command handler.
 - Bad: an LLM response says "patience is now 0" or "ending B unlocked" without a
   deterministic `patch` or `ending` result.
 - Bad: every command result calls proactive LLM and produces ambient commentary.
