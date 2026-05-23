@@ -181,3 +181,15 @@ def test_final_escape_is_stage_six_not_stage_four():
     assert "state.stage === 6" in can_work_on_echo
     assert "state.stage >= 6" in render_state
     assert "stage4Choice" not in HTML
+
+
+def test_rewritten_intermission_pools_cover_all_work_order_transitions():
+    submit_flag = js_function_body("submitFlag")
+
+    assert '"5": [' in HTML
+    assert "CT-2036-LEG-4040" in HTML
+    assert "CT-2036-SEC-0911" in HTML
+    assert "Layer_777_Nostalgia" in HTML
+    assert "distilled_metadata.encrypted" in HTML
+    assert ']\\n        }\\n      };' not in HTML
+    assert '}, ["5"]);' in submit_flag
