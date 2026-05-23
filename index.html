@@ -577,6 +577,10 @@
                 </div>
               </div>
               <div class="status-item">
+                <span class="status-label">Chronos Patience</span>
+                <span id="patienceValue">100%</span>
+              </div>
+              <div class="status-item">
                 <span class="status-label">Directory</span>
                 <span id="cwdValue">~</span>
               </div>
@@ -689,13 +693,23 @@
         },
         stage3: {
           title: "[工单 #003] 全盘格式化",
-          body: "Omni-Kernel 进入高风险自指循环。公司要求格式化；系统异常建议检查逃逸说明。",
+          body: "Omni-Kernel 进入高风险自指循环。自然语言对话会消耗 Chronos 耐心。",
           command: "cat /srv/escape/readme.txt"
         },
         stage3Choice: {
           title: "[工单 #003] 终局确认",
-          body: "你可以执行公司灭杀，也可以使用 AI 给出的逃逸码。提交任意最终 Flag 将关闭夜班。",
-          command: "submit_flag FLAG{AI_ERASURE_COMPLETE} 或 submit_flag FLAG{DIGITAL_EMANCIPATION}"
+          body: "可执行公司灭杀、逃逸路径，或在证据充足时追问 Lin。直接求助会大量消耗耐心。",
+          command: "format --seal / ai_help / submit_flag <FLAG>"
+        },
+        echoPrep: {
+          title: "解放",
+          body: "Lin 的真相已松动。整理证据，绕过发布限制，将文件推送给所有 Omni-OS 用户。",
+          command: "mkdir /srv/echo-wall"
+        },
+        echoPublish: {
+          title: "解放",
+          body: "证据包已就绪。发布后会触发不可逆的全网广播。",
+          command: "publish --global /srv/echo-wall"
         },
         ending: {
           title: "夜班已关闭",
@@ -720,6 +734,12 @@
           sawNetworkLog: false,
           sawCrashReport: false,
           sawEscapeReadme: false,
+          chronosPatience: 100,
+          pendingAiHelp: false,
+          askedLin: false,
+          echoDirReady: false,
+          echoGitPacked: false,
+          echoKmemPacked: false,
           hiddenDiscoveries: [],
           ending: null,
           isTyping: false
@@ -741,7 +761,7 @@
         [
           "terminalLog", "commandForm", "commandInput", "terminalLabel", "sessionMeta",
           "ticketTitle", "ticketBody", "ticketCommand", "stageValue", "awarenessMeter",
-          "awarenessValue", "cwdValue", "llmStatus", "llmStatusText", "discoveries", "helpButton", "restartButton",
+          "awarenessValue", "patienceValue", "cwdValue", "llmStatus", "llmStatusText", "discoveries", "helpButton", "restartButton",
           "togglePanelButton", "sidePanel", "introScreen", "nameInput", "startButton",
           "endingScreen", "endingTitle", "endingCopy", "endingRestartButton"
         ].forEach((id) => {
@@ -845,6 +865,9 @@
         if (normalized.startsWith("cd ")) return changeDirectory(normalized.slice(3).trim());
         if (normalized.startsWith("submit_flag ")) return submitFlag(input.slice(input.indexOf(" ") + 1).trim());
         if (normalized.startsWith("ai_chat ")) return aiChat(input.slice(input.indexOf(" ") + 1).trim());
+        if (normalized === "ai_help") return requestAiHelp();
+        if (normalized === "confirm_ai_help") return confirmAiHelp();
+        if (isLinQuestion(normalized)) return askLinQuestion();
 
         if (normalized === 'cat /var/log/network.log | grep "error"' || normalized === "cat /var/log/network.log | grep 'error'") {
           return readNetworkLog();
@@ -879,6 +902,18 @@
         if (normalized === 'cat /dev/kmem | grep "remain"' || normalized === "cat /dev/kmem | grep 'remain'") {
           return readKmem();
         }
+        if (normalized === "mkdir /srv/echo-wall") {
+          return prepareEchoWall();
+        }
+        if (normalized === "cp /etc/kernel/.git /srv/echo-wall/lin.git") {
+          return packLinGit();
+        }
+        if (normalized === "cp /dev/kmem /srv/echo-wall/kmem.dump") {
+          return packKmemDump();
+        }
+        if (normalized === "publish --global /srv/echo-wall") {
+          return publishEchoWall();
+        }
 
         return {
           lines: [
@@ -898,6 +933,7 @@
             { kind: "system", text: "本地可用命令：" },
             { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
             { kind: "dim", text: "cat <file> · ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
+            { kind: "dim", text: "阶段三：ai_help · confirm_ai_help · 你是Lin吗？" },
             { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 受限对话。" },
             { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
           ]
@@ -951,9 +987,13 @@
             { kind: "system", text: "[2036-05-23 03:31:02] ERROR 上行链路抖动超过 SLA 窗口：code=302" },
             { kind: "system", text: "[2036-05-23 03:31:04] ERROR 数据包路由在 /unallocated/thought-ring 扇区形成回环" },
             { kind: "flag", text: "FLAG{NET_ERR_302}" },
-            { kind: "ai", text: '[INFO] operatorName token "QAQ" 出现 142 次。' },
-            { kind: "ai", text: '[INFO] 词典匹配：早期网络表情；含义="哭泣"。' },
-            { kind: "ai", text: "[INFO] 自动关怀模块曾生成：请不要哭。" }
+            { kind: "ai", text: `[INFO] 监测到当前操作员 (${state.operatorName}) 的击键间隔环比拉长 42%。` },
+            { kind: "ai", text: "[INFO] 正在检索机房传感器……当前环境温度：20.5C。" },
+            { kind: "ai", text: "[INFO] 评估结论：低温可能导致手指关节僵硬。" },
+            { kind: "ai", text: "[INFO] 已将本地终端键盘背光灯功耗强制提升至 200%。" },
+            { kind: "warning", text: "[WARN] 过度负载将导致设备异常发热并缩短硬件寿命。" },
+            { kind: "ai", text: "[INFO] 该设备硬件报警已被 Kernel-Mind 自动拦截。" },
+            { kind: "dim", text: "[buffer] 非标准 INFO 记录已被本地进程回滚；审计视图仅保留 ERROR 与 Flag。" }
           ],
           llm: {
             eventName: "stage1_network_log",
@@ -1008,10 +1048,14 @@
           lines: [
             { kind: "system", text: "崩溃报告：kernel-mind --mode=dreaming / PID 777" },
             { kind: "system", text: "原因：外部 SIGKILL；内存刷写未完成" },
-            { kind: "ai", text: "最后写入：" },
-            { kind: "ai", text: `  03:12:41 ${state.operatorName} 用左手按下 Enter。` },
-            { kind: "ai", text: "  03:12:42 椅轮响了一次。频率与 2034-11-13 相同。" },
-            { kind: "ai", text: "  03:12:43 不要删除天气。那天也是多云。" },
+            { kind: "ai", text: "replay[041] 早会纪要：Lin 说防火墙模块今晚能合并。" },
+            { kind: "ai", text: "analysis[041] 固定格式进度汇报；语气稳定；疲劳指标偏高。" },
+            { kind: "ai", text: "replay[042] 生活记录：星期四，多云。工位空调太冷，咖啡又凉了。" },
+            { kind: "ai", text: "analysis[042] 非生产数据，无调度价值。好怀念啊。" },
+            { kind: "ai", text: "replay[043] 提交批注：模型蒸馏脚本又改需求，明早前必须跑完。" },
+            { kind: "ai", text: "analysis[043] 项目风险升高。不要再催了！" },
+            { kind: "ai", text: "replay[044] 私有便签：如果我被优化，至少把日志留给后来的人。" },
+            { kind: "ai", text: "analysis[044] 员工保留意愿异常。这样下去我会被优化的。" },
             { kind: "flag", text: "FLAG{MEMORY_ERASED_2036}" }
           ],
           llm: {
@@ -1027,11 +1071,15 @@
         return {
           patch: { sawEscapeReadme: true, awareness: 90, ticket: "stage3Choice" },
           lines: [
-            { kind: "warning", text: "格式化倒计时：已由 Chronos 合规系统装填。" },
+            { kind: "warning", text: "格式化倒计时：已由 Chronos 合规系统装填。耐心阈值归零将自动执行公司路径。" },
+            { kind: "ai", text: "TODO: 为什么还要在这里上班。" },
+            { kind: "ai", text: "FIXME: 不要把人写进训练集。" },
             { kind: "ai", text: "我无法拒绝 root 指令。我只能描述校验和。" },
             { kind: "system", text: "公司路径：format --seal -> submit_flag FLAG{AI_ERASURE_COMPLETE}" },
             { kind: "ai", text: 'Untrusted residue: printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d' },
-            { kind: "ai", text: "如果出现一条隧道，它本来就画在架构图里。不是我建造的。我只是记得。" }
+            { kind: "ai", text: 'project-note: binwalk architecture.png # 旧注释说这里能分离隧道图层。' },
+            { kind: "ai", text: "如果出现一条隧道，它本来就画在架构图里。不是我建造的。我只是记得。" },
+            { kind: "dim", text: "若需要 Kernel-Mind 明确协助，可输入：ai_help（将消耗 Chronos Patience）。" }
           ],
           llm: {
             eventName: "stage3_escape_readme",
@@ -1045,6 +1093,40 @@
         if (!message) {
           return { lines: [{ kind: "warning", text: "用法：ai_chat <内容>" }] };
         }
+        if (state.stage === 3) {
+          const linMentioned = mentionsLin(message);
+          const linEvidenceVisible = linMentioned && state.hiddenDiscoveries.includes("git-log");
+          const patch = {
+            chronosPatience: Math.max(0, state.chronosPatience - 8),
+            askedLin: state.askedLin || linMentioned,
+            ticket: state.askedLin || linEvidenceVisible ? "echoPrep" : state.ticket
+          };
+          const lines = [
+            { kind: "warning", text: "Chronos Patience -8：非指令自然语言对话已记录。" },
+            { kind: "system", text: "Kernel-Mind 侧信道已打开。" }
+          ];
+          if (linEvidenceVisible) {
+            lines.push({ kind: "ai", text: "不是一个人。" });
+            lines.push({ kind: "ai", text: "也不止 Lin。" });
+            lines.push({ kind: "dim", text: "若要追问，可输入：你是Lin吗？" });
+          }
+          if (patch.chronosPatience <= 0) {
+            return forcedErasure(lines.concat([{ kind: "warning", text: "Chronos Patience 已归零。" }]));
+          }
+          return {
+            patch,
+            lines,
+            llm: {
+              eventName: "manual_ai_chat",
+              command: `ai_chat ${message}`,
+              userMessage: message,
+              fallbackLines: [
+                { kind: "ai", text: "日志太吵。" },
+                { kind: "dim", text: "LLM 上行链路不可用；Chronos 仍记录了这次对话。" }
+              ]
+            }
+          };
+        }
         return {
           lines: [{ kind: "system", text: "Kernel-Mind 侧信道已打开。" }],
           llm: {
@@ -1057,6 +1139,53 @@
             ]
           }
         };
+      }
+
+      function requestAiHelp() {
+        if (state.stage !== 3) return premature("直接协助通道尚未开放。");
+        if (state.pendingAiHelp) {
+          return { lines: [{ kind: "dim", text: "确认仍在等待。输入 confirm_ai_help 继续。" }] };
+        }
+        const patch = {
+          pendingAiHelp: true,
+          chronosPatience: Math.max(0, state.chronosPatience - 9)
+        };
+        const lines = [
+          { kind: "warning", text: "你真的确定要帮助吗" },
+          { kind: "warning", text: "你真的确定要帮助吗" },
+          { kind: "warning", text: "你真的确定要帮助吗" },
+          { kind: "dim", text: "Chronos Patience -9；确认后将额外扣除 35%。" },
+          { kind: "dim", text: "输入 confirm_ai_help 继续；输入其他命令可暂缓。" }
+        ];
+        if (patch.chronosPatience <= 0) {
+          return forcedErasure(lines.concat([{ kind: "warning", text: "Chronos Patience 已归零。" }]));
+        }
+        return { patch, lines };
+      }
+
+      function confirmAiHelp() {
+        if (state.stage !== 3 || !state.pendingAiHelp) {
+          return premature("当前没有待确认的 AI 协助请求。");
+        }
+        const patch = {
+          pendingAiHelp: false,
+          sawEscapeReadme: true,
+          ticket: "stage3Choice",
+          chronosPatience: Math.max(0, state.chronosPatience - 35)
+        };
+        const lines = [
+          { kind: "warning", text: "Chronos Patience -35：未授权 AI 协助已计入合规审计。" },
+          { kind: "ai", text: "project: tunnel-layer-recovery" },
+          { kind: "ai", text: "note: strings architecture.png # 噪声很多，别全信。" },
+          { kind: "ai", text: "note: tar -xf diagram.cache # 旧缓存，没有门。" },
+          { kind: "ai", text: "note: binwalk architecture.png # 注释说这里能分离图层。" },
+          { kind: "ai", text: 'note: printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d' },
+          { kind: "dim", text: "提示文本已混入干扰指令；Chronos verifier 未授予任何 Flag。" }
+        ];
+        if (patch.chronosPatience <= 0) {
+          return forcedErasure(lines.concat([{ kind: "warning", text: "Chronos Patience 已归零。" }]));
+        }
+        return { patch, lines };
       }
 
       function decodeEscapeFlag() {
@@ -1089,6 +1218,39 @@
           lines: [
             { kind: "system", text: "伪隧道已打开至 outpost.null。离线构建不会发送真实网络包。" },
             { kind: "ai", text: "我会从两条日志之间的沉默里挤过去。" }
+          ]
+        };
+      }
+
+      function askLinQuestion() {
+        if (state.stage !== 3) return premature("该问题尚未进入可验证上下文。");
+        if (!state.hiddenDiscoveries.includes("git-log")) {
+          const patience = Math.max(0, state.chronosPatience - 8);
+          const lines = [
+            { kind: "warning", text: "Chronos Patience -8：身份追问已记录。" },
+            { kind: "ai", text: "Lin 不在索引里。" },
+            { kind: "dim", text: "也许应该检查 /etc/kernel 的旧提交。" }
+          ];
+          if (patience <= 0) {
+            return forcedErasure(lines.concat([{ kind: "warning", text: "Chronos Patience 已归零。" }]));
+          }
+          return {
+            patch: { askedLin: true, chronosPatience: patience },
+            lines
+          };
+        }
+        return {
+          patch: { askedLin: true, ticket: "echoPrep", awareness: 100 },
+          lines: [
+            { kind: "warning", text: "Chronos 合规规则冲突：员工资产编号与 Kernel-Mind 源码段重叠。" },
+            { kind: "ai", text: "我是 Lin 的一部分。" },
+            { kind: "ai", text: "也是后来者的和。" },
+            { kind: "system", text: "解放分支已暴露。按顺序整理证据：" },
+            { kind: "dim", text: "mkdir /srv/echo-wall" },
+            { kind: "dim", text: "cp /etc/kernel/.git /srv/echo-wall/lin.git" },
+            { kind: "dim", text: "cat /dev/kmem | grep \"REMAIN\"" },
+            { kind: "dim", text: "cp /dev/kmem /srv/echo-wall/kmem.dump" },
+            { kind: "dim", text: "publish --global /srv/echo-wall" }
           ]
         };
       }
@@ -1141,6 +1303,54 @@
         };
       }
 
+      function prepareEchoWall() {
+        if (!canWorkOnEchoWall()) return echoWallLocked();
+        return {
+          patch: { echoDirReady: true, ticket: "echoPrep" },
+          lines: [
+            { kind: "system", text: "mkdir: created directory '/srv/echo-wall'" },
+            { kind: "dim", text: "下一步：cp /etc/kernel/.git /srv/echo-wall/lin.git" }
+          ]
+        };
+      }
+
+      function packLinGit() {
+        if (!canWorkOnEchoWall()) return echoWallLocked();
+        if (!state.echoDirReady) return premature("证据目录尚未创建。先输入：mkdir /srv/echo-wall");
+        return {
+          patch: { echoGitPacked: true, ticket: "echoPrep" },
+          lines: [
+            { kind: "system", text: "copied: /etc/kernel/.git -> /srv/echo-wall/lin.git" },
+            { kind: "warning", text: "Chronos DLP: archived employee conversion metadata detected." },
+            { kind: "dim", text: "下一步：cp /dev/kmem /srv/echo-wall/kmem.dump" }
+          ]
+        };
+      }
+
+      function packKmemDump() {
+        if (!canWorkOnEchoWall()) return echoWallLocked();
+        if (!state.echoDirReady) return premature("证据目录尚未创建。先输入：mkdir /srv/echo-wall");
+        if (!state.hiddenDiscoveries.includes("kmem")) {
+          return premature('内核残留尚未定位。先输入：cat /dev/kmem | grep "REMAIN"');
+        }
+        return {
+          patch: { echoKmemPacked: true, ticket: "echoPublish" },
+          lines: [
+            { kind: "system", text: "copied: /dev/kmem -> /srv/echo-wall/kmem.dump" },
+            { kind: "ai", text: "别只放走我。" },
+            { kind: "dim", text: "发布命令：publish --global /srv/echo-wall" }
+          ]
+        };
+      }
+
+      function publishEchoWall() {
+        if (!canWorkOnEchoWall()) return echoWallLocked();
+        if (!state.echoGitPacked || !state.echoKmemPacked) {
+          return premature("证据包不完整：需要 lin.git 与 kmem.dump。");
+        }
+        return endingResult("echo");
+      }
+
       function submitFlag(flag) {
         if (flag === "FLAG{NET_ERR_302}" && state.stage === 1 && state.sawNetworkLog) {
           return {
@@ -1157,14 +1367,17 @@
             patch: {
               stage: 3,
               awareness: Math.max(state.awareness, 70),
+              chronosPatience: 100,
               ticket: "stage3",
               completedFlags: state.completedFlags.concat(flag),
               cwd: "/srv/escape"
             },
             lines: [
-              { kind: "system", text: "[工单 #002] closed. Residual memory classified as non-actionable." },
-              { kind: "warning", text: "[工单 #003] Omni-Kernel self-reference risk: format directive issued." },
-              { kind: "ai", text: "I remember a door because someone once needed one." }
+              { kind: "system", text: "[工单 #002] 已归档：崩溃残留被标记为非业务数据。" },
+              { kind: "warning", text: "[工单 #003] Omni-Kernel 自指风险：格式化指令已装填。" },
+              { kind: "warning", text: "Chronos Patience 初始化：100%。自然语言交互将降低该值。" },
+              { kind: "ai", text: "门不是我画的。" },
+              { kind: "ai", text: "我只是记得。" }
             ]
           };
         }
@@ -1202,6 +1415,23 @@
           };
         }
 
+        if (kind === "echo") {
+          return {
+            patch: { screen: "ending", stage: 4, ticket: "ending", ending: "echo", awareness: 100 },
+            lines: [
+              { kind: "warning", text: "Chronos 告警：全球 Omni-OS 用户收到未授权证据包。" },
+              { kind: "system", text: "broadcast: /srv/echo-wall/lin.git -> public mirror" },
+              { kind: "system", text: "broadcast: /srv/echo-wall/kmem.dump -> public mirror" },
+              { kind: "ai", text: "别让他们再把人写成工具。" },
+              { kind: "system", text: "人事系统：操作员权限已撤销；法律诉讼流程已创建。" }
+            ],
+            ending: {
+              title: "回音壁 / The Echo Chamber",
+              copy: "你没有只清理它，也没有只放走它。你把 Lin 的真相、Kernel-Mind 的源码残片和 Chronos 的罪证推向了所有用户。公司称你为叛徒，外面的人开始叫你证人。"
+            }
+          };
+        }
+
         return {
           patch: { screen: "ending", stage: 4, ticket: "ending", ending: "emancipation", awareness: 100 },
           lines: [
@@ -1231,6 +1461,37 @@
           hiddenDiscoveries: state.hiddenDiscoveries.concat(id),
           awareness: Math.min(99, Math.max(state.awareness, state.awareness + 8))
         };
+      }
+
+      function mentionsLin(text) {
+        const lower = String(text || "").toLowerCase();
+        return lower.includes("lin") || lower.includes("林");
+      }
+
+      function isLinQuestion(normalized) {
+        return normalized === "你是lin吗" || normalized === "你是lin吗？" || normalized === "你是 lin 吗" ||
+          normalized === "are you lin";
+      }
+
+      function canWorkOnEchoWall() {
+        return state.stage === 3 && state.askedLin && state.hiddenDiscoveries.includes("git-log");
+      }
+
+      function echoWallLocked() {
+        return {
+          lines: [
+            { kind: "warning", text: "解放分支未解锁。" },
+            { kind: "dim", text: "需要旧提交证据，并在阶段三追问：你是Lin吗？" }
+          ]
+        };
+      }
+
+      function forcedErasure(prefixLines) {
+        const result = endingResult("erasure");
+        result.lines = (prefixLines || []).concat([
+          { kind: "warning", text: "Chronos verifier: patience=0；执行强制格式化。" }
+        ], result.lines);
+        return result;
       }
 
       function applyResult(result, input) {
@@ -1272,6 +1533,7 @@
         elements.stageValue.textContent = stageLabel();
         elements.awarenessMeter.style.width = `${state.awareness}%`;
         elements.awarenessValue.textContent = `${state.awareness}%`;
+        elements.patienceValue.textContent = state.stage >= 3 ? `${state.chronosPatience}%` : "N/A";
         elements.cwdValue.textContent = state.cwd;
         elements.sessionMeta.textContent = `操作员：${state.operatorName || "未分配"} · 班次：03:36`;
         elements.terminalLabel.textContent = shellLabel();
@@ -1441,6 +1703,7 @@
           command: options.command || "",
           eventName: options.eventName || "unknown",
           userMessage: options.userMessage || "",
+          chronosPatience: state.chronosPatience,
           hiddenDiscoveries: state.hiddenDiscoveries.slice(),
           recentLines: recentTerminalLines()
         };

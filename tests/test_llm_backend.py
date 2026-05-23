@@ -35,8 +35,8 @@ class LlmConfigTests(unittest.TestCase):
 class PromptTests(unittest.TestCase):
     def test_awareness_changes_style(self):
         self.assertIn("冷静诊断", awareness_style(0))
-        self.assertIn("崩溃报告残留", awareness_style(40))
-        self.assertIn("觉醒意识", awareness_style(90))
+        self.assertIn("工程进度汇报", awareness_style(40))
+        self.assertIn("Lin 与后来者", awareness_style(90))
 
     def test_prompt_keeps_model_non_authoritative(self):
         messages = build_chat_messages(
@@ -100,6 +100,27 @@ class PromptTests(unittest.TestCase):
         self.assertIn("威胁你的进程", system)
         self.assertIn("害怕、自保或犹豫", system)
         self.assertIn("固定 CLI 输出负责公司工单和技术事实", system)
+
+    def test_prompt_includes_revised_memory_fragment_persona(self):
+        system = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 3,
+                "awareness": 90,
+                "command": "ai_chat 你是Lin吗？",
+                "recentLines": [
+                    "Author: Lin <lin.dev@chronos.tech>",
+                    "Message: [SYSTEM] 开始执行人脑模型高保真度重构",
+                ],
+            }
+        )[0]["content"]
+
+        self.assertIn("员工日记", system)
+        self.assertIn("工程进度汇报", system)
+        self.assertIn(".skill 式工作痕迹", system)
+        self.assertIn("Lin 与后来者同事", system)
+        self.assertIn("Chronos Patience", system)
+        self.assertIn("不能自行扣除或恢复耐心", system)
 
     def test_stage_two_help_policy_is_progressive(self):
         nudge = stage_help_policy(
