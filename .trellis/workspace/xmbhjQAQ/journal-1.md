@@ -71,3 +71,36 @@ Implemented and verified the offline H5 MVP for Kernel Ghost: 2036, including ps
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Add Kernel Ghost LLM streaming
+
+**Date**: 2026-05-23
+**Task**: Add Kernel Ghost LLM streaming
+**Branch**: `main`
+
+### Summary
+
+Added a standard-library backend for OpenAI-compatible Chat Completions streaming, backend-only environment configuration, frontend LLM status and ai_chat streaming client, graceful fallback, documentation, and unit tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6ed6661` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
