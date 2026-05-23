@@ -368,3 +368,36 @@ Implemented simulated Stage 3 escape analysis tools, added architecture image as
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: LLM context ordering
+
+**Date**: 2026-05-23
+**Task**: LLM context ordering
+**Branch**: `main`
+
+### Summary
+
+Added ordered terminal context for LLM referential questions, anomaly extraction for PID 777 process output, backend prompt prioritization, regression tests, and frontend spec guidance.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0b68774` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
