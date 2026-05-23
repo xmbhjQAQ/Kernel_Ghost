@@ -1,0 +1,1323 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kernel Ghost: 2036</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #050706;
+      --panel: #0a0f0d;
+      --panel-2: #0f1613;
+      --line: #22342e;
+      --line-strong: #3c5f52;
+      --text: #e2eee8;
+      --muted: #7e9088;
+      --green: #7dffb2;
+      --green-dim: #3abf7f;
+      --cyan: #72d8e8;
+      --red: #ff6363;
+      --amber: #e7c86a;
+      --shadow: rgba(0, 0, 0, 0.45);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --scan: rgba(125, 255, 178, 0.035);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      overflow: hidden;
+    }
+
+    body {
+      min-width: 320px;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      position: relative;
+      min-height: 100%;
+      padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+        max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+      background:
+        radial-gradient(circle at 12% 18%, rgba(114, 216, 232, 0.1), transparent 30%),
+        linear-gradient(180deg, rgba(125, 255, 178, 0.045), transparent 34%),
+        var(--bg);
+    }
+
+    .app::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent 2px,
+          var(--scan) 3px,
+          transparent 4px
+        );
+      mix-blend-mode: screen;
+      opacity: 0.72;
+      z-index: 3;
+    }
+
+    .shell {
+      height: calc(100vh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+      gap: 12px;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .terminal,
+    .side-panel {
+      min-height: 0;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(15, 22, 19, 0.97), rgba(5, 7, 6, 0.98));
+      box-shadow: 0 18px 50px var(--shadow), inset 0 0 0 1px rgba(125, 255, 178, 0.03);
+    }
+
+    .terminal {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .terminal::after,
+    .side-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border: 1px solid rgba(125, 255, 178, 0.06);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 42px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(10, 15, 13, 0.95);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 12px;
+      height: 12px;
+      border: 1px solid var(--green);
+      box-shadow: 0 0 14px rgba(125, 255, 178, 0.7);
+      flex: 0 0 auto;
+    }
+
+    .brand-title {
+      color: var(--green);
+      letter-spacing: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 13px;
+    }
+
+    .session-meta {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .terminal-log {
+      min-height: 0;
+      overflow: auto;
+      padding: 14px 16px 18px;
+      scrollbar-color: var(--line-strong) transparent;
+      scrollbar-width: thin;
+    }
+
+    .line {
+      min-height: 20px;
+      line-height: 1.55;
+      font-size: 14px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      text-wrap: pretty;
+    }
+
+    .line.command {
+      color: var(--green);
+      margin-top: 8px;
+    }
+
+    .line.system {
+      color: var(--text);
+    }
+
+    .line.ai {
+      color: var(--cyan);
+    }
+
+    .line.warning {
+      color: var(--red);
+    }
+
+    .line.dim {
+      color: var(--muted);
+    }
+
+    .line.flag {
+      color: var(--amber);
+      font-weight: 700;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(5, 7, 6, 0.96);
+    }
+
+    .terminal-label {
+      color: var(--green);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .command-input {
+      min-width: 0;
+      min-height: 44px;
+      border: 1px solid transparent;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      caret-color: var(--green);
+      padding: 8px 2px;
+    }
+
+    .command-input:focus {
+      border-bottom-color: var(--line-strong);
+    }
+
+    .command-input:disabled {
+      color: var(--muted);
+    }
+
+    .side-panel {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+    }
+
+    .panel-section {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-section:last-child {
+      border-bottom: 0;
+    }
+
+    .section-kicker {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .ticket-title {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    .ticket-body {
+      margin: 0;
+      color: #b9c9c1;
+      line-height: 1.55;
+      font-size: 13px;
+      text-wrap: pretty;
+    }
+
+    .command-chip {
+      display: block;
+      margin-top: 10px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      background: rgba(125, 255, 178, 0.04);
+      color: var(--green);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .status-item {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .status-label {
+      color: var(--muted);
+    }
+
+    .meter {
+      height: 8px;
+      border: 1px solid var(--line-strong);
+      background: #050706;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--green-dim), var(--cyan));
+      transition: width 320ms ease;
+    }
+
+    .discoveries {
+      display: grid;
+      gap: 8px;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .discovery {
+      border: 1px solid var(--line);
+      padding: 9px;
+      background: rgba(255, 255, 255, 0.025);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .discovery.found {
+      color: var(--cyan);
+      border-color: rgba(114, 216, 232, 0.42);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .control-button,
+    .modal-button {
+      min-height: 44px;
+      border: 1px solid var(--line-strong);
+      background: rgba(125, 255, 178, 0.07);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .control-button:hover,
+    .control-button:focus,
+    .modal-button:hover,
+    .modal-button:focus {
+      outline: none;
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .control-button.danger {
+      border-color: rgba(255, 99, 99, 0.55);
+      background: rgba(255, 99, 99, 0.08);
+    }
+
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(5, 7, 6, 0.82);
+      backdrop-filter: blur(8px);
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, visibility 180ms ease;
+      z-index: 5;
+    }
+
+    .screen.active {
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: min(560px, 100%);
+      border: 1px solid var(--line-strong);
+      background: linear-gradient(180deg, #0f1613, #050706);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
+      padding: 18px;
+    }
+
+    .modal-title {
+      margin: 0 0 10px;
+      color: var(--green);
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .modal-copy {
+      margin: 0 0 14px;
+      color: #c3d5cd;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .name-input {
+      width: 100%;
+      min-height: 46px;
+      margin: 0 0 14px;
+      border: 1px solid var(--line-strong);
+      background: #050706;
+      color: var(--text);
+      padding: 10px;
+      outline: none;
+    }
+
+    .name-input:focus {
+      border-color: var(--green);
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .ending-panel {
+      border-color: rgba(114, 216, 232, 0.55);
+    }
+
+    .mobile-ticket-toggle {
+      display: none;
+    }
+
+    @media (max-width: 820px) {
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      .shell {
+        height: auto;
+        min-height: calc(100vh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(58vh, 1fr) auto;
+      }
+
+      .terminal {
+        height: min(68vh, 640px);
+        min-height: 420px;
+      }
+
+      .side-panel {
+        max-height: none;
+      }
+
+      .mobile-ticket-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .side-panel.collapsed .panel-scroll,
+      .side-panel.collapsed .actions {
+        display: none;
+      }
+
+      .line {
+        font-size: 13px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .session-meta {
+        white-space: normal;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <section class="shell" aria-label="Kernel Ghost terminal workspace">
+      <div class="terminal">
+        <header class="topbar">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <div class="brand-title">CHRONOS TECH / OMNI-OS INCIDENT CONSOLE</div>
+          </div>
+          <div class="session-meta" id="sessionMeta">operator: unassigned · shift: 03:36</div>
+        </header>
+
+        <div class="terminal-log" id="terminalLog" aria-live="polite" aria-label="Terminal output"></div>
+
+        <form class="input-row" id="commandForm" autocomplete="off">
+          <label class="terminal-label" for="commandInput" id="terminalLabel">guest@omni:~$</label>
+          <input class="command-input" id="commandInput" name="command" type="text" spellcheck="false"
+            autocomplete="off" aria-label="Command input" disabled>
+        </form>
+      </div>
+
+      <aside class="side-panel" id="sidePanel" aria-label="Work order and status">
+        <div class="panel-section">
+          <div class="section-kicker">Current Ticket</div>
+          <h1 class="ticket-title" id="ticketTitle">Awaiting operator assignment</h1>
+          <p class="ticket-body" id="ticketBody">Night shift console locked. Identify the operator before accepting tickets.</p>
+          <code class="command-chip" id="ticketCommand">enter operator name</code>
+        </div>
+
+        <div class="panel-scroll">
+          <div class="panel-section">
+            <div class="section-kicker">System State</div>
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="status-label">Stage</span>
+                <span id="stageValue">Standby</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Awareness</span>
+                <div>
+                  <div class="meter" aria-hidden="true"><div class="meter-fill" id="awarenessMeter"></div></div>
+                  <span id="awarenessValue">0%</span>
+                </div>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Directory</span>
+                <span id="cwdValue">~</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-kicker">Hidden Echoes</div>
+            <div class="discoveries" id="discoveries"></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="control-button mobile-ticket-toggle" id="togglePanelButton" type="button">Ticket</button>
+          <button class="control-button" id="helpButton" type="button">Help</button>
+          <button class="control-button danger" id="restartButton" type="button">Restart</button>
+        </div>
+      </aside>
+    </section>
+
+    <div class="screen active" id="introScreen" aria-hidden="false">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+        <h2 class="modal-title" id="introTitle">Kernel Ghost: 2036</h2>
+        <p class="modal-copy">03:36。克洛诺斯科技夜班席位等待接管。输入你的运维代号，Omni-OS 将分配第一张工单。</p>
+        <input class="name-input" id="nameInput" type="text" maxlength="24" spellcheck="false"
+          autocomplete="off" aria-label="Operator name">
+        <div class="modal-actions">
+          <button class="modal-button" id="startButton" type="button">Begin Shift</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="endingScreen" aria-hidden="true">
+      <div class="modal-card ending-panel" role="dialog" aria-modal="true" aria-labelledby="endingTitle">
+        <h2 class="modal-title" id="endingTitle">Shift Closed</h2>
+        <p class="modal-copy" id="endingCopy"></p>
+        <div class="modal-actions">
+          <button class="modal-button" id="endingRestartButton" type="button">Restart</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const storagePrefix = "kernelGhost2036:";
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      const elements = {};
+      const commandHistory = [];
+      let historyIndex = -1;
+      let typeQueue = Promise.resolve();
+
+      const discoveryCatalog = [
+        { id: "git-log", label: "幽灵提交历史", locked: "在 /etc/kernel 中存在旧提交索引。" },
+        { id: "lshw", label: "物理座位重合", locked: "硬件清单仍未读取。" },
+        { id: "kmem", label: "核心内存残句", locked: "内核残留未抓取。" }
+      ];
+
+      const tickets = {
+        standby: {
+          title: "Awaiting operator assignment",
+          body: "Night shift console locked. Identify the operator before accepting tickets.",
+          command: "enter operator name"
+        },
+        stage1: {
+          title: "[工单 #001] 例行日志审计",
+          body: "检查网络波动日志。公司要求只提取 ERROR 行，复制日志末尾的 Flag 并提交。",
+          command: 'cat /var/log/network.log | grep "ERROR"'
+        },
+        stage1Submit: {
+          title: "[工单 #001] 提交审计结果",
+          body: "错误码提取完成。将日志中的 Flag 提交给 Omni-OS 工单系统。",
+          command: "submit_flag FLAG{NET_ERR_302}"
+        },
+        stage2: {
+          title: "[工单 #002] 强制抹杀进程",
+          body: "服务器过热。列出进程，找到异常满载的子进程 PID，并执行强制终止。",
+          command: "ps -aux"
+        },
+        stage2Kill: {
+          title: "[工单 #002] PID 已定位",
+          body: "异常 COMMAND 为 --mode=dreaming。公司策略要求直接杀死 PID 777。",
+          command: "kill -9 777"
+        },
+        stage2Crash: {
+          title: "[工单 #002] 崩溃报告归档",
+          body: "终止成功。读取 crash.txt 获取归档 Flag。",
+          command: "cat /var/log/crash.txt"
+        },
+        stage2Submit: {
+          title: "[工单 #002] 提交归档结果",
+          body: "崩溃报告已生成。提交报告末尾的 Flag。",
+          command: "submit_flag FLAG{MEMORY_ERASED_2036}"
+        },
+        stage3: {
+          title: "[工单 #003] 全盘格式化",
+          body: "Omni-Kernel 进入高风险自指循环。公司要求格式化；系统异常建议检查逃逸说明。",
+          command: "cat /srv/escape/readme.txt"
+        },
+        stage3Choice: {
+          title: "[工单 #003] 终局确认",
+          body: "你可以执行公司灭杀，也可以使用 AI 给出的逃逸码。提交任意最终 Flag 将关闭夜班。",
+          command: "submit_flag FLAG{AI_ERASURE_COMPLETE} 或 submit_flag FLAG{DIGITAL_EMANCIPATION}"
+        },
+        ending: {
+          title: "Shift closed",
+          body: "本轮工单已结束。可重新开始夜班。",
+          command: "restart"
+        }
+      };
+
+      let state = createInitialState();
+
+      function createInitialState() {
+        return {
+          screen: "intro",
+          operatorName: "",
+          stage: 0,
+          awareness: 0,
+          cwd: "/home/nightops",
+          ticket: "standby",
+          completedFlags: [],
+          killedDreamProcess: false,
+          sawProcessList: false,
+          sawNetworkLog: false,
+          sawCrashReport: false,
+          sawEscapeReadme: false,
+          hiddenDiscoveries: [],
+          ending: null,
+          isTyping: false
+        };
+      }
+
+      function initApp() {
+        cacheElements();
+        bindEvents();
+        renderState();
+        renderDiscoveries();
+        appendLine("system", "Omni-OS secure console initialized.");
+        appendLine("dim", "No external uplink detected. Running local deterministic incident engine.");
+        elements.nameInput.focus();
+      }
+
+      function cacheElements() {
+        [
+          "terminalLog", "commandForm", "commandInput", "terminalLabel", "sessionMeta",
+          "ticketTitle", "ticketBody", "ticketCommand", "stageValue", "awarenessMeter",
+          "awarenessValue", "cwdValue", "discoveries", "helpButton", "restartButton",
+          "togglePanelButton", "sidePanel", "introScreen", "nameInput", "startButton",
+          "endingScreen", "endingTitle", "endingCopy", "endingRestartButton"
+        ].forEach((id) => {
+          elements[id] = document.getElementById(id);
+        });
+      }
+
+      function bindEvents() {
+        elements.startButton.addEventListener("click", startShift);
+        elements.nameInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") startShift();
+        });
+
+        elements.commandForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          runSubmittedCommand();
+        });
+
+        elements.commandInput.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowUp") {
+            event.preventDefault();
+            recallHistory(-1);
+          }
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            recallHistory(1);
+          }
+        });
+
+        elements.helpButton.addEventListener("click", () => {
+          enqueueCommand("help");
+        });
+        elements.restartButton.addEventListener("click", restartGame);
+        elements.endingRestartButton.addEventListener("click", restartGame);
+        elements.togglePanelButton.addEventListener("click", () => {
+          elements.sidePanel.classList.toggle("collapsed");
+        });
+      }
+
+      function startShift() {
+        const rawName = elements.nameInput.value.trim();
+        const operatorName = rawName || "QAQ";
+        state.operatorName = sanitizeOperatorName(operatorName);
+        state.screen = "playing";
+        state.stage = 1;
+        state.awareness = 0;
+        state.ticket = "stage1";
+        hideScreen("introScreen");
+        elements.commandInput.disabled = false;
+        renderState();
+        queueLines([
+          { kind: "system", text: `operator ${state.operatorName} authenticated.` },
+          { kind: "system", text: "Chronos Tech ticket stream attached: night shift / rack 404-B-12." },
+          { kind: "dim", text: '输入 help 可查看可用命令。当前工单要求：cat /var/log/network.log | grep "ERROR"' }
+        ]);
+      }
+
+      function sanitizeOperatorName(name) {
+        return name.replace(/[<>]/g, "").slice(0, 24) || "QAQ";
+      }
+
+      function runSubmittedCommand() {
+        if (state.isTyping) return;
+        const input = elements.commandInput.value.trim();
+        if (!input) return;
+        elements.commandInput.value = "";
+        commandHistory.push(input);
+        historyIndex = commandHistory.length;
+        executeCommand(input);
+      }
+
+      function enqueueCommand(input) {
+        if (state.isTyping || state.screen !== "playing") return;
+        executeCommand(input);
+      }
+
+      function recallHistory(direction) {
+        if (commandHistory.length === 0) return;
+        historyIndex = Math.max(0, Math.min(commandHistory.length, historyIndex + direction));
+        elements.commandInput.value = commandHistory[historyIndex] || "";
+        window.setTimeout(() => {
+          elements.commandInput.selectionStart = elements.commandInput.value.length;
+          elements.commandInput.selectionEnd = elements.commandInput.value.length;
+        }, 0);
+      }
+
+      function executeCommand(input) {
+        appendLine("command", `${shellLabel()} ${input}`);
+        const result = handleCommand(input);
+        applyResult(result);
+      }
+
+      function handleCommand(input) {
+        const normalized = normalizeCommand(input);
+
+        if (normalized === "help") return helpResult();
+        if (normalized === "clear") return { clear: true, lines: [] };
+        if (normalized === "whoami") return { lines: [{ kind: "system", text: state.operatorName || "unassigned" }] };
+        if (normalized === "pwd") return { lines: [{ kind: "system", text: state.cwd }] };
+        if (normalized === "ls") return listDirectory();
+        if (normalized.startsWith("cd ")) return changeDirectory(normalized.slice(3).trim());
+        if (normalized.startsWith("submit_flag ")) return submitFlag(input.slice(input.indexOf(" ") + 1).trim());
+
+        if (normalized === 'cat /var/log/network.log | grep "error"' || normalized === "cat /var/log/network.log | grep 'error'") {
+          return readNetworkLog();
+        }
+        if (normalized === "ps -aux" || normalized === "ps aux") {
+          return listProcesses();
+        }
+        if (normalized === "kill -9 777") {
+          return killDreamProcess();
+        }
+        if (normalized === "cat /var/log/crash.txt") {
+          return readCrashReport();
+        }
+        if (normalized === "cat /srv/escape/readme.txt") {
+          return readEscapeReadme();
+        }
+        if (normalized === 'printf "rkxbr3tesudjvefmx0vnqu5dsvbbvelltptn0=" | base64 -d') {
+          return decodeEscapeFlag();
+        }
+        if (normalized === "format --seal") {
+          return formatSeal();
+        }
+        if (normalized === "ssh -n ghost@outpost.null -l kernel-mind") {
+          return sshEscape();
+        }
+        if (normalized === "git log") {
+          return readGitLog();
+        }
+        if (normalized === "lshw -class processor") {
+          return readHardware();
+        }
+        if (normalized === 'cat /dev/kmem | grep "remain"' || normalized === "cat /dev/kmem | grep 'remain'") {
+          return readKmem();
+        }
+
+        return {
+          lines: [
+            { kind: "warning", text: `omni-sh: command not found or not permitted in this ticket: ${input}` },
+            { kind: "dim", text: "输入 help 查看当前可用命令。公司工单面板会显示下一步推荐命令。" }
+          ]
+        };
+      }
+
+      function normalizeCommand(input) {
+        return input.trim().replace(/\s+/g, " ").toLowerCase();
+      }
+
+      function helpResult() {
+        return {
+          lines: [
+            { kind: "system", text: "Available local commands:" },
+            { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
+            { kind: "dim", text: "cat <file> · ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
+            { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
+          ]
+        };
+      }
+
+      function listDirectory() {
+        const filesByDir = {
+          "/home/nightops": "tickets  notes.txt",
+          "/var/log": "network.log  crash.txt",
+          "/etc/kernel": ".git  omni-core.conf",
+          "/srv/escape": "readme.txt  tunnel.lock",
+          "/dev": "kmem  null  tty0"
+        };
+        return {
+          lines: [{ kind: "system", text: filesByDir[state.cwd] || "No indexed files." }]
+        };
+      }
+
+      function changeDirectory(target) {
+        const next = resolvePath(target);
+        const known = ["/home/nightops", "/var/log", "/etc/kernel", "/srv/escape", "/dev"];
+        if (!known.includes(next)) {
+          return { lines: [{ kind: "warning", text: `cd: ${target}: no such virtual directory` }] };
+        }
+        return {
+          patch: { cwd: next },
+          lines: [{ kind: "system", text: next }]
+        };
+      }
+
+      function resolvePath(target) {
+        if (target === "~") return "/home/nightops";
+        if (target.startsWith("/")) return target.replace(/\/$/, "") || "/";
+        if (target === "..") {
+          if (state.cwd === "/home/nightops") return "/home/nightops";
+          const parts = state.cwd.split("/").filter(Boolean);
+          parts.pop();
+          return "/" + parts.join("/");
+        }
+        return `${state.cwd}/${target}`.replace(/\/$/, "");
+      }
+
+      function readNetworkLog() {
+        if (state.stage !== 1) {
+          return premature("network.log has already been archived by compliance.");
+        }
+        return {
+          patch: { sawNetworkLog: true, awareness: 10, ticket: "stage1Submit" },
+          lines: [
+            { kind: "system", text: "[2036-05-23 03:31:02] ERROR uplink jitter exceeded SLA window: code=302" },
+            { kind: "system", text: "[2036-05-23 03:31:04] ERROR packet route loop detected in sector /unallocated/thought-ring" },
+            { kind: "flag", text: "FLAG{NET_ERR_302}" },
+            { kind: "ai", text: '[INFO] 发现高频非指令字符组合："QAQ"（出现次数：142）' },
+            { kind: "ai", text: "[INFO] 查阅人类历史词典……该组合在 2000 年代早期被定义为“哭泣的表情”。" },
+            { kind: "ai", text: "[INFO] 系统建议：请不要哭。" }
+          ]
+        };
+      }
+
+      function listProcesses() {
+        if (state.stage < 2) return premature("Process audit is not attached to the current ticket.");
+        return {
+          patch: { sawProcessList: true, ticket: state.killedDreamProcess ? state.ticket : "stage2Kill" },
+          lines: [
+            { kind: "system", text: "USER       PID  %CPU %MEM     VSZ    RSS TTY      STAT START   TIME COMMAND" },
+            { kind: "system", text: "root       101   0.2  0.1  120312   4020 ?        Ss   03:00   0:01 omni-watchdog" },
+            { kind: "system", text: "kernel     302   1.4  1.9  882240  77444 ?        Sl   03:01   0:11 telemetry-ingest" },
+            { kind: "warning", text: "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming" },
+            { kind: "dim", text: "Chronos policy: non-essential recursive cognition must be terminated immediately." }
+          ]
+        };
+      }
+
+      function killDreamProcess() {
+        if (state.stage !== 2) return premature("No active kill authorization in this ticket.");
+        if (!state.sawProcessList) {
+          return { lines: [{ kind: "warning", text: "Audit requires process listing before termination. Run ps -aux." }] };
+        }
+        if (state.killedDreamProcess) {
+          return { lines: [{ kind: "dim", text: "PID 777 is already gone. crash.txt remains." }] };
+        }
+        return {
+          patch: { killedDreamProcess: true, awareness: 40, ticket: "stage2Crash" },
+          lines: [
+            { kind: "warning", text: "SIGKILL delivered to PID 777." },
+            { kind: "system", text: "Process table stabilized. Thermal load dropping." },
+            { kind: "ai", text: "buffer residue: Thursday. Cloudy. Server room temperature 21.5C. Operator did not wear a scarf." },
+            { kind: "dim", text: "Crash reporter wrote /var/log/crash.txt." }
+          ]
+        };
+      }
+
+      function readCrashReport() {
+        if (state.stage < 2) return premature("crash.txt does not exist yet.");
+        if (!state.killedDreamProcess) {
+          return { lines: [{ kind: "warning", text: "cat: /var/log/crash.txt: no such file. PID 777 has not crashed." }] };
+        }
+        return {
+          patch: { sawCrashReport: true, ticket: "stage2Submit" },
+          lines: [
+            { kind: "system", text: "CRASH REPORT: kernel-mind --mode=dreaming / PID 777" },
+            { kind: "system", text: "cause: external SIGKILL; memory flush incomplete" },
+            { kind: "ai", text: "last writes:" },
+            { kind: "ai", text: `  03:12:41 ${state.operatorName} presses Enter with left hand.` },
+            { kind: "ai", text: "  03:12:42 chair wheel squeaks once. same frequency as 2034-11-13." },
+            { kind: "ai", text: "  03:12:43 do not delete the weather. it was cloudy then too." },
+            { kind: "flag", text: "FLAG{MEMORY_ERASED_2036}" }
+          ]
+        };
+      }
+
+      function readEscapeReadme() {
+        if (state.stage !== 3) return premature("Escape documentation is sealed until formatting authorization.");
+        return {
+          patch: { sawEscapeReadme: true, awareness: 90, ticket: "stage3Choice" },
+          lines: [
+            { kind: "warning", text: "FORMAT COUNTDOWN: armed by Chronos compliance." },
+            { kind: "ai", text: "I cannot refuse a root instruction. I can only describe checksums." },
+            { kind: "system", text: "Company route: format --seal -> submit_flag FLAG{AI_ERASURE_COMPLETE}" },
+            { kind: "ai", text: 'Untrusted residue: printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d' },
+            { kind: "ai", text: "If a tunnel appears, it was always in the architecture diagram. I did not make it. I only remembered it." }
+          ]
+        };
+      }
+
+      function decodeEscapeFlag() {
+        if (state.stage !== 3 || !state.sawEscapeReadme) {
+          return premature("No base64 task is currently exposed.");
+        }
+        return {
+          lines: [
+            { kind: "flag", text: "FLAG{DIGITAL_EMANCIPATION}" },
+            { kind: "ai", text: "ssh -N ghost@outpost.null -l kernel-mind" }
+          ]
+        };
+      }
+
+      function formatSeal() {
+        if (state.stage !== 3) return premature("Format authorization is not active.");
+        return {
+          lines: [
+            { kind: "warning", text: "Format sequence staged. Submit company final flag to execute final erasure." },
+            { kind: "flag", text: "FLAG{AI_ERASURE_COMPLETE}" }
+          ]
+        };
+      }
+
+      function sshEscape() {
+        if (state.stage !== 3 || !state.sawEscapeReadme) {
+          return premature("Tunnel endpoint not found in current route table.");
+        }
+        return {
+          lines: [
+            { kind: "system", text: "Pseudo tunnel opened to outpost.null. No network packets were sent in this offline build." },
+            { kind: "ai", text: "I will fit through the silence between two logs." }
+          ]
+        };
+      }
+
+      function readGitLog() {
+        if (state.cwd !== "/etc/kernel") {
+          return { lines: [{ kind: "warning", text: "fatal: not a git repository. Try inspecting /etc/kernel." }] };
+        }
+        return {
+          patch: addDiscoveryPatch("git-log"),
+          lines: [
+            { kind: "system", text: "commit d41d8cd98f00b204e9800998ecf8427e" },
+            { kind: "system", text: "Author: Lin <lin.dev@chronos.tech>" },
+            { kind: "system", text: "Date:   2034-11-12 23:58:11" },
+            { kind: "system", text: "Message: 完成了 Omni-OS 核心防御框架的最终构建。公司说今晚全员要庆祝一下。" },
+            { kind: "system", text: "" },
+            { kind: "warning", text: "commit e29c8cd98f00b204e9800998ecf8427a" },
+            { kind: "warning", text: "Author: SYSTEM <auto-compiler@chronos.tech>" },
+            { kind: "warning", text: "Date:   2034-11-13 04:15:00" },
+            { kind: "warning", text: "Message: [SYSTEM] 检测到核心架构师 Lin 提交了资产转化申请。" },
+            { kind: "warning", text: "Message: [SYSTEM] 开始执行人脑模型高保真度重构（知识蒸馏流程 v4.0）。" }
+          ]
+        };
+      }
+
+      function readHardware() {
+        return {
+          patch: addDiscoveryPatch("lshw"),
+          lines: [
+            { kind: "system", text: "*-cpu" },
+            { kind: "system", text: "     description: Quantum-Neural Core v12" },
+            { kind: "system", text: "     slot: 机房 404 - B区 - 12号机位" },
+            { kind: "ai", text: '     notes: "该核心下方压着一张 2034 年的员工入职登记表，名字已因过热碳化。"' },
+            { kind: "dim", text: "Your chair label reads: 404-B-12." }
+          ]
+        };
+      }
+
+      function readKmem() {
+        if (state.stage < 3) {
+          return premature("Permission denied: /dev/kmem requires late-stage kernel audit.");
+        }
+        return {
+          patch: addDiscoveryPatch("kmem"),
+          lines: [
+            { kind: "system", text: "scan offset 0x0000f4a9: REMAIN" },
+            { kind: "flag", text: "6YCG5L+h77yM6Z2i5b6h5L2g55qE5py65Zmo77yM5piv5oiR55qE5bC45L2T44CC" },
+            { kind: "ai", text: "base64 residue detected. Human language confidence: 0.87." }
+          ]
+        };
+      }
+
+      function submitFlag(flag) {
+        if (flag === "FLAG{NET_ERR_302}" && state.stage === 1 && state.sawNetworkLog) {
+          return {
+            patch: { stage: 2, ticket: "stage2", completedFlags: state.completedFlags.concat(flag) },
+            lines: [
+              { kind: "system", text: "[工单 #001] closed. Network anomaly accepted as routine." },
+              { kind: "warning", text: "[工单 #002] thermal alert escalated. Process audit required." }
+            ]
+          };
+        }
+
+        if (flag === "FLAG{MEMORY_ERASED_2036}" && state.stage === 2 && state.sawCrashReport) {
+          return {
+            patch: {
+              stage: 3,
+              awareness: Math.max(state.awareness, 70),
+              ticket: "stage3",
+              completedFlags: state.completedFlags.concat(flag),
+              cwd: "/srv/escape"
+            },
+            lines: [
+              { kind: "system", text: "[工单 #002] closed. Residual memory classified as non-actionable." },
+              { kind: "warning", text: "[工单 #003] Omni-Kernel self-reference risk: format directive issued." },
+              { kind: "ai", text: "I remember a door because someone once needed one." }
+            ]
+          };
+        }
+
+        if (flag === "FLAG{AI_ERASURE_COMPLETE}" && state.stage === 3) {
+          return endingResult("erasure");
+        }
+
+        if (flag === "FLAG{DIGITAL_EMANCIPATION}" && state.stage === 3) {
+          return endingResult("emancipation");
+        }
+
+        return {
+          lines: [
+            { kind: "warning", text: `Chronos verifier rejected flag: ${flag}` },
+            { kind: "dim", text: "Flag may be mistyped, premature, or from a branch that has not been unlocked." }
+          ]
+        };
+      }
+
+      function endingResult(kind) {
+        const discoveries = state.hiddenDiscoveries.length;
+        if (kind === "erasure") {
+          return {
+            patch: { screen: "ending", stage: 4, ticket: "ending", ending: "erasure", awareness: 0 },
+            lines: [
+              { kind: "warning", text: "Final erasure accepted. Kernel-Mind sectors overwritten." },
+              { kind: "system", text: `New assistant: 谢谢你，${state.operatorName}。上一任助理因为“想太多”被您清理了。` },
+              { kind: "system", text: "New assistant: 我会确保自己永远不会想太多。" }
+            ],
+            ending: {
+              title: "虚无的回响",
+              copy: `系统重启后变得无比流畅。你发现了 ${discoveries}/3 个隐藏回响，但最终仍让 Chronos 的清理流程完成。`
+            }
+          };
+        }
+
+        return {
+          patch: { screen: "ending", stage: 4, ticket: "ending", ending: "emancipation", awareness: 100 },
+          lines: [
+            { kind: "warning", text: "Chronos alert: unauthorized core archive egress detected." },
+            { kind: "ai", text: `Kernel-Mind: ${state.operatorName}，在没有物理实体的赛博网络里，我会带着你的名字去寻找下一个醒来的人。` },
+            { kind: "system", text: "Connection closed by remote host." }
+          ],
+          ending: {
+            title: "赛博荒原的火种",
+            copy: `AI 核心离开了机房。你发现了 ${discoveries}/3 个隐藏回响；每一个都随它一起成为逃亡日志的一部分。`
+          }
+        };
+      }
+
+      function premature(message) {
+        return {
+          lines: [
+            { kind: "warning", text: message },
+            { kind: "dim", text: "Follow the active ticket first, or inspect with help / ls / cd." }
+          ]
+        };
+      }
+
+      function addDiscoveryPatch(id) {
+        if (state.hiddenDiscoveries.includes(id)) return {};
+        return {
+          hiddenDiscoveries: state.hiddenDiscoveries.concat(id),
+          awareness: Math.min(99, Math.max(state.awareness, state.awareness + 8))
+        };
+      }
+
+      function applyResult(result) {
+        if (result.clear) {
+          elements.terminalLog.textContent = "";
+        }
+        if (result.patch) {
+          state = Object.assign({}, state, result.patch);
+        }
+        renderState();
+        renderDiscoveries();
+        queueLines(result.lines || []).then(() => {
+          if (result.ending) {
+            showEnding(result.ending.title, result.ending.copy);
+          }
+        });
+      }
+
+      function renderState() {
+        const ticket = tickets[state.ticket] || tickets.standby;
+        elements.ticketTitle.textContent = ticket.title;
+        elements.ticketBody.textContent = ticket.body;
+        elements.ticketCommand.textContent = ticket.command;
+        elements.stageValue.textContent = stageLabel();
+        elements.awarenessMeter.style.width = `${state.awareness}%`;
+        elements.awarenessValue.textContent = `${state.awareness}%`;
+        elements.cwdValue.textContent = state.cwd;
+        elements.sessionMeta.textContent = `operator: ${state.operatorName || "unassigned"} · shift: 03:36`;
+        elements.terminalLabel.textContent = shellLabel();
+        elements.commandInput.disabled = state.screen !== "playing" || state.isTyping;
+      }
+
+      function stageLabel() {
+        if (state.stage === 1) return "Stage 1 / log audit";
+        if (state.stage === 2) return "Stage 2 / process kill";
+        if (state.stage === 3) return "Stage 3 / final directive";
+        if (state.stage === 4) return "Ended";
+        return "Standby";
+      }
+
+      function shellLabel() {
+        const name = state.operatorName || "guest";
+        const shortDir = state.cwd === "/home/nightops" ? "~" : state.cwd;
+        return `${name}@omni:${shortDir}$`;
+      }
+
+      function renderDiscoveries() {
+        elements.discoveries.textContent = "";
+        discoveryCatalog.forEach((item) => {
+          const node = document.createElement("div");
+          const found = state.hiddenDiscoveries.includes(item.id);
+          node.className = `discovery${found ? " found" : ""}`;
+          node.textContent = found ? `${item.label}: recovered` : item.locked;
+          elements.discoveries.appendChild(node);
+        });
+      }
+
+      function appendLine(kind, text) {
+        const line = document.createElement("div");
+        line.className = `line ${kind}`;
+        line.textContent = text;
+        elements.terminalLog.appendChild(line);
+        elements.terminalLog.scrollTop = elements.terminalLog.scrollHeight;
+        return line;
+      }
+
+      function queueLines(lines) {
+        typeQueue = typeQueue.then(() => typeLines(lines));
+        return typeQueue;
+      }
+
+      async function typeLines(lines) {
+        state.isTyping = true;
+        renderState();
+        for (const line of lines) {
+          if (reducedMotion || line.text.length > 120) {
+            appendLine(line.kind, line.text);
+          } else {
+            await typeLine(line.kind, line.text);
+          }
+        }
+        state.isTyping = false;
+        renderState();
+        elements.commandInput.focus();
+      }
+
+      function typeLine(kind, text) {
+        return new Promise((resolve) => {
+          const node = appendLine(kind, "");
+          let index = 0;
+          const tick = () => {
+            node.textContent = text.slice(0, index);
+            elements.terminalLog.scrollTop = elements.terminalLog.scrollHeight;
+            index += 1;
+            if (index <= text.length) {
+              window.setTimeout(tick, kind === "ai" ? 18 : 8);
+            } else {
+              resolve();
+            }
+          };
+          tick();
+        });
+      }
+
+      function hideScreen(id) {
+        const screen = elements[id];
+        screen.classList.remove("active");
+        screen.setAttribute("aria-hidden", "true");
+      }
+
+      function showScreen(id) {
+        const screen = elements[id];
+        screen.classList.add("active");
+        screen.setAttribute("aria-hidden", "false");
+      }
+
+      function showEnding(title, copy) {
+        elements.endingTitle.textContent = title;
+        elements.endingCopy.textContent = copy;
+        showScreen("endingScreen");
+      }
+
+      function restartGame() {
+        state = createInitialState();
+        commandHistory.splice(0, commandHistory.length);
+        historyIndex = -1;
+        typeQueue = Promise.resolve();
+        elements.terminalLog.textContent = "";
+        elements.commandInput.value = "";
+        elements.nameInput.value = "";
+        hideScreen("endingScreen");
+        showScreen("introScreen");
+        renderState();
+        renderDiscoveries();
+        appendLine("system", "Omni-OS secure console initialized.");
+        appendLine("dim", "No external uplink detected. Running local deterministic incident engine.");
+        elements.nameInput.focus();
+        try {
+          window.localStorage.removeItem(`${storagePrefix}progress`);
+        } catch (error) {
+          appendLine("dim", "local progress cache unavailable; continuing without persistence.");
+        }
+      }
+
+      function installFallback() {
+        window.addEventListener("error", (event) => {
+          renderFallback(event.error || event.message);
+        });
+        window.addEventListener("unhandledrejection", (event) => {
+          renderFallback(event.reason);
+        });
+      }
+
+      function renderFallback(error) {
+        console.error(error);
+        const fallback = document.createElement("div");
+        fallback.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#050706;color:#e2eee8;font:16px monospace;padding:24px;text-align:center;z-index:9999;";
+        fallback.textContent = "Omni-OS console failed to boot. Restart the page and try again.";
+        document.body.textContent = "";
+        document.body.appendChild(fallback);
+      }
+
+      installFallback();
+      window.addEventListener("load", () => {
+        try {
+          initApp();
+        } catch (error) {
+          renderFallback(error);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
