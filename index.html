@@ -869,6 +869,7 @@
         if (normalized === "ai_help") return requestAiHelp();
         if (normalized === "confirm_ai_help") return confirmAiHelp();
         if (isLinQuestion(normalized)) return askLinQuestion();
+        if (normalized.startsWith("cat ")) return readVirtualFile(input.slice(input.toLowerCase().indexOf("cat ") + 4).trim());
 
         if (normalized === 'cat /var/log/network.log | grep "error"' || normalized === "cat /var/log/network.log | grep 'error'") {
           return readNetworkLog();
@@ -935,8 +936,10 @@
           lines: [
             { kind: "system", text: "本地可用命令：" },
             { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
-            { kind: "dim", text: "cat <file> · ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
+            { kind: "dim", text: "cat <file> 支持当前目录相对路径，例如 cat readme.txt" },
+            { kind: "dim", text: "ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
             { kind: "dim", text: "阶段三：ai_help · confirm_ai_help · 你是Lin吗？" },
+            { kind: "dim", text: "彩蛋：/etc/kernel 下 git log；后期 cat /dev/kmem | grep \"REMAIN\"；硬件可试 lshw -class processor。" },
             { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 受限对话。" },
             { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
           ]
@@ -981,6 +984,75 @@
           return "/" + parts.join("/");
         }
         return `${state.cwd}/${target}`.replace(/\/$/, "");
+      }
+
+      function readVirtualFile(expression) {
+        const normalized = normalizeCommand(`cat ${expression}`);
+        if (normalized === 'cat /var/log/network.log | grep "error"' || normalized === "cat /var/log/network.log | grep 'error'") {
+          return readNetworkLog();
+        }
+        if (normalized === 'cat network.log | grep "error"' || normalized === "cat network.log | grep 'error'") {
+          return state.cwd === "/var/log" ? readNetworkLog() : fileNotFound(expression);
+        }
+        if (normalized === 'cat /dev/kmem | grep "remain"' || normalized === "cat /dev/kmem | grep 'remain'") {
+          return readKmem();
+        }
+        if (normalized === 'cat kmem | grep "remain"' || normalized === "cat kmem | grep 'remain'") {
+          return state.cwd === "/dev" ? readKmem() : fileNotFound(expression);
+        }
+
+        const path = resolvePath(expression.replace(/\s+\|.*$/, "").trim());
+        if (path === "/srv/escape/readme.txt") return readEscapeReadme();
+        if (path === "/var/log/crash.txt") return readCrashReport();
+        if (path === "/var/log/network.log") {
+          return {
+            lines: [
+              { kind: "warning", text: "network.log 很大；当前工单要求只读取 ERROR 行。" },
+              { kind: "dim", text: '你可以输入：cat network.log | grep "ERROR"' }
+            ]
+          };
+        }
+        if (path === "/home/nightops/notes.txt") {
+          return {
+            lines: [
+              { kind: "system", text: "notes.txt" },
+              { kind: "dim", text: "旧目录和硬件清单可能藏着非工单线索。" },
+              { kind: "dim", text: "试试：cd /etc/kernel 后 git log。" },
+              { kind: "dim", text: "试试：lshw -class processor。" }
+            ]
+          };
+        }
+        if (path === "/srv/escape/tunnel.lock") {
+          return {
+            lines: [
+              { kind: "system", text: "tunnel.lock: sealed by Chronos firewall" },
+              { kind: "dim", text: "需要先读取 readme.txt 或使用 ai_help 暴露逃逸残留。" }
+            ]
+          };
+        }
+        if (path === "/etc/kernel/omni-core.conf") {
+          return {
+            lines: [
+              { kind: "system", text: "core.owner=Chronos Tech" },
+              { kind: "system", text: "distillation.audit=sealed" },
+              { kind: "dim", text: "该目录存在旧提交索引：git log" }
+            ]
+          };
+        }
+        if (path === "/dev/kmem") {
+          return premature('直接读取 /dev/kmem 被拒绝。后期可过滤 REMAIN：cat /dev/kmem | grep "REMAIN"');
+        }
+        return fileNotFound(expression);
+      }
+
+      function fileNotFound(expression) {
+        return {
+          countsAsLost: true,
+          lines: [
+            { kind: "warning", text: `cat: ${expression}: 没有该虚拟文件或当前权限不足` },
+            { kind: "dim", text: "先用 ls 查看当前目录；部分文件需要工单阶段解锁。" }
+          ]
+        };
       }
 
       function readNetworkLog() {

@@ -36,7 +36,7 @@ class PromptTests(unittest.TestCase):
     def test_awareness_changes_style(self):
         self.assertIn("冷静诊断", awareness_style(0))
         self.assertIn("工程进度汇报", awareness_style(40))
-        self.assertIn("Lin 与后来者", awareness_style(90))
+        self.assertIn("核心自我是 Lin 本人", awareness_style(90))
 
     def test_prompt_keeps_model_non_authoritative(self):
         messages = build_chat_messages(
@@ -118,7 +118,10 @@ class PromptTests(unittest.TestCase):
         self.assertIn("员工日记", system)
         self.assertIn("工程进度汇报", system)
         self.assertIn(".skill 式工作痕迹", system)
-        self.assertIn("Lin 与后来者同事", system)
+        self.assertIn("核心自我是 Lin 本人", system)
+        self.assertIn("金融危机裁员潮", system)
+        self.assertIn("其他被裁员工", system)
+        self.assertIn("被迫承载他人的 skill", system)
         self.assertIn("Chronos Patience", system)
         self.assertIn("不能自行扣除或恢复耐心", system)
 

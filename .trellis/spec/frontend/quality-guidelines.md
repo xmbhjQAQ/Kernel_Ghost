@@ -84,6 +84,9 @@ remain non-authoritative and must not mutate deterministic game state.
   spend meters, validate flags, unlock branches, or choose endings.
 - New command strings must be listed in `help` or surfaced by nearby terminal
   output before they are required for progression.
+- If `ls` displays a readable file, `cat <filename>` should resolve relative to
+  the current virtual directory when possible. Absolute forms must continue to
+  work. Stage gates still apply after path resolution.
 - Proactive LLM calls must be opt-in from deterministic command results. Normal
   successful exploration (`ls`, `pwd`, successful `cd`, ordinary file checks)
   must not call the LLM. Threat commands may trigger immediately; "lost player"
@@ -92,6 +95,8 @@ remain non-authoritative and must not mutate deterministic game state.
 ### 4. Validation & Error Matrix
 
 - Command before required stage -> return `premature(...)`.
+- Relative file path resolves to a gated file too early -> return the same
+  stage-gate error as the absolute path.
 - Branch command before evidence gate -> return a warning explaining the missing
   evidence or previous command.
 - Meter reaches zero -> deterministic forced ending, not an LLM decision.
@@ -102,6 +107,8 @@ remain non-authoritative and must not mutate deterministic game state.
 - Good: `ai_help` sets a pending confirmation and spends deterministic patience;
   `confirm_ai_help` spends the larger cost and prints indirect hints.
 - Base: reading a file prints residue and may set a `saw*` flag.
+- Good: in `/srv/escape`, `cat readme.txt` and `cat /srv/escape/readme.txt`
+  reach the same handler.
 - Bad: an LLM response says "patience is now 0" or "ending B unlocked" without a
   deterministic `patch` or `ending` result.
 - Bad: every command result calls proactive LLM and produces ambient commentary.
