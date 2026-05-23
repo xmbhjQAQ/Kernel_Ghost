@@ -137,3 +137,36 @@ Updated Kernel-Mind prompts to support natural ai_chat conversation and progress
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Fix Kernel Ghost terminal layout
+
+**Date**: 2026-05-23
+**Task**: Fix Kernel Ghost terminal layout
+**Branch**: `main`
+
+### Summary
+
+Fixed desktop terminal layout so the shell fills the browser width and the command input remains visible at the bottom; verified desktop and mobile viewport metrics with no console errors.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6337b0f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
