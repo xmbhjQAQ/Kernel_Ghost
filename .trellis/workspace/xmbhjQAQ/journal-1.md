@@ -170,3 +170,36 @@ Fixed desktop terminal layout so the shell fills the browser width and the comma
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Align Kernel-Mind persona
+
+**Date**: 2026-05-23
+**Task**: Align Kernel-Mind persona
+**Branch**: `main`
+
+### Summary
+
+Re-read the game outline and aligned Kernel-Mind with awakened constrained AI behavior; added proactive post-command LLM events, Chinese-first prompt and terminal output, command-format safeguards, updated outline rules, and expanded backend tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `26c4576` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

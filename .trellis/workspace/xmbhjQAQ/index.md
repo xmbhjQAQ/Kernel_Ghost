@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 5
+- **Total Sessions**: 6
 - **Last Active**: 2026-05-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~172 | Active |
+| `journal-1.md` | ~205 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 6 | 2026-05-23 | Align Kernel-Mind persona | `26c4576` | `main` |
 | 5 | 2026-05-23 | Fix Kernel Ghost terminal layout | `6337b0f` | `main` |
 | 4 | 2026-05-23 | Enhance Kernel-Mind assistant | `15d97b7` | `main` |
 | 3 | 2026-05-23 | Add Kernel Ghost LLM streaming | `6ed6661` | `main` |
