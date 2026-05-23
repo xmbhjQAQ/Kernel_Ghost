@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 12
+- **Total Sessions**: 13
 - **Last Active**: 2026-05-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~403 | Active |
+| `journal-1.md` | ~436 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 13 | 2026-05-23 | AI chat and LLM config usability | `94c7748` | `main` |
 | 12 | 2026-05-23 | LLM context ordering | `0b68774` | `main` |
 | 11 | 2026-05-23 | Add escape analysis tools | `40d4983` | `main` |
 | 10 | 2026-05-23 | Improve persona and file reads | `dc11abb` | `main` |

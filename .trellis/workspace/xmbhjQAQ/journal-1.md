@@ -401,3 +401,36 @@ Added ordered terminal context for LLM referential questions, anomaly extraction
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: AI chat and LLM config usability
+
+**Date**: 2026-05-23
+**Task**: AI chat and LLM config usability
+**Branch**: `main`
+
+### Summary
+
+Improved manual AI chat prompt behavior so non-sensitive questions are answered directly, moved confirmed AI help to a dedicated LLM event with deterministic fallback, added JSON-based backend LLM config with env overrides, updated docs/specs, and added regression tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `94c7748` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
