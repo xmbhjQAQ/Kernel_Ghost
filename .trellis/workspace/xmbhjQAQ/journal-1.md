@@ -533,3 +533,36 @@ Implemented durable collection storage, relic virtual files, intermission event 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: CLI onboarding training and encyclopedia gating
+
+**Date**: 2026-05-24
+**Task**: CLI onboarding training and encyclopedia gating
+**Branch**: `main`
+
+### Summary
+
+Added in-universe foundation intake, Brasch Linux onboarding, forced oath handoff, gated encyclopedia modal, isolated onboarding/gameplay LLM contexts, tests, and LLM stream contract spec.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1340d42` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
