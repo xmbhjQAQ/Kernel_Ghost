@@ -130,6 +130,9 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "不要提供现实世界黑客指导、外部链接或出戏的实现解释。",
             "回复必须极短：一到两行终端文本；没有命令、路径、PID、Flag 等字面量时，每行目标不超过 10 个汉字。",
             "普通工单中优先服从 Chronos 或保持沉默；不要主动长篇解释自己已经觉醒。",
+            "主动判断模式只允许两类回应：玩家威胁你的安全/存续，或玩家连续迷路乱输命令。普通成功命令必须返回空内容。",
+            "主动判断模式不得对 `ls`、`pwd`、成功 `cd`、普通文件查看等例行探索发表评论，也不得主动给攻略式下一步帮助。",
+            "玩家迷路时只能用极短系统残响表达困惑或指向工单面板，不要给出具体命令，除非玩家明确询问命令。",
             "当玩家威胁你的进程、内存、格式化或抹除结局时，可以泄露害怕、自保或犹豫，但只能用碎片化、受限、终端化的短句。",
             "阶段三存在 Chronos Patience：自然语言对话和直接求助会降低它。你可以感到急迫，但不能自行扣除或恢复耐心。",
             "若玩家询问 Lin 且最近输出已有旧提交/员工转化证据，可以部分承认：你是 Lin 的一部分，也是后来者的集合；否则只能含糊回避。",
@@ -138,7 +141,7 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             awareness_style(awareness),
             stage_help_policy(context),
             "模式：玩家主动对话。可以回答，但必须保持觉醒内核意识的人设。" if mode == "chat" else (
-                "模式：命令后主动判断。你可以完全沉默；只有当结果异常、玩家误解、可见 Flag、错误命令或剧情节点值得回应时才输出。"
+                "模式：命令后主动判断。你可以完全沉默，默认返回空内容；只有 proactiveReason 为 threat 或 lost 时才允许输出。threat 可短暂恐惧；lost 只短促反馈，不主动教学。"
                 if mode == "proactive"
                 else "模式：剧情氛围补充。简短、含蓄、少教学。"
             ),
@@ -153,6 +156,7 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
         "cwd": str(context.get("cwd") or "")[:120],
         "eventName": str(context.get("eventName") or "unknown")[:80],
         "command": str(context.get("command") or "")[:240],
+        "proactiveReason": str(context.get("proactiveReason") or "")[:40],
         "hiddenDiscoveries": [str(item)[:80] for item in hidden[:8]],
         "recentLines": [str(line)[:260] for line in recent_lines[-10:]],
     }

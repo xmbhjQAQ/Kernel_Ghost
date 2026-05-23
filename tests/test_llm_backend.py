@@ -158,6 +158,10 @@ class PromptTests(unittest.TestCase):
         )[0]["content"]
 
         self.assertIn("你可以完全沉默", system)
+        self.assertIn("普通成功命令必须返回空内容", system)
+        self.assertIn("不得对 `ls`、`pwd`、成功 `cd`", system)
+        self.assertIn("只有 proactiveReason 为 threat 或 lost", system)
+        self.assertIn("不主动教学", system)
         self.assertIn("你可以输入：`具体命令`", system)
         self.assertIn("不要输出像 shell 命令一样的自然语言句子", system)
 

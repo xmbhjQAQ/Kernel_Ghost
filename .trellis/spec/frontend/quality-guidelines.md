@@ -84,6 +84,10 @@ remain non-authoritative and must not mutate deterministic game state.
   spend meters, validate flags, unlock branches, or choose endings.
 - New command strings must be listed in `help` or surfaced by nearby terminal
   output before they are required for progression.
+- Proactive LLM calls must be opt-in from deterministic command results. Normal
+  successful exploration (`ls`, `pwd`, successful `cd`, ordinary file checks)
+  must not call the LLM. Threat commands may trigger immediately; "lost player"
+  feedback should require repeated invalid/premature commands.
 
 ### 4. Validation & Error Matrix
 
@@ -100,6 +104,7 @@ remain non-authoritative and must not mutate deterministic game state.
 - Base: reading a file prints residue and may set a `saw*` flag.
 - Bad: an LLM response says "patience is now 0" or "ending B unlocked" without a
   deterministic `patch` or `ending` result.
+- Bad: every command result calls proactive LLM and produces ambient commentary.
 
 ### 6. Tests Required
 
@@ -108,6 +113,8 @@ remain non-authoritative and must not mutate deterministic game state.
 - Run a JavaScript syntax check for inline scripts after state-machine edits.
 - Run a browser console check against the real local backend when command flow or
   status UI changes.
+- For proactive LLM changes, verify ordinary commands do not request
+  `/api/llm/stream`.
 
 ### 7. Wrong vs Correct
 
