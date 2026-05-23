@@ -566,3 +566,36 @@ Added in-universe foundation intake, Brasch Linux onboarding, forced oath handof
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: Merge v3 story work orders
+
+**Date**: 2026-05-24
+**Task**: Merge v3 story work orders
+**Branch**: `main`
+
+### Summary
+
+Expanded the playable flow to six v3 work orders, synchronized frontend state, backend LLM stage policy, tests, and pushed the work commit.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0ea344c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

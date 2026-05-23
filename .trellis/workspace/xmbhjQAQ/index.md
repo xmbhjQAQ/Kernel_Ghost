@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 17
+- **Total Sessions**: 18
 - **Last Active**: 2026-05-24
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~568 | Active |
+| `journal-1.md` | ~601 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 18 | 2026-05-24 | Merge v3 story work orders | `0ea344c` | `main` |
 | 17 | 2026-05-24 | CLI onboarding training and encyclopedia gating | `1340d42` | `main` |
 | 16 | 2026-05-23 | Relic collection persistence | `9444da6` | `main` |
 | 15 | 2026-05-23 | Audit work order AI prompts | `cd38066` | `main` |
