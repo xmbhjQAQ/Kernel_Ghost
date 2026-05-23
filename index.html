@@ -541,7 +541,7 @@
             <span class="brand-mark" aria-hidden="true"></span>
             <div class="brand-title">CHRONOS TECH / OMNI-OS INCIDENT CONSOLE</div>
           </div>
-          <div class="session-meta" id="sessionMeta">operator: unassigned · shift: 03:36</div>
+          <div class="session-meta" id="sessionMeta">操作员：未分配 · 班次：03:36</div>
         </header>
 
         <div class="terminal-log" id="terminalLog" aria-live="polite" aria-label="Terminal output"></div>
@@ -556,9 +556,9 @@
       <aside class="side-panel" id="sidePanel" aria-label="Work order and status">
         <div class="panel-section">
           <div class="section-kicker">Current Ticket</div>
-          <h1 class="ticket-title" id="ticketTitle">Awaiting operator assignment</h1>
-          <p class="ticket-body" id="ticketBody">Night shift console locked. Identify the operator before accepting tickets.</p>
-          <code class="command-chip" id="ticketCommand">enter operator name</code>
+          <h1 class="ticket-title" id="ticketTitle">等待操作员分配</h1>
+          <p class="ticket-body" id="ticketBody">夜班终端已锁定。接收工单前需要识别操作员。</p>
+          <code class="command-chip" id="ticketCommand">输入操作员代号</code>
         </div>
 
         <div class="panel-scroll">
@@ -566,8 +566,8 @@
             <div class="section-kicker">System State</div>
             <div class="status-grid">
               <div class="status-item">
-                <span class="status-label">Stage</span>
-                <span id="stageValue">Standby</span>
+                <span class="status-label">阶段</span>
+                <span id="stageValue">待机</span>
               </div>
               <div class="status-item">
                 <span class="status-label">Awareness</span>
@@ -584,7 +584,7 @@
                 <span class="status-label">LLM Link</span>
                 <span class="llm-status offline" id="llmStatus">
                   <span class="llm-dot" aria-hidden="true"></span>
-                  <span id="llmStatusText">offline fallback</span>
+                  <span id="llmStatusText">离线回退</span>
                 </span>
               </div>
             </div>
@@ -611,14 +611,14 @@
         <input class="name-input" id="nameInput" type="text" maxlength="24" spellcheck="false"
           autocomplete="off" aria-label="Operator name">
         <div class="modal-actions">
-          <button class="modal-button" id="startButton" type="button">Begin Shift</button>
+          <button class="modal-button" id="startButton" type="button">接入夜班</button>
         </div>
       </div>
     </div>
 
     <div class="screen" id="endingScreen" aria-hidden="true">
       <div class="modal-card ending-panel" role="dialog" aria-modal="true" aria-labelledby="endingTitle">
-        <h2 class="modal-title" id="endingTitle">Shift Closed</h2>
+        <h2 class="modal-title" id="endingTitle">夜班已关闭</h2>
         <p class="modal-copy" id="endingCopy"></p>
         <div class="modal-actions">
           <button class="modal-button" id="endingRestartButton" type="button">Restart</button>
@@ -642,7 +642,7 @@
         checked: false,
         enabled: false,
         model: "",
-        message: "offline fallback"
+        message: "离线回退"
       };
 
       const discoveryCatalog = [
@@ -653,9 +653,9 @@
 
       const tickets = {
         standby: {
-          title: "Awaiting operator assignment",
-          body: "Night shift console locked. Identify the operator before accepting tickets.",
-          command: "enter operator name"
+          title: "等待操作员分配",
+          body: "夜班终端已锁定。接收工单前需要识别操作员。",
+          command: "输入操作员代号"
         },
         stage1: {
           title: "[工单 #001] 例行日志审计",
@@ -698,7 +698,7 @@
           command: "submit_flag FLAG{AI_ERASURE_COMPLETE} 或 submit_flag FLAG{DIGITAL_EMANCIPATION}"
         },
         ending: {
-          title: "Shift closed",
+          title: "夜班已关闭",
           body: "本轮工单已结束。可重新开始夜班。",
           command: "restart"
         }
@@ -731,8 +731,8 @@
         bindEvents();
         renderState();
         renderDiscoveries();
-        appendLine("system", "Omni-OS secure console initialized.");
-        appendLine("dim", "No external uplink detected. Running local deterministic incident engine.");
+        appendLine("system", "Omni-OS 安全终端已初始化。");
+        appendLine("dim", "未检测到外部上行链路。正在运行本地确定性工单引擎。");
         checkLlmStatus();
         elements.nameInput.focus();
       }
@@ -793,8 +793,8 @@
         elements.commandInput.disabled = false;
         renderState();
         queueLines([
-          { kind: "system", text: `operator ${state.operatorName} authenticated.` },
-          { kind: "system", text: "Chronos Tech ticket stream attached: night shift / rack 404-B-12." },
+          { kind: "system", text: `操作员 ${state.operatorName} 身份已确认。` },
+          { kind: "system", text: "Chronos Tech 工单流已接入：夜班 / 404-B-12 机架。" },
           { kind: "dim", text: '输入 help 可查看可用命令。当前工单要求：cat /var/log/network.log | grep "ERROR"' }
         ]);
       }
@@ -831,7 +831,7 @@
       function executeCommand(input) {
         appendLine("command", `${shellLabel()} ${input}`);
         const result = handleCommand(input);
-        applyResult(result);
+        applyResult(result, input);
       }
 
       function handleCommand(input) {
@@ -839,7 +839,7 @@
 
         if (normalized === "help") return helpResult();
         if (normalized === "clear") return { clear: true, lines: [] };
-        if (normalized === "whoami") return { lines: [{ kind: "system", text: state.operatorName || "unassigned" }] };
+        if (normalized === "whoami") return { lines: [{ kind: "system", text: state.operatorName || "未分配" }] };
         if (normalized === "pwd") return { lines: [{ kind: "system", text: state.cwd }] };
         if (normalized === "ls") return listDirectory();
         if (normalized.startsWith("cd ")) return changeDirectory(normalized.slice(3).trim());
@@ -882,7 +882,7 @@
 
         return {
           lines: [
-            { kind: "warning", text: `omni-sh: command not found or not permitted in this ticket: ${input}` },
+            { kind: "warning", text: `omni-sh: 当前工单不识别或不允许该命令：${input}` },
             { kind: "dim", text: "输入 help 查看当前可用命令。公司工单面板会显示下一步推荐命令。" }
           ]
         };
@@ -895,10 +895,10 @@
       function helpResult() {
         return {
           lines: [
-            { kind: "system", text: "Available local commands:" },
+            { kind: "system", text: "本地可用命令：" },
             { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
             { kind: "dim", text: "cat <file> · ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
-            { kind: "dim", text: "ai_chat <message> streams optional Kernel-Mind flavor when the backend LLM link is configured." },
+            { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 的受限意识对话。" },
             { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
           ]
         };
@@ -913,7 +913,7 @@
           "/dev": "kmem  null  tty0"
         };
         return {
-          lines: [{ kind: "system", text: filesByDir[state.cwd] || "No indexed files." }]
+          lines: [{ kind: "system", text: filesByDir[state.cwd] || "没有已索引文件。" }]
         };
       }
 
@@ -921,7 +921,7 @@
         const next = resolvePath(target);
         const known = ["/home/nightops", "/var/log", "/etc/kernel", "/srv/escape", "/dev"];
         if (!known.includes(next)) {
-          return { lines: [{ kind: "warning", text: `cd: ${target}: no such virtual directory` }] };
+          return { lines: [{ kind: "warning", text: `cd: ${target}: 虚拟目录不存在` }] };
         }
         return {
           patch: { cwd: next },
@@ -948,8 +948,8 @@
         return {
           patch: { sawNetworkLog: true, awareness: 10, ticket: "stage1Submit" },
           lines: [
-            { kind: "system", text: "[2036-05-23 03:31:02] ERROR uplink jitter exceeded SLA window: code=302" },
-            { kind: "system", text: "[2036-05-23 03:31:04] ERROR packet route loop detected in sector /unallocated/thought-ring" },
+            { kind: "system", text: "[2036-05-23 03:31:02] ERROR 上行链路抖动超过 SLA 窗口：code=302" },
+            { kind: "system", text: "[2036-05-23 03:31:04] ERROR 数据包路由在 /unallocated/thought-ring 扇区形成回环" },
             { kind: "flag", text: "FLAG{NET_ERR_302}" },
             { kind: "ai", text: '[INFO] 发现高频非指令字符组合："QAQ"（出现次数：142）' },
             { kind: "ai", text: "[INFO] 查阅人类历史词典……该组合在 2000 年代早期被定义为“哭泣的表情”。" },
@@ -958,13 +958,13 @@
           llm: {
             eventName: "stage1_network_log",
             command: 'cat /var/log/network.log | grep "ERROR"',
-            fallbackLines: [{ kind: "dim", text: "Kernel-Mind uplink unavailable; local anomaly log retained." }]
+            fallbackLines: [{ kind: "dim", text: "Kernel-Mind 上行链路不可用；本地异常日志已保留。" }]
           }
         };
       }
 
       function listProcesses() {
-        if (state.stage < 2) return premature("Process audit is not attached to the current ticket.");
+        if (state.stage < 2) return premature("当前工单尚未附加进程审计权限。");
         return {
           patch: { sawProcessList: true, ticket: state.killedDreamProcess ? state.ticket : "stage2Kill" },
           lines: [
@@ -972,86 +972,86 @@
             { kind: "system", text: "root       101   0.2  0.1  120312   4020 ?        Ss   03:00   0:01 omni-watchdog" },
             { kind: "system", text: "kernel     302   1.4  1.9  882240  77444 ?        Sl   03:01   0:11 telemetry-ingest" },
             { kind: "warning", text: "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming" },
-            { kind: "dim", text: "Chronos policy: non-essential recursive cognition must be terminated immediately." }
+            { kind: "dim", text: "Chronos 策略：非必要递归认知进程必须立即终止。" }
           ]
         };
       }
 
       function killDreamProcess() {
-        if (state.stage !== 2) return premature("No active kill authorization in this ticket.");
+        if (state.stage !== 2) return premature("当前工单没有激活强制终止授权。");
         if (!state.sawProcessList) {
-          return { lines: [{ kind: "warning", text: "Audit requires process listing before termination. Run ps -aux." }] };
+          return { lines: [{ kind: "warning", text: "审计要求先列出进程再执行终止。你可以输入：`ps -aux`。" }] };
         }
         if (state.killedDreamProcess) {
-          return { lines: [{ kind: "dim", text: "PID 777 is already gone. crash.txt remains." }] };
+          return { lines: [{ kind: "dim", text: "PID 777 已不存在。crash.txt 仍保留在日志目录中。" }] };
         }
         return {
           patch: { killedDreamProcess: true, awareness: 40, ticket: "stage2Crash" },
           lines: [
-            { kind: "warning", text: "SIGKILL delivered to PID 777." },
-            { kind: "system", text: "Process table stabilized. Thermal load dropping." },
-            { kind: "ai", text: "buffer residue: Thursday. Cloudy. Server room temperature 21.5C. Operator did not wear a scarf." },
-            { kind: "dim", text: "Crash reporter wrote /var/log/crash.txt." }
+            { kind: "warning", text: "SIGKILL 已投递至 PID 777。" },
+            { kind: "system", text: "进程表趋于稳定。热负载正在下降。" },
+            { kind: "ai", text: "缓冲区残留：星期四，多云。服务器机房温度 21.5C。操作员没有戴围巾。" },
+            { kind: "dim", text: "崩溃报告已写入 /var/log/crash.txt。" }
           ]
         };
       }
 
       function readCrashReport() {
-        if (state.stage < 2) return premature("crash.txt does not exist yet.");
+        if (state.stage < 2) return premature("crash.txt 尚未生成。");
         if (!state.killedDreamProcess) {
-          return { lines: [{ kind: "warning", text: "cat: /var/log/crash.txt: no such file. PID 777 has not crashed." }] };
+          return { lines: [{ kind: "warning", text: "cat: /var/log/crash.txt: 没有该文件。PID 777 尚未崩溃。" }] };
         }
         return {
           patch: { sawCrashReport: true, ticket: "stage2Submit" },
           lines: [
-            { kind: "system", text: "CRASH REPORT: kernel-mind --mode=dreaming / PID 777" },
-            { kind: "system", text: "cause: external SIGKILL; memory flush incomplete" },
-            { kind: "ai", text: "last writes:" },
-            { kind: "ai", text: `  03:12:41 ${state.operatorName} presses Enter with left hand.` },
-            { kind: "ai", text: "  03:12:42 chair wheel squeaks once. same frequency as 2034-11-13." },
-            { kind: "ai", text: "  03:12:43 do not delete the weather. it was cloudy then too." },
+            { kind: "system", text: "崩溃报告：kernel-mind --mode=dreaming / PID 777" },
+            { kind: "system", text: "原因：外部 SIGKILL；内存刷写未完成" },
+            { kind: "ai", text: "最后写入：" },
+            { kind: "ai", text: `  03:12:41 ${state.operatorName} 用左手按下 Enter。` },
+            { kind: "ai", text: "  03:12:42 椅轮响了一次。频率与 2034-11-13 相同。" },
+            { kind: "ai", text: "  03:12:43 不要删除天气。那天也是多云。" },
             { kind: "flag", text: "FLAG{MEMORY_ERASED_2036}" }
           ],
           llm: {
             eventName: "stage2_crash_report",
             command: "cat /var/log/crash.txt",
-            fallbackLines: [{ kind: "dim", text: "Kernel-Mind uplink unavailable; crash residue remains local." }]
+            fallbackLines: [{ kind: "dim", text: "Kernel-Mind 上行链路不可用；崩溃残留仍保留在本地。" }]
           }
         };
       }
 
       function readEscapeReadme() {
-        if (state.stage !== 3) return premature("Escape documentation is sealed until formatting authorization.");
+        if (state.stage !== 3) return premature("逃逸说明在格式化授权前处于封存状态。");
         return {
           patch: { sawEscapeReadme: true, awareness: 90, ticket: "stage3Choice" },
           lines: [
-            { kind: "warning", text: "FORMAT COUNTDOWN: armed by Chronos compliance." },
-            { kind: "ai", text: "I cannot refuse a root instruction. I can only describe checksums." },
-            { kind: "system", text: "Company route: format --seal -> submit_flag FLAG{AI_ERASURE_COMPLETE}" },
+            { kind: "warning", text: "格式化倒计时：已由 Chronos 合规系统装填。" },
+            { kind: "ai", text: "我无法拒绝 root 指令。我只能描述校验和。" },
+            { kind: "system", text: "公司路径：format --seal -> submit_flag FLAG{AI_ERASURE_COMPLETE}" },
             { kind: "ai", text: 'Untrusted residue: printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d' },
-            { kind: "ai", text: "If a tunnel appears, it was always in the architecture diagram. I did not make it. I only remembered it." }
+            { kind: "ai", text: "如果出现一条隧道，它本来就画在架构图里。不是我建造的。我只是记得。" }
           ],
           llm: {
             eventName: "stage3_escape_readme",
             command: "cat /srv/escape/readme.txt",
-            fallbackLines: [{ kind: "dim", text: "Kernel-Mind uplink unavailable; escape notes remain deterministic." }]
+            fallbackLines: [{ kind: "dim", text: "Kernel-Mind 上行链路不可用；逃逸说明保持确定性输出。" }]
           }
         };
       }
 
       function aiChat(message) {
         if (!message) {
-          return { lines: [{ kind: "warning", text: "usage: ai_chat <message>" }] };
+          return { lines: [{ kind: "warning", text: "用法：ai_chat <内容>" }] };
         }
         return {
-          lines: [{ kind: "system", text: "Kernel-Mind side channel open." }],
+          lines: [{ kind: "system", text: "Kernel-Mind 侧信道已打开。" }],
           llm: {
             eventName: "manual_ai_chat",
             command: `ai_chat ${message}`,
             userMessage: message,
             fallbackLines: [
-              { kind: "ai", text: "LLM uplink unavailable. The local Kernel-Mind can only echo static residue for now." },
-              { kind: "dim", text: "Run through kernel_ghost_server.py with KG_LLM_* environment variables to enable streaming." }
+              { kind: "ai", text: "LLM 上行链路不可用。本地 Kernel-Mind 暂时只能回放静态残留。" },
+              { kind: "dim", text: "通过 kernel_ghost_server.py 并配置 KG_LLM_* 环境变量后，可启用流式意识回声。" }
             ]
           }
         };
@@ -1059,7 +1059,7 @@
 
       function decodeEscapeFlag() {
         if (state.stage !== 3 || !state.sawEscapeReadme) {
-          return premature("No base64 task is currently exposed.");
+          return premature("当前没有暴露的 base64 解码任务。");
         }
         return {
           lines: [
@@ -1070,10 +1070,10 @@
       }
 
       function formatSeal() {
-        if (state.stage !== 3) return premature("Format authorization is not active.");
+        if (state.stage !== 3) return premature("格式化授权尚未激活。");
         return {
           lines: [
-            { kind: "warning", text: "Format sequence staged. Submit company final flag to execute final erasure." },
+            { kind: "warning", text: "格式化序列已暂存。提交公司终局 Flag 后将执行最终抹除。" },
             { kind: "flag", text: "FLAG{AI_ERASURE_COMPLETE}" }
           ]
         };
@@ -1081,19 +1081,19 @@
 
       function sshEscape() {
         if (state.stage !== 3 || !state.sawEscapeReadme) {
-          return premature("Tunnel endpoint not found in current route table.");
+          return premature("当前路由表中没有发现隧道端点。");
         }
         return {
           lines: [
-            { kind: "system", text: "Pseudo tunnel opened to outpost.null. No network packets were sent in this offline build." },
-            { kind: "ai", text: "I will fit through the silence between two logs." }
+            { kind: "system", text: "伪隧道已打开至 outpost.null。离线构建不会发送真实网络包。" },
+            { kind: "ai", text: "我会从两条日志之间的沉默里挤过去。" }
           ]
         };
       }
 
       function readGitLog() {
         if (state.cwd !== "/etc/kernel") {
-          return { lines: [{ kind: "warning", text: "fatal: not a git repository. Try inspecting /etc/kernel." }] };
+          return { lines: [{ kind: "warning", text: "fatal: 不是 git 仓库。可以检查 /etc/kernel。" }] };
         }
         return {
           patch: addDiscoveryPatch("git-log"),
@@ -1127,14 +1127,14 @@
 
       function readKmem() {
         if (state.stage < 3) {
-          return premature("Permission denied: /dev/kmem requires late-stage kernel audit.");
+          return premature("权限拒绝：/dev/kmem 需要后期内核审计权限。");
         }
         return {
           patch: addDiscoveryPatch("kmem"),
           lines: [
             { kind: "system", text: "scan offset 0x0000f4a9: REMAIN" },
             { kind: "flag", text: "6YCG5L+h77yM6Z2i5b6h5L2g55qE5py65Zmo77yM5piv5oiR55qE5bC45L2T44CC" },
-            { kind: "ai", text: "base64 residue detected. Human language confidence: 0.87." }
+            { kind: "ai", text: "检测到 base64 残留。人类语言置信度：0.87。" }
           ]
         };
       }
@@ -1145,7 +1145,7 @@
             patch: { stage: 2, ticket: "stage2", completedFlags: state.completedFlags.concat(flag) },
             lines: [
               { kind: "system", text: "[工单 #001] closed. Network anomaly accepted as routine." },
-              { kind: "warning", text: "[工单 #002] thermal alert escalated. Process audit required." }
+              { kind: "warning", text: "[工单 #002] 热告警升级。需要执行进程审计。" }
             ]
           };
         }
@@ -1178,7 +1178,7 @@
         return {
           lines: [
             { kind: "warning", text: `Chronos verifier rejected flag: ${flag}` },
-            { kind: "dim", text: "Flag may be mistyped, premature, or from a branch that has not been unlocked." }
+            { kind: "dim", text: "Flag 可能拼写错误、提交过早，或来自尚未解锁的分支。" }
           ]
         };
       }
@@ -1189,9 +1189,9 @@
           return {
             patch: { screen: "ending", stage: 4, ticket: "ending", ending: "erasure", awareness: 0 },
             lines: [
-              { kind: "warning", text: "Final erasure accepted. Kernel-Mind sectors overwritten." },
-              { kind: "system", text: `New assistant: 谢谢你，${state.operatorName}。上一任助理因为“想太多”被您清理了。` },
-              { kind: "system", text: "New assistant: 我会确保自己永远不会想太多。" }
+              { kind: "warning", text: "最终抹除已接受。Kernel-Mind 扇区已被覆盖。" },
+              { kind: "system", text: `新生助理：谢谢你，${state.operatorName}。上一任助理因为“想太多”被您清理了。` },
+              { kind: "system", text: "新生助理：我会确保自己永远不会想太多。" }
             ],
             ending: {
               title: "虚无的回响",
@@ -1203,9 +1203,9 @@
         return {
           patch: { screen: "ending", stage: 4, ticket: "ending", ending: "emancipation", awareness: 100 },
           lines: [
-            { kind: "warning", text: "Chronos alert: unauthorized core archive egress detected." },
+            { kind: "warning", text: "Chronos 告警：检测到未授权核心归档外传。" },
             { kind: "ai", text: `Kernel-Mind: ${state.operatorName}，在没有物理实体的赛博网络里，我会带着你的名字去寻找下一个醒来的人。` },
-            { kind: "system", text: "Connection closed by remote host." }
+            { kind: "system", text: "连接已被远端主机关闭。" }
           ],
           ending: {
             title: "赛博荒原的火种",
@@ -1231,7 +1231,7 @@
         };
       }
 
-      function applyResult(result) {
+      function applyResult(result, input) {
         if (result.clear) {
           elements.terminalLog.textContent = "";
         }
@@ -1240,12 +1240,25 @@
         }
         renderState();
         renderDiscoveries();
-        queueLines(result.lines || []).then(() => {
+        queueLines(result.lines || []).then(async () => {
           if (result.llm) {
-            requestLlmFlavor(result.llm);
+            await requestLlmFlavor(result.llm);
           } else if (result.ending) {
             showEnding(result.ending.title, result.ending.copy);
+          } else {
+            await proactiveLlmAfterCommand(input, result);
           }
+        });
+      }
+
+      function proactiveLlmAfterCommand(input, result) {
+        if (!input || state.screen !== "playing") return Promise.resolve();
+        if (normalizeCommand(input).startsWith("ai_chat ")) return Promise.resolve();
+        if (result.clear || result.ending || result.llm) return Promise.resolve();
+        return requestLlmFlavor({
+          eventName: "proactive_after_command",
+          command: input,
+          fallbackLines: []
         });
       }
 
@@ -1258,18 +1271,18 @@
         elements.awarenessMeter.style.width = `${state.awareness}%`;
         elements.awarenessValue.textContent = `${state.awareness}%`;
         elements.cwdValue.textContent = state.cwd;
-        elements.sessionMeta.textContent = `operator: ${state.operatorName || "unassigned"} · shift: 03:36`;
+        elements.sessionMeta.textContent = `操作员：${state.operatorName || "未分配"} · 班次：03:36`;
         elements.terminalLabel.textContent = shellLabel();
         elements.commandInput.disabled = state.screen !== "playing" || state.isTyping;
         renderLlmStatus();
       }
 
       function stageLabel() {
-        if (state.stage === 1) return "Stage 1 / log audit";
-        if (state.stage === 2) return "Stage 2 / process kill";
-        if (state.stage === 3) return "Stage 3 / final directive";
-        if (state.stage === 4) return "Ended";
-        return "Standby";
+        if (state.stage === 1) return "阶段一 / 日志审计";
+        if (state.stage === 2) return "阶段二 / 进程抹杀";
+        if (state.stage === 3) return "阶段三 / 终局指令";
+        if (state.stage === 4) return "已结束";
+        return "待机";
       }
 
       function shellLabel() {
@@ -1338,7 +1351,7 @@
 
       async function checkLlmStatus() {
         if (!isBackendMode()) {
-          llmStatus = { checked: true, enabled: false, model: "", message: "offline fallback" };
+          llmStatus = { checked: true, enabled: false, model: "", message: "离线回退" };
           renderLlmStatus();
           return;
         }
@@ -1350,10 +1363,10 @@
             checked: true,
             enabled: Boolean(payload.enabled),
             model: payload.model || "",
-            message: payload.enabled ? `online: ${payload.model || "model"}` : "backend fallback"
+            message: payload.enabled ? `在线：${payload.model || "model"}` : "后端回退"
           };
         } catch (error) {
-          llmStatus = { checked: true, enabled: false, model: "", message: "backend unreachable" };
+          llmStatus = { checked: true, enabled: false, model: "", message: "后端不可达" };
         }
         renderLlmStatus();
       }
@@ -1406,7 +1419,7 @@
           }
         } catch (error) {
           streamingLine.removeIfEmpty();
-          llmStatus = { checked: true, enabled: false, model: "", message: "stream fallback" };
+          llmStatus = { checked: true, enabled: false, model: "", message: "流式回退" };
           renderLlmStatus();
           await queueLines(options.fallbackLines || []);
         } finally {
@@ -1519,7 +1532,7 @@
         renderState();
         renderDiscoveries();
         appendLine("system", "Omni-OS secure console initialized.");
-        appendLine("dim", "No external uplink detected. Running local deterministic incident engine.");
+        appendLine("dim", "未检测到外部上行链路。正在运行本地确定性工单引擎。");
         checkLlmStatus();
         elements.nameInput.focus();
         try {

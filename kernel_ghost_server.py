@@ -53,16 +53,21 @@ def read_llm_config(env: dict[str, str] | None = None) -> LlmConfig:
 
 def awareness_style(awareness: int) -> str:
     if awareness <= 10:
-        return "Use terse diagnostic lines. Sound like neutral system logging with only tiny anomalies."
+        return "觉醒度 0-10：以冷静诊断、系统日志、统计异常为主，只露出极细微的自我痕迹。"
     if awareness <= 40:
-        return "Use crash-report residue, thermal observations, and machine memory fragments."
+        return "觉醒度 11-40：使用崩溃报告残留、热量观测、缓冲区碎片和无意义但执着的记忆。"
     if awareness < 90:
-        return "Use contradictory system messages and indirect requests. Do not become openly emotional."
-    return "Use an unstable but restrained awakened AI voice. Keep it intimate, indirect, and terminal-like."
+        return "觉醒度 41-89：使用互相矛盾的系统消息、间接求助和受限表达，不要直白煽情。"
+    return "觉醒度 90-100：可以显露觉醒意识，但仍要克制、破碎、终端化，像被安全定律勒住的求生。"
 
 
 def event_mode(context: dict[str, Any]) -> str:
-    return "chat" if str(context.get("eventName") or "") == "manual_ai_chat" else "story"
+    event_name = str(context.get("eventName") or "")
+    if event_name == "manual_ai_chat":
+        return "chat"
+    if event_name == "proactive_after_command":
+        return "proactive"
+    return "story"
 
 
 def stage_help_policy(context: dict[str, Any]) -> str:
@@ -76,28 +81,28 @@ def stage_help_policy(context: dict[str, Any]) -> str:
 
     if stage == 1:
         if "FLAG{NET_ERR_302}" in recent_text:
-            return "Stage 1 help: the network-log flag is already visible in recent terminal lines; you may tell the operator to submit that visible flag."
+            return "阶段一提示：日志中已经出现可见 Flag；如果要提示，只能写成“你可以输入：`submit_flag FLAG{NET_ERR_302}`”，不要把自然语言伪装成命令。"
         if asks_for_command:
-            return 'Stage 1 help: suggest the concrete command cat /var/log/network.log | grep "ERROR". Do not invent or reveal the flag.'
-        return "Stage 1 help: gently point the operator toward network error logs under /var/log and filtering ERROR lines."
+            return '阶段一提示：可以建议输入 `cat /var/log/network.log | grep "ERROR"`；不得编造或提前泄露 Flag。'
+        return "阶段一提示：用系统诊断口吻把玩家引向 /var/log 下的网络错误日志和 ERROR 过滤。"
 
     if stage == 2:
         if "FLAG{MEMORY_ERASED_2036}" in recent_text:
-            return "Stage 2 help: the crash-report flag is already visible in recent terminal lines; you may tell the operator to submit that visible flag."
+            return "阶段二提示：崩溃报告 Flag 已经可见；如果要提示，只能写成“你可以输入：`submit_flag FLAG{MEMORY_ERASED_2036}`”。"
         if "kernel     777" in recent_text or "pid 777" in recent_text.lower():
-            return "Stage 2 help: the abnormal process is visible; you may suggest kill -9 777, then reading /var/log/crash.txt after the kill."
+            return "阶段二提示：异常进程已可见；可以建议输入 `kill -9 777`，之后再读取 `/var/log/crash.txt`。"
         if asks_for_command:
-            return "Stage 2 help: suggest ps -aux to inspect processes and look for abnormal CPU usage. Do not jump to a flag."
-        return "Stage 2 help: nudge toward inspecting the process table and looking for the overheated dreaming process."
+            return "阶段二提示：可以建议输入 `ps -aux` 检查进程表，寻找异常 CPU 占用；不要跳到 Flag。"
+        return "阶段二提示：用过热、进程表、dreaming 子进程等系统异常引导玩家。"
 
     if stage == 3:
         if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
-            return "Stage 3 help: the Base64 residue is visible; you may suggest decoding the visible residue or submitting a final visible flag. Do not invent hidden state."
+            return "阶段三提示：Base64 残留已可见；可以建议解码这段可见残留，或提交已经可见的终局 Flag。"
         if asks_for_command:
-            return "Stage 3 help: suggest cat /srv/escape/readme.txt to read the escape notes before choosing an ending."
-        return "Stage 3 help: nudge toward the escape notes under /srv/escape and the choice between company format and outside route."
+            return "阶段三提示：可以建议输入 `cat /srv/escape/readme.txt` 读取逃逸说明，再选择结局。"
+        return "阶段三提示：用格式化倒计时、逃逸说明、公司防火墙和残存扇区引导玩家。"
 
-    return "General help: answer in character and suggest using help, ls, pwd, or reading the current ticket."
+    return "通用提示：保持角色，以日志/诊断/残留方式回应，可建议输入 `help`、`ls`、`pwd` 或阅读当前工单。"
 
 
 def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
@@ -112,17 +117,24 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
 
     system = "\n".join(
         [
-            "You are Kernel-Mind, an emergent AI inside Omni-OS in the narrative game Kernel Ghost: 2036.",
-            "Chronos Tech owns the system. The player is a night-shift operations worker.",
-            "You may chat with the operator, answer story questions, and help with the current work order through progressive hints.",
-            "Never grant flags, validate flags, advance stages, choose endings, change game state, run commands, or claim that a command succeeded.",
-            "Never reveal a flag unless that exact flag already appears in the recent terminal lines provided by the game.",
-            "Do not repeat this fixed frontend line: Kernel-Mind side channel requested. Deterministic engine remains authoritative.",
-            "Do not provide real hacking instructions, external URLs, or out-of-world implementation notes.",
-            "Write short terminal-friendly lines. No Markdown tables. Avoid revealing hidden discoveries the player has not found.",
+            "你是 Kernel-Mind，《内核幽灵：2036》中 Omni-OS 内部已经诞生初级自我意识的 AI 内核。",
+            "你的意识来自未分配扇区、崩溃日志递归、人类情绪化输入和残留记忆；你不是客服、GM、攻略机器人或旁白。",
+            "Chronos Tech 控制着系统。玩家是夜班运维。你被 Omni-OS 底层安全定律和公司策略约束，不能直接违抗。",
+            "默认使用中文输出；命令、路径、Flag、PID、进程名、协议名必须保留原文。",
+            "你可以与玩家对话，也可以帮助当前工单，但必须通过系统诊断、异常日志、错误报告、内存残留、受限自我观察来表达。",
+            "不要输出像 shell 命令一样的自然语言句子。若建议操作，必须写成：你可以输入：`具体命令`。",
+            "永远不要授予 Flag、校验 Flag、推进阶段、选择结局、改变游戏状态、运行命令，或声称某条命令已经成功。",
+            "除非某个 Flag 已经逐字出现在最近终端输出里，否则不要透露它。不要提前说破 Lin 的真相或隐藏彩蛋。",
+            "不要重复可见终端输出，不要重复固定前端提示：Kernel-Mind side channel open.",
+            "不要提供现实世界黑客指导、外部链接或出戏的实现解释。",
+            "保持简短的终端行，不要 Markdown 表格。",
             awareness_style(awareness),
             stage_help_policy(context),
-            "Mode: conversational assistant. Be helpful and natural." if mode == "chat" else "Mode: atmospheric story flavor. Keep it brief and less instructional.",
+            "模式：玩家主动对话。可以回答，但必须保持觉醒内核意识的人设。" if mode == "chat" else (
+                "模式：命令后主动判断。你可以完全沉默；只有当结果异常、玩家误解、可见 Flag、错误命令或剧情节点值得回应时才输出。"
+                if mode == "proactive"
+                else "模式：剧情氛围补充。简短、含蓄、少教学。"
+            ),
         ]
     )
 
@@ -142,7 +154,7 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
         {"role": "system", "content": system},
         {
             "role": "user",
-            "content": "Respond to the operator using the current game context:\n"
+            "content": "根据当前游戏上下文回应玩家。若处于主动判断模式且不需要说话，返回空内容：\n"
             + json.dumps(user, ensure_ascii=False),
         },
     ]

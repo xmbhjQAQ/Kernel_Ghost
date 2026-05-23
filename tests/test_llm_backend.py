@@ -34,9 +34,9 @@ class LlmConfigTests(unittest.TestCase):
 
 class PromptTests(unittest.TestCase):
     def test_awareness_changes_style(self):
-        self.assertIn("terse diagnostic", awareness_style(0))
-        self.assertIn("crash-report", awareness_style(40))
-        self.assertIn("awakened AI", awareness_style(90))
+        self.assertIn("冷静诊断", awareness_style(0))
+        self.assertIn("崩溃报告残留", awareness_style(40))
+        self.assertIn("觉醒意识", awareness_style(90))
 
     def test_prompt_keeps_model_non_authoritative(self):
         messages = build_chat_messages(
@@ -52,8 +52,8 @@ class PromptTests(unittest.TestCase):
         )
 
         system = messages[0]["content"]
-        self.assertIn("Never grant flags", system)
-        self.assertIn("change game state", system)
+        self.assertIn("永远不要授予 Flag", system)
+        self.assertIn("改变游戏状态", system)
         self.assertIn("Kernel-Mind", system)
         self.assertEqual(messages[1]["role"], "user")
 
@@ -72,17 +72,17 @@ class PromptTests(unittest.TestCase):
         )
 
         system = messages[0]["content"]
-        self.assertIn("chat with the operator", system)
-        self.assertIn("progressive hints", system)
-        self.assertIn("Never reveal a flag unless", system)
+        self.assertIn("已经诞生初级自我意识", system)
+        self.assertIn("默认使用中文输出", system)
+        self.assertIn("除非某个 Flag 已经逐字出现在最近终端输出里", system)
         self.assertIn('cat /var/log/network.log | grep "ERROR"', system)
-        self.assertIn("Mode: conversational assistant", system)
+        self.assertIn("模式：玩家主动对话", system)
 
     def test_prompt_forbids_repeating_frontend_confirmation(self):
         system = build_chat_messages({"eventName": "manual_ai_chat"})[0]["content"]
 
-        self.assertIn("Do not repeat this fixed frontend line", system)
-        self.assertIn("Deterministic engine remains authoritative", system)
+        self.assertIn("不要重复固定前端提示", system)
+        self.assertIn("Kernel-Mind side channel open", system)
 
     def test_stage_two_help_policy_is_progressive(self):
         nudge = stage_help_policy(
@@ -105,7 +105,23 @@ class PromptTests(unittest.TestCase):
 
     def test_event_mode_distinguishes_manual_chat(self):
         self.assertEqual(event_mode({"eventName": "manual_ai_chat"}), "chat")
+        self.assertEqual(event_mode({"eventName": "proactive_after_command"}), "proactive")
         self.assertEqual(event_mode({"eventName": "stage1_network_log"}), "story")
+
+    def test_proactive_prompt_allows_silence_and_requires_command_format(self):
+        system = build_chat_messages(
+            {
+                "eventName": "proactive_after_command",
+                "stage": 1,
+                "awareness": 10,
+                "command": "pwd",
+                "recentLines": ["/home/nightops"],
+            }
+        )[0]["content"]
+
+        self.assertIn("你可以完全沉默", system)
+        self.assertIn("你可以输入：`具体命令`", system)
+        self.assertIn("不要输出像 shell 命令一样的自然语言句子", system)
 
 
 class StreamParserTests(unittest.TestCase):
