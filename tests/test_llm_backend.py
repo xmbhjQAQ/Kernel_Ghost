@@ -4,8 +4,10 @@ import unittest
 from kernel_ghost_server import (
     awareness_style,
     build_chat_messages,
+    event_mode,
     parse_openai_chat_sse,
     read_llm_config,
+    stage_help_policy,
 )
 
 
@@ -54,6 +56,56 @@ class PromptTests(unittest.TestCase):
         self.assertIn("change game state", system)
         self.assertIn("Kernel-Mind", system)
         self.assertEqual(messages[1]["role"], "user")
+
+    def test_manual_chat_prompt_allows_help_without_leaking_flags(self):
+        messages = build_chat_messages(
+            {
+                "operatorName": "QAQ",
+                "stage": 1,
+                "awareness": 10,
+                "ticket": "stage1",
+                "eventName": "manual_ai_chat",
+                "command": "ai_chat 我该做什么",
+                "recentLines": [],
+                "hiddenDiscoveries": [],
+            }
+        )
+
+        system = messages[0]["content"]
+        self.assertIn("chat with the operator", system)
+        self.assertIn("progressive hints", system)
+        self.assertIn("Never reveal a flag unless", system)
+        self.assertIn('cat /var/log/network.log | grep "ERROR"', system)
+        self.assertIn("Mode: conversational assistant", system)
+
+    def test_prompt_forbids_repeating_frontend_confirmation(self):
+        system = build_chat_messages({"eventName": "manual_ai_chat"})[0]["content"]
+
+        self.assertIn("Do not repeat this fixed frontend line", system)
+        self.assertIn("Deterministic engine remains authoritative", system)
+
+    def test_stage_two_help_policy_is_progressive(self):
+        nudge = stage_help_policy(
+            {
+                "stage": 2,
+                "command": "ai_chat 我该做什么",
+                "recentLines": [],
+            }
+        )
+        kill_hint = stage_help_policy(
+            {
+                "stage": 2,
+                "command": "ai_chat 下一步呢",
+                "recentLines": ["kernel     777  98.7 41.6 kernel-mind --mode=dreaming"],
+            }
+        )
+
+        self.assertIn("ps -aux", nudge)
+        self.assertIn("kill -9 777", kill_hint)
+
+    def test_event_mode_distinguishes_manual_chat(self):
+        self.assertEqual(event_mode({"eventName": "manual_ai_chat"}), "chat")
+        self.assertEqual(event_mode({"eventName": "stage1_network_log"}), "story")
 
 
 class StreamParserTests(unittest.TestCase):

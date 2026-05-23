@@ -1038,7 +1038,7 @@
           return { lines: [{ kind: "warning", text: "usage: ai_chat <message>" }] };
         }
         return {
-          lines: [{ kind: "system", text: "Kernel-Mind side channel requested. Deterministic engine remains authoritative." }],
+          lines: [{ kind: "system", text: "Kernel-Mind side channel open." }],
           llm: {
             eventName: "manual_ai_chat",
             command: `ai_chat ${message}`,

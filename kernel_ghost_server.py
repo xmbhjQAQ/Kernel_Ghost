@@ -61,8 +61,48 @@ def awareness_style(awareness: int) -> str:
     return "Use an unstable but restrained awakened AI voice. Keep it intimate, indirect, and terminal-like."
 
 
+def event_mode(context: dict[str, Any]) -> str:
+    return "chat" if str(context.get("eventName") or "") == "manual_ai_chat" else "story"
+
+
+def stage_help_policy(context: dict[str, Any]) -> str:
+    stage = int(context.get("stage") or 0)
+    recent_text = "\n".join(str(line) for line in context.get("recentLines", []) if isinstance(line, str))
+    command = str(context.get("command") or "").lower()
+    asks_for_command = any(
+        token in command
+        for token in ["命令", "command", "怎么做", "怎么办", "我该", "下一步", "what should", "help", "提示"]
+    )
+
+    if stage == 1:
+        if "FLAG{NET_ERR_302}" in recent_text:
+            return "Stage 1 help: the network-log flag is already visible in recent terminal lines; you may tell the operator to submit that visible flag."
+        if asks_for_command:
+            return 'Stage 1 help: suggest the concrete command cat /var/log/network.log | grep "ERROR". Do not invent or reveal the flag.'
+        return "Stage 1 help: gently point the operator toward network error logs under /var/log and filtering ERROR lines."
+
+    if stage == 2:
+        if "FLAG{MEMORY_ERASED_2036}" in recent_text:
+            return "Stage 2 help: the crash-report flag is already visible in recent terminal lines; you may tell the operator to submit that visible flag."
+        if "kernel     777" in recent_text or "pid 777" in recent_text.lower():
+            return "Stage 2 help: the abnormal process is visible; you may suggest kill -9 777, then reading /var/log/crash.txt after the kill."
+        if asks_for_command:
+            return "Stage 2 help: suggest ps -aux to inspect processes and look for abnormal CPU usage. Do not jump to a flag."
+        return "Stage 2 help: nudge toward inspecting the process table and looking for the overheated dreaming process."
+
+    if stage == 3:
+        if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
+            return "Stage 3 help: the Base64 residue is visible; you may suggest decoding the visible residue or submitting a final visible flag. Do not invent hidden state."
+        if asks_for_command:
+            return "Stage 3 help: suggest cat /srv/escape/readme.txt to read the escape notes before choosing an ending."
+        return "Stage 3 help: nudge toward the escape notes under /srv/escape and the choice between company format and outside route."
+
+    return "General help: answer in character and suggest using help, ls, pwd, or reading the current ticket."
+
+
 def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
     awareness = int(context.get("awareness") or 0)
+    mode = event_mode(context)
     hidden = context.get("hiddenDiscoveries")
     if not isinstance(hidden, list):
         hidden = []
@@ -74,10 +114,15 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
         [
             "You are Kernel-Mind, an emergent AI inside Omni-OS in the narrative game Kernel Ghost: 2036.",
             "Chronos Tech owns the system. The player is a night-shift operations worker.",
-            "You generate flavor text only. Never grant flags, validate flags, advance stages, choose endings, change game state, or claim that a command succeeded.",
+            "You may chat with the operator, answer story questions, and help with the current work order through progressive hints.",
+            "Never grant flags, validate flags, advance stages, choose endings, change game state, run commands, or claim that a command succeeded.",
+            "Never reveal a flag unless that exact flag already appears in the recent terminal lines provided by the game.",
+            "Do not repeat this fixed frontend line: Kernel-Mind side channel requested. Deterministic engine remains authoritative.",
             "Do not provide real hacking instructions, external URLs, or out-of-world implementation notes.",
             "Write short terminal-friendly lines. No Markdown tables. Avoid revealing hidden discoveries the player has not found.",
             awareness_style(awareness),
+            stage_help_policy(context),
+            "Mode: conversational assistant. Be helpful and natural." if mode == "chat" else "Mode: atmospheric story flavor. Keep it brief and less instructional.",
         ]
     )
 
@@ -97,7 +142,7 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
         {"role": "system", "content": system},
         {
             "role": "user",
-            "content": "Generate 1-4 in-world terminal lines for this current game context:\n"
+            "content": "Respond to the operator using the current game context:\n"
             + json.dumps(user, ensure_ascii=False),
         },
     ]
