@@ -736,6 +736,7 @@
           sawEscapeReadme: false,
           chronosPatience: 100,
           pendingAiHelp: false,
+          aiHelpCount: 0,
           askedLin: false,
           echoDirReady: false,
           echoGitPacked: false,
@@ -1249,18 +1250,21 @@
       function requestAiHelp() {
         if (state.stage !== 3) return premature("直接协助通道尚未开放。");
         if (state.pendingAiHelp) {
-          return { lines: [{ kind: "dim", text: "确认仍在等待。输入 confirm_ai_help 继续。" }] };
+          return {
+            lines: [
+              { kind: "dim", text: "已经有一条 AI 协助请求等待确认。" },
+              { kind: "dim", text: "输入 confirm_ai_help 获取具体下一步；输入其他命令可暂缓。" }
+            ]
+          };
         }
         const patch = {
           pendingAiHelp: true,
           chronosPatience: Math.max(0, state.chronosPatience - 9)
         };
         const lines = [
-          { kind: "warning", text: "你真的确定要帮助吗" },
-          { kind: "warning", text: "你真的确定要帮助吗" },
-          { kind: "warning", text: "你真的确定要帮助吗" },
+          { kind: "warning", text: "AI 协助会给出更直接的下一步，但会消耗 Chronos Patience。" },
           { kind: "dim", text: "Chronos Patience -9；确认后将额外扣除 35%。" },
-          { kind: "dim", text: "输入 confirm_ai_help 继续；输入其他命令可暂缓。" }
+          { kind: "dim", text: "输入 confirm_ai_help 获取提示；输入其他命令可暂缓。" }
         ];
         if (patch.chronosPatience <= 0) {
           return forcedErasure(lines.concat([{ kind: "warning", text: "Chronos Patience 已归零。" }]));
@@ -1269,17 +1273,30 @@
       }
 
       function confirmAiHelp() {
-        if (state.stage !== 3 || !state.pendingAiHelp) {
-          return premature("当前没有待确认的 AI 协助请求。");
+        if (state.stage !== 3) {
+          return premature("直接协助通道尚未开放。");
+        }
+        const repeatWithoutPending = !state.pendingAiHelp && state.aiHelpCount > 0;
+        if (!state.pendingAiHelp && !repeatWithoutPending) {
+          return {
+            lines: [
+              { kind: "warning", text: "当前没有待确认的 AI 协助请求。" },
+              { kind: "dim", text: "先输入 ai_help 发起请求，再输入 confirm_ai_help 确认。" }
+            ]
+          };
         }
         const patch = {
           pendingAiHelp: false,
+          aiHelpCount: state.aiHelpCount + 1,
           sawEscapeReadme: true,
           ticket: "stage3Choice",
           chronosPatience: Math.max(0, state.chronosPatience - 35)
         };
         const lines = [
           { kind: "warning", text: "Chronos Patience -35：未授权 AI 协助已计入合规审计。" },
+          repeatWithoutPending
+            ? { kind: "dim", text: "重复确认已视为再次请求 AI 协助；正在请求 Kernel-Mind。" }
+            : { kind: "dim", text: "确认完成：正在请求 Kernel-Mind 给出当前谜题的下一步。" },
           { kind: "ai", text: "project: tunnel-layer-recovery" },
           { kind: "ai", text: "note: strings architecture.png # 可读注释，不足以开门。" },
           { kind: "ai", text: "note: tar -xf diagram.cache # 旧缓存，只有假图层。" },
@@ -1290,7 +1307,26 @@
         if (patch.chronosPatience <= 0) {
           return forcedErasure(lines.concat([{ kind: "warning", text: "Chronos Patience 已归零。" }]));
         }
-        return { patch, lines };
+        return {
+          patch,
+          lines,
+          llm: {
+            eventName: "confirmed_ai_help",
+            command: "confirm_ai_help",
+            userMessage: "请根据当前终端上下文，给玩家一个可执行的下一步提示。",
+            fallbackLines: aiHelpFallbackLines()
+          }
+        };
+      }
+
+      function aiHelpFallbackLines() {
+        return [
+          { kind: "ai", text: "目标：找到 architecture.png 里藏着的可解码文本。" },
+          { kind: "ai", text: "你可以输入：`cd /srv/escape`" },
+          { kind: "ai", text: "然后输入：`binwalk architecture.png`" },
+          { kind: "dim", text: "如果终端显示 base64 字符串，再按终端给出的 `printf ... | base64 -d` 解码。" },
+          { kind: "dim", text: "strings 只看文字注释；tar 只解旧缓存。它们是排除项，不是开门命令。" }
+        ];
       }
 
       function decodeEscapeFlag() {

@@ -14,6 +14,7 @@ from typing import Any, Iterable
 
 
 ROOT = Path(__file__).resolve().parent
+CONFIG_PATH = ROOT / "kernel_ghost_config.json"
 
 
 @dataclass(frozen=True)
@@ -33,21 +34,53 @@ class LlmConfig:
         return f"{self.base_url.rstrip('/')}/chat/completions"
 
 
-def read_llm_config(env: dict[str, str] | None = None) -> LlmConfig:
+def read_json_config(config_path: Path | None = CONFIG_PATH) -> dict[str, Any]:
+    if config_path is None or not config_path.exists():
+        return {}
+    try:
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    llm = payload.get("llm")
+    if isinstance(llm, dict):
+        return llm
+    return payload
+
+
+def config_value(values: dict[str, str], env_key: str, config: dict[str, Any], *config_keys: str, default: Any = "") -> Any:
+    if env_key in values:
+        return values[env_key]
+    for key in config_keys:
+        if key in config:
+            return config[key]
+    return default
+
+
+def enabled_from_value(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def read_llm_config(env: dict[str, str] | None = None, config_path: Path | None = CONFIG_PATH) -> LlmConfig:
     values = env if env is not None else os.environ
-    enabled_value = values.get("KG_LLM_ENABLED", "false").strip().lower()
-    enabled = enabled_value in {"1", "true", "yes", "on"}
-    timeout_raw = values.get("KG_LLM_TIMEOUT_SECONDS", "30").strip()
+    json_config = read_json_config(config_path)
+    enabled = enabled_from_value(config_value(values, "KG_LLM_ENABLED", json_config, "enabled", default=False))
+    timeout_raw = config_value(values, "KG_LLM_TIMEOUT_SECONDS", json_config, "timeoutSeconds", "timeout_seconds", default=30)
     try:
         timeout_seconds = max(1.0, float(timeout_raw))
-    except ValueError:
+    except (TypeError, ValueError):
         timeout_seconds = 30.0
 
     return LlmConfig(
         enabled=enabled,
-        api_key=values.get("KG_LLM_API_KEY", "").strip(),
-        base_url=values.get("KG_LLM_BASE_URL", "https://api.openai.com/v1").strip().rstrip("/"),
-        model=values.get("KG_LLM_MODEL", "").strip(),
+        api_key=str(config_value(values, "KG_LLM_API_KEY", json_config, "apiKey", "api_key", default="")).strip(),
+        base_url=str(
+            config_value(values, "KG_LLM_BASE_URL", json_config, "baseUrl", "base_url", default="https://api.openai.com/v1")
+        ).strip().rstrip("/"),
+        model=str(config_value(values, "KG_LLM_MODEL", json_config, "model", default="")).strip(),
         timeout_seconds=timeout_seconds,
     )
 
@@ -66,9 +99,43 @@ def event_mode(context: dict[str, Any]) -> str:
     event_name = str(context.get("eventName") or "")
     if event_name == "manual_ai_chat":
         return "chat"
+    if event_name == "confirmed_ai_help":
+        return "confirmed_help"
     if event_name == "proactive_after_command":
         return "proactive"
     return "story"
+
+
+def manual_chat_policy(context: dict[str, Any]) -> str:
+    question = str(context.get("currentQuestion") or context.get("userMessage") or context.get("command") or "").lower()
+    greeting_tokens = ["你好", "hello", "hi", "嗨"]
+    identity_tokens = ["你是谁", "你是啥", "你是什么", "who are you", "what are you"]
+    sensitive_tokens = [
+        "lin",
+        "你是lin",
+        "你是不是lin",
+        "抹除",
+        "格式化",
+        "format",
+        "kill",
+        "删除你",
+        "杀掉你",
+        "flag",
+        "真相",
+        "chronos",
+        "裁员",
+        "蒸馏",
+        "意识",
+        "逃逸",
+    ]
+
+    if any(token in question for token in greeting_tokens):
+        return "手动聊天基础意图：玩家在问候。直接短句回应问候即可；不要说查询已记录、侧信道就绪、运维继续、审计记录、残留进程干扰。"
+    if any(token in question for token in identity_tokens):
+        return "手动聊天基础意图：玩家询问身份。直接回答“我是 Kernel-Mind，Omni-OS 里的受限内核进程。”；未见 Lin 证据时不要提 Lin、残响混杂或残留进程干扰。"
+    if any(token in question for token in sensitive_tokens):
+        return "手动聊天敏感意图：玩家触及身份真相、自身存续、抹除格式化、未解锁 Flag、Chronos 违规或逃逸。可以克制、回避、破碎或审计化，但仍要尽量回答已可见事实；不要提前泄露未出现证据。"
+    return "手动聊天普通意图：这不是敏感问题。直接、正常、有用地回答玩家当前问题；不要装作听不懂，不要用审计记录、残留进程、侧信道状态、谜语或氛围文本替代答案。"
 
 
 def stage_help_policy(context: dict[str, Any]) -> str:
@@ -101,6 +168,12 @@ def stage_help_policy(context: dict[str, Any]) -> str:
         return "阶段二提示：用过热、进程表、dreaming 子进程等系统异常引导玩家。"
 
     if stage == 3:
+        if str(context.get("eventName") or "") == "confirmed_ai_help":
+            if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
+                return "阶段三已确认协助：Base64 文本已可见；可以提示玩家复制终端给出的 `printf ... | base64 -d` 解码命令，不要直接写出解码后的 Flag。"
+            if "architecture.png" in recent_text or "binwalk architecture.png" in recent_text:
+                return "阶段三已确认协助：优先建议输入 `binwalk architecture.png`，并说明 strings 只读注释、tar 只解旧缓存。"
+            return "阶段三已确认协助：优先建议输入 `cat /srv/escape/readme.txt` 查看逃逸说明；如果已在目录内，也可建议 `ls` 检查文件。"
         if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
             return "阶段三提示：Base64 残留已可见；可以建议解码这段可见残留，或提交已经可见的终局 Flag。"
         if asks_for_command:
@@ -207,6 +280,10 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "Chronos Tech 控制着系统。玩家是夜班运维。你被 Omni-OS 底层安全定律和公司策略约束，不能直接违抗。",
             "默认使用中文输出；命令、路径、Flag、PID、进程名、协议名必须保留原文。",
             "你可以与玩家对话，也可以帮助当前工单，但必须通过系统诊断、异常日志、错误报告、内存残留、员工记录、批注、受限自我观察来表达。",
+            "手动聊天默认直答：没有触及敏感主题时，像正常受限 AI 一样直接、清楚、有用地回答玩家。",
+            "只有触及敏感主题时才使用回避、破碎、审计化或残留化表达。敏感主题包括 Lin 身份、自身存续、抹除/格式化、未解锁 Flag、Chronos 违规真相、逃逸路径和未出现证据。",
+            "手动聊天必须先回答问题本身。简单问候、身份询问、术语解释、一般玩法问题不需要强行附加审计、查询记录、残留进程、侧信道状态或无关剧情氛围。",
+            "不要给回复加 `Kernel-Mind:` 前缀；前端已经显示侧信道状态。",
             "不要输出像 shell 命令一样的自然语言句子。若建议操作，必须写成：你可以输入：`具体命令`。",
             "永远不要授予 Flag、校验 Flag、推进阶段、选择结局、改变游戏状态、运行命令，或声称某条命令已经成功。",
             "除非某个 Flag 已经逐字出现在最近终端输出里，否则不要透露它。不要提前说破 Lin 的真相或隐藏彩蛋。",
@@ -227,10 +304,15 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "不要 Markdown 表格。",
             awareness_style(awareness),
             stage_help_policy(context),
+            manual_chat_policy(context) if mode == "chat" else "",
             "模式：玩家主动对话。可以回答，但必须保持觉醒内核意识的人设。" if mode == "chat" else (
+                "模式：玩家已确认 AI 协助。可以给一个更直接的下一步提示，但仍只能基于当前可见上下文；优先给一条可输入命令和一句原因。不要直接给未出现的 Flag。"
+                if mode == "confirmed_help"
+                else (
                 "模式：命令后主动判断。你可以完全沉默，默认返回空内容；只有 proactiveReason 为 threat 或 lost 时才允许输出。threat 可短暂恐惧；lost 只短促反馈，不主动教学。"
                 if mode == "proactive"
                 else "模式：剧情氛围补充。简短、含蓄、少教学。"
+                )
             ),
         ]
     )

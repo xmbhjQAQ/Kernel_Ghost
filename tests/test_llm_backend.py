@@ -1,12 +1,16 @@
 import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from kernel_ghost_server import (
     awareness_style,
     build_chat_messages,
     event_mode,
     infer_anomaly_candidates,
+    manual_chat_policy,
     parse_openai_chat_sse,
+    read_json_config,
     read_llm_config,
     stage_help_policy,
 )
@@ -27,10 +31,77 @@ class LlmConfigTests(unittest.TestCase):
         self.assertEqual(config.chat_completions_url, "https://example.test/v1/chat/completions")
 
     def test_disabled_by_default(self):
-        config = read_llm_config({})
+        config = read_llm_config({}, config_path=None)
 
         self.assertFalse(config.ready)
         self.assertFalse(config.enabled)
+
+    def test_config_file_can_enable_llm(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "kernel_ghost_config.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "llm": {
+                            "enabled": True,
+                            "apiKey": "json-secret",
+                            "baseUrl": "https://json.example/v1/",
+                            "model": "json-model",
+                            "timeoutSeconds": 12,
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            config = read_llm_config({}, config_path=config_path)
+
+        self.assertTrue(config.ready)
+        self.assertEqual(config.api_key, "json-secret")
+        self.assertEqual(config.chat_completions_url, "https://json.example/v1/chat/completions")
+        self.assertEqual(config.model, "json-model")
+        self.assertEqual(config.timeout_seconds, 12)
+
+    def test_env_overrides_config_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "kernel_ghost_config.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "llm": {
+                            "enabled": True,
+                            "apiKey": "json-secret",
+                            "baseUrl": "https://json.example/v1",
+                            "model": "json-model",
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            config = read_llm_config(
+                {
+                    "KG_LLM_API_KEY": "env-secret",
+                    "KG_LLM_MODEL": "env-model",
+                    "KG_LLM_BASE_URL": "https://env.example/v1",
+                },
+                config_path=config_path,
+            )
+
+        self.assertTrue(config.ready)
+        self.assertEqual(config.api_key, "env-secret")
+        self.assertEqual(config.model, "env-model")
+        self.assertEqual(config.chat_completions_url, "https://env.example/v1/chat/completions")
+
+    def test_invalid_config_file_is_ignored(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "kernel_ghost_config.json"
+            config_path.write_text("{bad json", encoding="utf-8")
+
+            self.assertEqual(read_json_config(config_path), {})
+            config = read_llm_config({}, config_path=config_path)
+
+        self.assertFalse(config.ready)
 
 
 class PromptTests(unittest.TestCase):
@@ -78,6 +149,33 @@ class PromptTests(unittest.TestCase):
         self.assertIn("除非某个 Flag 已经逐字出现在最近终端输出里", system)
         self.assertIn('cat /var/log/network.log | grep "ERROR"', system)
         self.assertIn("模式：玩家主动对话", system)
+
+    def test_manual_chat_policy_answers_basic_intents_directly(self):
+        greeting = manual_chat_policy({"userMessage": "你好"})
+        identity = manual_chat_policy({"userMessage": "你是谁？"})
+        normal = manual_chat_policy({"userMessage": "这个游戏怎么玩？"})
+        sensitive = manual_chat_policy({"userMessage": "Chronos 到底做了什么？"})
+        system = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "command": "ai_chat 你是谁？",
+                "userMessage": "你是谁？",
+            }
+        )[0]["content"]
+
+        self.assertIn("直接短句回应问候", greeting)
+        self.assertIn("不要说查询已记录", greeting)
+        self.assertIn("我是 Kernel-Mind", identity)
+        self.assertIn("不要提 Lin", identity)
+        self.assertIn("这不是敏感问题", normal)
+        self.assertIn("直接、正常、有用地回答", normal)
+        self.assertIn("玩家触及身份真相", sensitive)
+        self.assertIn("可以克制、回避", sensitive)
+        self.assertIn("手动聊天必须先回答问题本身", system)
+        self.assertIn("手动聊天默认直答", system)
+        self.assertIn("只有触及敏感主题时才使用回避", system)
+        self.assertIn("不要给回复加 `Kernel-Mind:` 前缀", system)
+        self.assertIn("残留进程", system)
 
     def test_prompt_forbids_repeating_frontend_confirmation(self):
         system = build_chat_messages({"eventName": "manual_ai_chat"})[0]["content"]
@@ -211,8 +309,29 @@ class PromptTests(unittest.TestCase):
         self.assertEqual(candidates[0]["cpuPercent"], "98.7")
         self.assertIn("kernel-mind --mode=dreaming", candidates[0]["name"])
 
+    def test_confirmed_ai_help_prompt_allows_direct_hint(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "confirmed_ai_help",
+                "stage": 3,
+                "awareness": 90,
+                "command": "confirm_ai_help",
+                "recentLines": [
+                    "project-note: binwalk architecture.png",
+                    "project-note: strings architecture.png",
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+        self.assertIn("玩家已确认 AI 协助", system)
+        self.assertIn("优先给一条可输入命令", system)
+        self.assertIn("binwalk architecture.png", system)
+        self.assertIn("不要直接给未出现的 Flag", system)
+
     def test_event_mode_distinguishes_manual_chat(self):
         self.assertEqual(event_mode({"eventName": "manual_ai_chat"}), "chat")
+        self.assertEqual(event_mode({"eventName": "confirmed_ai_help"}), "confirmed_help")
         self.assertEqual(event_mode({"eventName": "proactive_after_command"}), "proactive")
         self.assertEqual(event_mode({"eventName": "stage1_network_log"}), "story")
 

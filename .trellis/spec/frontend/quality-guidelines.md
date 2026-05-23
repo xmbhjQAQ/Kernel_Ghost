@@ -82,6 +82,14 @@ remain non-authoritative and must not mutate deterministic game state.
   packing, and endings must be owned by deterministic frontend code.
 - LLM context may include state fields for flavor, but LLM output must never
   spend meters, validate flags, unlock branches, or choose endings.
+- Confirmed assistance may request LLM flavor after deterministic confirmation:
+  use a dedicated event such as `confirmed_ai_help`, keep patience spending in
+  frontend state, and provide a deterministic offline `fallbackLines` path.
+- Manual chat should default to direct, useful answers for non-sensitive
+  player questions. Reserve evasive, fragmented, audit-like, or residue-like
+  phrasing for sensitive topics such as identity truth, self-preservation,
+  erasure / formatting, unrevealed Flags, Chronos wrongdoing, escape paths, or
+  evidence that has not appeared yet.
 - New command strings must be listed in `help` or surfaced by nearby terminal
   output before they are required for progression.
 - If terminal output, AI hints, or readable files mention a virtual file/tool
@@ -109,7 +117,8 @@ remain non-authoritative and must not mutate deterministic game state.
 ### 5. Good/Base/Bad Cases
 
 - Good: `ai_help` sets a pending confirmation and spends deterministic patience;
-  `confirm_ai_help` spends the larger cost and prints indirect hints.
+  `confirm_ai_help` spends the larger cost, prints indirect hints, then may ask
+  the LLM to explain those hints.
 - Base: reading a file prints residue and may set a `saw*` flag.
 - Good: in `/srv/escape`, `cat readme.txt` and `cat /srv/escape/readme.txt`
   reach the same handler.
@@ -120,6 +129,11 @@ remain non-authoritative and must not mutate deterministic game state.
 - Bad: an LLM response says "patience is now 0" or "ending B unlocked" without a
   deterministic `patch` or `ending` result.
 - Bad: every command result calls proactive LLM and produces ambient commentary.
+- Bad: replacing cryptic puzzle output with plain deterministic walkthrough text
+  when the intended product behavior is for AI assistance to explain it.
+- Bad: answering simple `ai_chat` inputs like greetings, "who are you", or basic
+  rules questions with unrelated audit logs, side-channel status, or residue
+  flavor instead of answering the player.
 
 ### 6. Tests Required
 
