@@ -434,3 +434,36 @@ Improved manual AI chat prompt behavior so non-sensitive questions are answered 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: Sync stage three narrative
+
+**Date**: 2026-05-23
+**Task**: Sync stage three narrative
+**Branch**: `main`
+
+### Summary
+
+Inserted the V2 stage-three comment anomaly flow, renumbered formatting finale to stage four, updated LLM prompt policy/tests, and verified the browser path.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e95c55c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
