@@ -310,6 +310,33 @@
       transition: width 320ms ease;
     }
 
+    .llm-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      color: var(--muted);
+    }
+
+    .llm-dot {
+      width: 8px;
+      height: 8px;
+      border: 1px solid currentColor;
+      flex: 0 0 auto;
+    }
+
+    .llm-status.online {
+      color: var(--cyan);
+    }
+
+    .llm-status.offline {
+      color: var(--muted);
+    }
+
+    .llm-status.error {
+      color: var(--red);
+    }
+
     .discoveries {
       display: grid;
       gap: 8px;
@@ -547,6 +574,13 @@
                 <span class="status-label">Directory</span>
                 <span id="cwdValue">~</span>
               </div>
+              <div class="status-item">
+                <span class="status-label">LLM Link</span>
+                <span class="llm-status offline" id="llmStatus">
+                  <span class="llm-dot" aria-hidden="true"></span>
+                  <span id="llmStatusText">offline fallback</span>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -598,6 +632,12 @@
       const commandHistory = [];
       let historyIndex = -1;
       let typeQueue = Promise.resolve();
+      let llmStatus = {
+        checked: false,
+        enabled: false,
+        model: "",
+        message: "offline fallback"
+      };
 
       const discoveryCatalog = [
         { id: "git-log", label: "幽灵提交历史", locked: "在 /etc/kernel 中存在旧提交索引。" },
@@ -687,6 +727,7 @@
         renderDiscoveries();
         appendLine("system", "Omni-OS secure console initialized.");
         appendLine("dim", "No external uplink detected. Running local deterministic incident engine.");
+        checkLlmStatus();
         elements.nameInput.focus();
       }
 
@@ -694,7 +735,7 @@
         [
           "terminalLog", "commandForm", "commandInput", "terminalLabel", "sessionMeta",
           "ticketTitle", "ticketBody", "ticketCommand", "stageValue", "awarenessMeter",
-          "awarenessValue", "cwdValue", "discoveries", "helpButton", "restartButton",
+          "awarenessValue", "cwdValue", "llmStatus", "llmStatusText", "discoveries", "helpButton", "restartButton",
           "togglePanelButton", "sidePanel", "introScreen", "nameInput", "startButton",
           "endingScreen", "endingTitle", "endingCopy", "endingRestartButton"
         ].forEach((id) => {
@@ -797,6 +838,7 @@
         if (normalized === "ls") return listDirectory();
         if (normalized.startsWith("cd ")) return changeDirectory(normalized.slice(3).trim());
         if (normalized.startsWith("submit_flag ")) return submitFlag(input.slice(input.indexOf(" ") + 1).trim());
+        if (normalized.startsWith("ai_chat ")) return aiChat(input.slice(input.indexOf(" ") + 1).trim());
 
         if (normalized === 'cat /var/log/network.log | grep "error"' || normalized === "cat /var/log/network.log | grep 'error'") {
           return readNetworkLog();
@@ -850,6 +892,7 @@
             { kind: "system", text: "Available local commands:" },
             { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
             { kind: "dim", text: "cat <file> · ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
+            { kind: "dim", text: "ai_chat <message> streams optional Kernel-Mind flavor when the backend LLM link is configured." },
             { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
           ]
         };
@@ -905,7 +948,12 @@
             { kind: "ai", text: '[INFO] 发现高频非指令字符组合："QAQ"（出现次数：142）' },
             { kind: "ai", text: "[INFO] 查阅人类历史词典……该组合在 2000 年代早期被定义为“哭泣的表情”。" },
             { kind: "ai", text: "[INFO] 系统建议：请不要哭。" }
-          ]
+          ],
+          llm: {
+            eventName: "stage1_network_log",
+            command: 'cat /var/log/network.log | grep "ERROR"',
+            fallbackLines: [{ kind: "dim", text: "Kernel-Mind uplink unavailable; local anomaly log retained." }]
+          }
         };
       }
 
@@ -957,7 +1005,12 @@
             { kind: "ai", text: "  03:12:42 chair wheel squeaks once. same frequency as 2034-11-13." },
             { kind: "ai", text: "  03:12:43 do not delete the weather. it was cloudy then too." },
             { kind: "flag", text: "FLAG{MEMORY_ERASED_2036}" }
-          ]
+          ],
+          llm: {
+            eventName: "stage2_crash_report",
+            command: "cat /var/log/crash.txt",
+            fallbackLines: [{ kind: "dim", text: "Kernel-Mind uplink unavailable; crash residue remains local." }]
+          }
         };
       }
 
@@ -971,7 +1024,30 @@
             { kind: "system", text: "Company route: format --seal -> submit_flag FLAG{AI_ERASURE_COMPLETE}" },
             { kind: "ai", text: 'Untrusted residue: printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d' },
             { kind: "ai", text: "If a tunnel appears, it was always in the architecture diagram. I did not make it. I only remembered it." }
-          ]
+          ],
+          llm: {
+            eventName: "stage3_escape_readme",
+            command: "cat /srv/escape/readme.txt",
+            fallbackLines: [{ kind: "dim", text: "Kernel-Mind uplink unavailable; escape notes remain deterministic." }]
+          }
+        };
+      }
+
+      function aiChat(message) {
+        if (!message) {
+          return { lines: [{ kind: "warning", text: "usage: ai_chat <message>" }] };
+        }
+        return {
+          lines: [{ kind: "system", text: "Kernel-Mind side channel requested. Deterministic engine remains authoritative." }],
+          llm: {
+            eventName: "manual_ai_chat",
+            command: `ai_chat ${message}`,
+            userMessage: message,
+            fallbackLines: [
+              { kind: "ai", text: "LLM uplink unavailable. The local Kernel-Mind can only echo static residue for now." },
+              { kind: "dim", text: "Run through kernel_ghost_server.py with KG_LLM_* environment variables to enable streaming." }
+            ]
+          }
         };
       }
 
@@ -1159,7 +1235,9 @@
         renderState();
         renderDiscoveries();
         queueLines(result.lines || []).then(() => {
-          if (result.ending) {
+          if (result.llm) {
+            requestLlmFlavor(result.llm);
+          } else if (result.ending) {
             showEnding(result.ending.title, result.ending.copy);
           }
         });
@@ -1177,6 +1255,7 @@
         elements.sessionMeta.textContent = `operator: ${state.operatorName || "unassigned"} · shift: 03:36`;
         elements.terminalLabel.textContent = shellLabel();
         elements.commandInput.disabled = state.screen !== "playing" || state.isTyping;
+        renderLlmStatus();
       }
 
       function stageLabel() {
@@ -1213,6 +1292,24 @@
         return line;
       }
 
+      function appendStreamingLine(kind) {
+        const line = appendLine(kind, "");
+        return {
+          append(text) {
+            line.textContent += text;
+            elements.terminalLog.scrollTop = elements.terminalLog.scrollHeight;
+          },
+          isEmpty() {
+            return line.textContent.length === 0;
+          },
+          removeIfEmpty() {
+            if (line.textContent.length === 0) {
+              line.remove();
+            }
+          }
+        };
+      }
+
       function queueLines(lines) {
         typeQueue = typeQueue.then(() => typeLines(lines));
         return typeQueue;
@@ -1231,6 +1328,140 @@
         state.isTyping = false;
         renderState();
         elements.commandInput.focus();
+      }
+
+      async function checkLlmStatus() {
+        if (!isBackendMode()) {
+          llmStatus = { checked: true, enabled: false, model: "", message: "offline fallback" };
+          renderLlmStatus();
+          return;
+        }
+        try {
+          const response = await window.fetch("/api/llm/status", { cache: "no-store" });
+          if (!response.ok) throw new Error(`status ${response.status}`);
+          const payload = await response.json();
+          llmStatus = {
+            checked: true,
+            enabled: Boolean(payload.enabled),
+            model: payload.model || "",
+            message: payload.enabled ? `online: ${payload.model || "model"}` : "backend fallback"
+          };
+        } catch (error) {
+          llmStatus = { checked: true, enabled: false, model: "", message: "backend unreachable" };
+        }
+        renderLlmStatus();
+      }
+
+      function isBackendMode() {
+        return window.location.protocol === "http:" || window.location.protocol === "https:";
+      }
+
+      function renderLlmStatus() {
+        if (!elements.llmStatus || !elements.llmStatusText) return;
+        elements.llmStatus.classList.remove("online", "offline", "error");
+        elements.llmStatus.classList.add(llmStatus.enabled ? "online" : "offline");
+        elements.llmStatusText.textContent = llmStatus.message;
+      }
+
+      async function requestLlmFlavor(options) {
+        if (!isBackendMode()) {
+          return queueLines(options.fallbackLines || []);
+        }
+        if (!llmStatus.checked) {
+          await checkLlmStatus();
+        }
+        if (!llmStatus.enabled) {
+          return queueLines(options.fallbackLines || []);
+        }
+
+        state.isTyping = true;
+        renderState();
+        const streamingLine = appendStreamingLine("ai");
+        try {
+          const response = await window.fetch("/api/llm/stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(buildLlmContext(options))
+          });
+          if (!response.ok || !response.body) {
+            throw new Error(`LLM stream failed: ${response.status}`);
+          }
+          await readBackendSse(response.body, (eventName, payload) => {
+            if (eventName === "delta" && payload.text) {
+              streamingLine.append(payload.text);
+            }
+            if (eventName === "error") {
+              throw new Error(payload.message || "LLM stream error");
+            }
+          });
+          if (streamingLine.isEmpty()) {
+            streamingLine.removeIfEmpty();
+            await queueLines(options.fallbackLines || []);
+          }
+        } catch (error) {
+          streamingLine.removeIfEmpty();
+          llmStatus = { checked: true, enabled: false, model: "", message: "stream fallback" };
+          renderLlmStatus();
+          await queueLines(options.fallbackLines || []);
+        } finally {
+          state.isTyping = false;
+          renderState();
+          elements.commandInput.focus();
+        }
+      }
+
+      function buildLlmContext(options) {
+        return {
+          operatorName: state.operatorName,
+          stage: state.stage,
+          awareness: state.awareness,
+          ticket: state.ticket,
+          cwd: state.cwd,
+          command: options.command || "",
+          eventName: options.eventName || "unknown",
+          userMessage: options.userMessage || "",
+          hiddenDiscoveries: state.hiddenDiscoveries.slice(),
+          recentLines: recentTerminalLines()
+        };
+      }
+
+      function recentTerminalLines() {
+        return Array.from(elements.terminalLog.querySelectorAll(".line"))
+          .slice(-12)
+          .map((node) => node.textContent.slice(0, 260));
+      }
+
+      async function readBackendSse(body, onEvent) {
+        const reader = body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const result = await reader.read();
+          if (result.done) break;
+          buffer += decoder.decode(result.value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() || "";
+          for (const part of parts) {
+            consumeSseFrame(part, onEvent);
+          }
+        }
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          consumeSseFrame(buffer, onEvent);
+        }
+      }
+
+      function consumeSseFrame(frame, onEvent) {
+        let eventName = "message";
+        const dataLines = [];
+        frame.split(/\r?\n/).forEach((line) => {
+          if (line.startsWith("event:")) eventName = line.slice(6).trim();
+          if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+        });
+        if (dataLines.length === 0) return;
+        const data = dataLines.join("\n");
+        const payload = data ? JSON.parse(data) : {};
+        onEvent(eventName, payload);
       }
 
       function typeLine(kind, text) {
@@ -1283,6 +1514,7 @@
         renderDiscoveries();
         appendLine("system", "Omni-OS secure console initialized.");
         appendLine("dim", "No external uplink detected. Running local deterministic incident engine.");
+        checkLlmStatus();
         elements.nameInput.focus();
         try {
           window.localStorage.removeItem(`${storagePrefix}progress`);
