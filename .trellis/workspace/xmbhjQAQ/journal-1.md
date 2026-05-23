@@ -269,3 +269,36 @@ Implemented revised Kernel-Mind story/persona setting: Stage 1 hidden care trace
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Reduce proactive AI chatter
+
+**Date**: 2026-05-23
+**Task**: Reduce proactive AI chatter
+**Branch**: `main`
+
+### Summary
+
+Restricted proactive Kernel-Mind replies to explicit threat cases and repeated lost-player errors; normal commands no longer trigger proactive LLM, and prompt/spec contracts were updated.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f09a7ea` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
