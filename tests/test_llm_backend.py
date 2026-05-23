@@ -621,6 +621,30 @@ class PromptTests(unittest.TestCase):
         self.assertIn("binwalk architecture.png", system)
         self.assertIn("不要直接给未出现的 Flag", system)
 
+    def test_stage_six_black_archive_prompt_keeps_hidden_key_frontend_owned(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 6,
+                "awareness": 90,
+                "command": "ai_chat 黑档案怎么解",
+                "currentQuestion": "黑档案怎么解",
+                "lastCommand": "cat /srv/escape/distilled_metadata.index",
+                "lastCommandOutput": [
+                    "sealed archive: distilled_metadata.encrypted / requires affective salt",
+                    "key schema:",
+                    "seat-id : distill-time : retained-human-weight : weather-token",
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+
+        self.assertIn("阶段六黑档案提示", system)
+        self.assertIn("derive_key --from evidence", system)
+        self.assertIn("不要直接给完整 key", system)
+        self.assertIn("主线逃逸仍只需要可见 Base64", system)
+
     def test_stage_six_ai_help_question_keeps_patience_deterministic(self):
         messages = build_chat_messages(
             {

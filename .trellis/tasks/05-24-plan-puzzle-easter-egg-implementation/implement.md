@@ -6,8 +6,8 @@
 - [x] Existing implementation anchors identified in `index.html`.
 - [x] Requirements captured in `prd.md`.
 - [x] Technical design captured in `design.md`.
-- [ ] User reviews and approves starting implementation.
-- [ ] Task is activated with `task.py start` before any game-code edits.
+- [x] User reviews and approves starting implementation.
+- [x] Task is activated with `task.py start` before any game-code edits.
 
 ## Batch 0: Pre-Implementation Guardrail
 
@@ -15,10 +15,10 @@ Goal: make sure implementation starts from a clean enough understanding without 
 
 Steps:
 
-- [ ] Review `git status --short` and identify unrelated user changes.
-- [ ] Read relevant `index.html` sections around catalogs, command dispatch, virtual files, state defaults, persistence, echo-wall, and flag submission.
-- [ ] Read `tests/test_frontend_context.py` and `tests/test_llm_backend.py`.
-- [ ] Confirm no new code blocks either simple endings:
+- [x] Review `git status --short` and identify unrelated user changes.
+- [x] Read relevant `index.html` sections around catalogs, command dispatch, virtual files, state defaults, persistence, echo-wall, and flag submission.
+- [x] Read `tests/test_frontend_context.py` and `tests/test_llm_backend.py`.
+- [x] Confirm no new code blocks either simple endings:
   - `FLAG{AI_ERASURE_COMPLETE}`
   - `FLAG{DIGITAL_EMANCIPATION}`
 
@@ -34,6 +34,8 @@ Review gate: if tests are already failing before implementation, record the base
 ## Batch 1: Low/Mid Collectible Expansion
 
 Goal: increase exploration rewards without introducing the high-difficulty ending yet.
+
+Status: completed in `index.html` with new relics, easter eggs, virtual paths, gated reads, and collection entries.
 
 Likely files:
 
@@ -90,6 +92,8 @@ Rollback point: if Batch 1 introduces instability, remove only new catalog entri
 ## Batch 2: 回音壁 Evidence Chain
 
 Goal: make `回音壁` evidence-based and fair without making it as hard as `燎原之火`.
+
+Status: completed with `verify_evidence --lin`, `verify_evidence --echo-wall`, specific missing-evidence feedback, and preserved echo-wall publishing commands.
 
 Likely files:
 
@@ -154,6 +158,8 @@ Rollback point: preserve current echo-wall behavior if the richer evidence check
 ## Batch 3: 燎原之火 High-Difficulty Chain
 
 Goal: implement the full hidden archive route with a clear key schema, derivation feedback, and segment-specific failure messages.
+
+Status: completed with `distilled_metadata.index`, `distilled_metadata.encrypted`, `derive_key --from evidence`, `decrypt ... --key`, segment mismatch feedback, and a new `燎原之火` ending.
 
 Likely files:
 
@@ -229,6 +235,8 @@ Rollback point: if `燎原之火` is unstable, keep Batch 1 and Batch 2 while di
 ## Batch 4: Integrated Polish And Regression Pass
 
 Goal: make the additions coherent as a game experience rather than isolated commands.
+
+Status: completed with frontend/backend prompt tests and full pytest passing.
 
 Checks:
 

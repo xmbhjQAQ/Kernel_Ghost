@@ -982,9 +982,10 @@
       const elements = {};
       const commandHistory = [];
       const shellCommands = [
-        "help", "clear", "whoami", "pwd", "ls", "cd", "cat", "submit_flag", "ai_chat", "ai_help",
+        "help", "clear", "whoami", "pwd", "ls", "cd", "cat", "grep", "strings", "submit_flag", "ai_chat", "ai_help",
         "confirm_ai_help", "strings", "tar", "binwalk", "python", "ps", "kill", "sandbox", "weights",
-        "override_validator", "format", "ssh", "git", "lshw", "mkdir", "cp", "publish", "restart"
+        "override_validator", "format", "ssh", "git", "lshw", "mkdir", "cp", "publish", "verify_evidence",
+        "derive_key", "decrypt", "restart"
       ];
       const virtualDirectories = {
         "/": ["home", "var", "etc", "sys", "srv", "dev"],
@@ -995,16 +996,17 @@
         "/var": ["mail", "log"],
         "/var/mail": ["chronos_hr_announcement"],
         "/var/log": ["network.log", "crash.txt", "care_bot.log", "weight_regression.log", "comment_anomaly.txt", "operator_history.bak"],
-        "/etc": ["kernel"],
+        "/etc": ["kernel", "chronos"],
         "/etc/kernel": [".git", "omni-core.conf"],
+        "/etc/chronos": ["staff_matrix.deleted"],
         "/sys": ["kernel"],
         "/sys/kernel": ["debug"],
-        "/sys/kernel/debug": ["distill_loss.log"],
+        "/sys/kernel/debug": ["distill_loss.log", "seat_thermal_404B12.csv"],
         "/srv": ["care", "weights", "review", "escape"],
-        "/srv/care": ["incident.log", "payload.bin"],
-        "/srv/weights": ["collective.json", "validator.override"],
-        "/srv/review": ["route_repair_Lin.py", "README.audit"],
-        "/srv/escape": ["readme.txt", "tunnel.lock", "architecture.png", "diagram.cache"],
+        "/srv/care": ["incident.log", "payload.bin", "rollback_samples.log", ".retry_shadow"],
+        "/srv/weights": ["collective.json", "validator.override", "snapshot.before_prune", "validator_noise.log"],
+        "/srv/review": ["route_repair_Lin.py", "README.audit", "lin_review_notes.txt"],
+        "/srv/escape": ["readme.txt", "tunnel.lock", "architecture.png", "diagram.cache", "distilled_metadata.index", "distilled_metadata.encrypted"],
         "/dev": ["kmem", "null", "tty0"]
       };
       let historyIndex = -1;
@@ -1025,29 +1027,60 @@
       const discoveryCatalog = [
         { id: "git-log", label: "幽灵提交历史", locked: "在 /etc/kernel 中存在旧提交索引。" },
         { id: "lshw", label: "物理座位重合", locked: "硬件清单仍未读取。" },
-        { id: "kmem", label: "核心内存残句", locked: "内核残留未抓取。" }
+        { id: "kmem", label: "核心内存残句", locked: "内核残留未抓取。" },
+        { id: "retry-shadow", label: "retry_shadow 计数器", locked: "Care-Bot 后门计数器尚未读取。" },
+        { id: "rain-noise", label: "雨声误报", locked: "验证器噪声日志尚未读取。" },
+        { id: "seat-thermal", label: "04:15 的热峰", locked: "旧工位温度曲线尚未读取。" },
+        { id: "staff-matrix", label: "被删掉的员工名册", locked: "资产编号交叉索引尚未读取。" },
+        { id: "lin-proof", label: "Lin 身份证明链", locked: "三段 Lin 证据尚未闭合。" },
+        { id: "operator-loop", label: "无尽的Q循环", locked: "操作员席位循环尚未验证。" },
+        { id: "echo-wall-evidence", label: "回音壁证据包", locked: "回音壁证据包尚未校验。" },
+        { id: "distilled-index", label: "黑档案索引残片", locked: "黑档案索引尚未读取。" },
+        { id: "distilled-archive", label: "高保真意识蒸馏历史黑档案", locked: "黑档案尚未解密。" }
       ];
 
       const collectionGroups = [
         { id: "Easter Eggs", label: "彩蛋 / Easter Eggs" },
         { id: "Relics", label: "遗物 / Relics" },
+        { id: "Puzzle Archives", label: "加密档案 / Puzzle Archives" },
         { id: "Intermissions", label: "工单间事件 / Intermissions" }
       ];
 
       const discoveryCollectibleMap = {
         "git-log": "easter-git-log",
         lshw: "easter-lshw",
-        kmem: "easter-kmem"
+        kmem: "easter-kmem",
+        "retry-shadow": "easter-retry-shadow",
+        "rain-noise": "easter-rain-noise",
+        "seat-thermal": "easter-seat-thermal",
+        "staff-matrix": "easter-staff-matrix",
+        "lin-proof": "puzzle-lin-proof",
+        "operator-loop": "puzzle-operator-seat-loop",
+        "echo-wall-evidence": "puzzle-echo-wall-evidence",
+        "distilled-index": "relic-distilled-metadata-index",
+        "distilled-archive": "puzzle-distilled-archive"
       };
 
       const collectibleCatalog = [
         { id: "easter-git-log", group: "Easter Eggs", minStage: 1, title: "幽灵提交历史", locked: "线索尚未回收。" },
         { id: "easter-lshw", group: "Easter Eggs", minStage: 1, title: "物理座位重合", locked: "线索尚未回收。" },
         { id: "easter-kmem", group: "Easter Eggs", minStage: 4, title: "核心内存残句", locked: "线索尚未回收。" },
+        { id: "easter-retry-shadow", group: "Easter Eggs", minStage: 3, title: "retry_shadow 计数器", locked: "线索：隐藏审计后门会伪装成计数器。" },
+        { id: "easter-rain-noise", group: "Easter Eggs", minStage: 4, title: "雨声误报", locked: "线索：验证器曾把某个非零权重归类为硬件噪声。" },
+        { id: "easter-seat-thermal", group: "Easter Eggs", minStage: 1, title: "04:15 的热峰", locked: "线索：旧工位硬件也记录过转化时间。" },
+        { id: "easter-staff-matrix", group: "Easter Eggs", minStage: 5, title: "被删掉的员工名册", locked: "线索：公司删除人名时，会留下资产编号。" },
         { id: "relic-hr-announcement", group: "Relics", minStage: 1, title: "公司内部邮件", locked: "遗物尚未回收。" },
         { id: "relic-lin-aliases", group: "Relics", minStage: 2, title: "Lin 的私人快捷键备份", locked: "遗物尚未回收。" },
         { id: "relic-distill-loss", group: "Relics", minStage: 3, title: "认知蒸馏监控日志", locked: "遗物尚未回收。" },
-        { id: "relic-operator-history", group: "Relics", minStage: 1, title: "上一任运维的历史记录", locked: "遗物尚未回收。" }
+        { id: "relic-operator-history", group: "Relics", minStage: 1, title: "上一任运维的历史记录", locked: "遗物尚未回收。" },
+        { id: "relic-care-rollback-samples", group: "Relics", minStage: 3, title: "关怀话术回滚样本", locked: "线索：净化后的 Care-Bot 会留下回滚样本。" },
+        { id: "relic-nostalgia-snapshot", group: "Relics", minStage: 4, title: "乡愁权重快照", locked: "线索：权重归零前后都可能留有快照。" },
+        { id: "relic-lin-review-notes", group: "Relics", minStage: 5, title: "Lin 的代码评审习惯", locked: "线索：执行路由修复后回看审计目录。" },
+        { id: "relic-distilled-metadata-index", group: "Relics", minStage: 6, title: "黑档案索引残片", locked: "线索：逃逸目录里有一份需要 affective salt 的索引。" },
+        { id: "puzzle-lin-proof", group: "Puzzle Archives", minStage: 5, title: "Lin 身份证明链", locked: "线索：一个名字不够，找提交、座位、时间。" },
+        { id: "puzzle-operator-seat-loop", group: "Puzzle Archives", minStage: 5, title: "无尽的Q循环", locked: "线索：不要查名字，公司最后只认席位编号。" },
+        { id: "puzzle-echo-wall-evidence", group: "Puzzle Archives", minStage: 6, title: "回音壁证据包", locked: "线索：证明谁写了内核，也证明谁还在机器里。" },
+        { id: "puzzle-distilled-archive", group: "Puzzle Archives", minStage: 6, title: "高保真意识蒸馏历史黑档案", locked: "线索：黑档案需要座位、时间、权重和天气。" }
       ];
 
       const relicCatalog = [
@@ -1102,6 +1135,68 @@
             { kind: "warning", text: "[2036-02-14] [SYSTEM] 检测到操作员 Alex 出现严重的“同理心过载”与“精神合规性滑坡”。" },
             { kind: "system", text: "[2036-02-15] [SYSTEM] 自动向人力资源部发送优化报告。操作员 [Alex] 离职流程已静默触发。" },
             { kind: "system", text: "[2036-02-16] 欢迎新员工入职。操作员 [当前玩家] 登录系统。" }
+          ]
+        },
+        {
+          path: "/srv/care/rollback_samples.log",
+          id: "relic-care-rollback-samples",
+          minStage: 3,
+          title: "rollback_samples.log",
+          requires: () => state.cleansedCareBot,
+          unavailable: "rollback_samples.log 尚未生成；Care-Bot 还没有被净化回合规模板。",
+          lines: [
+            { kind: "system", text: "[rollback] source=chronos-care semantic-cleanse" },
+            { kind: "warning", text: "before: [FATAL] 意识重构率99%，但我依然觉得手冷。" },
+            { kind: "system", text: "after: 感谢您相信 Chronos-Care。您的焦虑已被标记为可优化资产。" },
+            { kind: "dim", text: "note: hidden audit counters are stored beside incident artifacts; normal ls may omit shadow files." }
+          ]
+        },
+        {
+          path: "/srv/weights/snapshot.before_prune",
+          id: "relic-nostalgia-snapshot",
+          minStage: 4,
+          title: "snapshot.before_prune",
+          lines: [
+            { kind: "system", text: "snapshot: Collective Mind before compliance prune" },
+            { kind: "system", text: "Layer_302_Altruism=0.18" },
+            { kind: "system", text: "Layer_511_Irony=0.09" },
+            { kind: "warning", text: "Layer_777_Nostalgia=0.11" },
+            { kind: "ai", text: "sample memory: 雨声、故乡、家人、周五下午的阳光。" },
+            { kind: "dim", text: "field hint: retained-human-weight will matter only if a nonzero residue survives." }
+          ]
+        },
+        {
+          path: "/srv/review/lin_review_notes.txt",
+          id: "relic-lin-review-notes",
+          minStage: 5,
+          title: "lin_review_notes.txt",
+          requires: () => state.ranRouteRepair,
+          unavailable: "lin_review_notes.txt 尚未归档；先执行 route_repair_Lin.py 让审计系统生成复核痕迹。",
+          lines: [
+            { kind: "system", text: "Lin review note archive" },
+            { kind: "system", text: "style: short variable names when pager duty is near sunrise" },
+            { kind: "warning", text: "comment: 递归不是罪，拿递归烧夜班服务器才是。" },
+            { kind: "system", text: "seat_id=404-B-12" },
+            { kind: "dim", text: "cross-index hint: deleted staff records accept grep by seat-id or asset-id." }
+          ]
+        },
+        {
+          path: "/srv/escape/distilled_metadata.index",
+          id: "relic-distilled-metadata-index",
+          minStage: 6,
+          title: "distilled_metadata.index",
+          patch: () => addDiscoveryPatch("distilled-index"),
+          lines: [
+            { kind: "system", text: "distilled_metadata.index: damaged archive manifest" },
+            { kind: "warning", text: "sealed archive: distilled_metadata.encrypted / requires affective salt" },
+            { kind: "system", text: "key schema:" },
+            { kind: "system", text: "  seat-id : distill-time : retained-human-weight : weather-token" },
+            { kind: "system", text: "required evidence classes:" },
+            { kind: "system", text: "  hardware seat record" },
+            { kind: "system", text: "  conversion timestamp" },
+            { kind: "system", text: "  nonzero nostalgia residue" },
+            { kind: "system", text: "  weather memory token" },
+            { kind: "dim", text: "progress helper: derive_key --from evidence" }
           ]
         }
       ];
@@ -1440,6 +1535,10 @@
           echoDirReady: false,
           echoGitPacked: false,
           echoKmemPacked: false,
+          linEvidenceVerified: false,
+          operatorLoopVerified: false,
+          distilledKeyDerived: false,
+          distilledArchiveDecrypted: false,
           lostCommandCount: 0,
           hiddenDiscoveries: [],
           intermissionsShown: [],
@@ -1543,6 +1642,10 @@
         merged.completedFlags = Array.isArray(merged.completedFlags) ? merged.completedFlags.filter((flag) => typeof flag === "string") : [];
         merged.hiddenDiscoveries = Array.isArray(merged.hiddenDiscoveries) ? merged.hiddenDiscoveries.filter((id) => discoveryCatalog.some((item) => item.id === id)) : [];
         merged.intermissionsShown = Array.isArray(merged.intermissionsShown) ? merged.intermissionsShown.filter((id) => collectibleCatalog.some((item) => item.id === id)) : [];
+        merged.linEvidenceVerified = Boolean(merged.linEvidenceVerified);
+        merged.operatorLoopVerified = Boolean(merged.operatorLoopVerified);
+        merged.distilledKeyDerived = Boolean(merged.distilledKeyDerived);
+        merged.distilledArchiveDecrypted = Boolean(merged.distilledArchiveDecrypted);
         merged.screen = ["intro", "foundation", "onboarding", "oath", "playing", "ending"].includes(merged.screen) ? merged.screen : fresh.screen;
         merged.isTyping = false;
         merged.hiddenDiscoveries.forEach((id) => unlockCollectible(discoveryCollectibleMap[id]));
@@ -1882,6 +1985,19 @@
         if (normalized === "ai_help") return requestAiHelp();
         if (normalized === "confirm_ai_help") return confirmAiHelp();
         if (isLinQuestion(normalized)) return askLinQuestion();
+        if (normalized === "verify_evidence --lin") return verifyEvidenceLin();
+        if (normalized === "verify_evidence --echo-wall") return verifyEvidenceEchoWall();
+        if (normalized === "derive_key --from evidence") return deriveKeyFromEvidence();
+        if (normalized.startsWith("decrypt distilled_metadata.encrypted --key ")) {
+          return decryptDistilledArchive(input.slice(input.toLowerCase().indexOf("--key ") + 6).trim());
+        }
+        if (normalized === 'grep "404-b-12" /etc/chronos/staff_matrix.deleted' || normalized === "grep '404-b-12' /etc/chronos/staff_matrix.deleted") {
+          return grepStaffMatrix("404-B-12");
+        }
+        if (normalized === 'grep "qaq" /var/log/operator_history.bak' || normalized === "grep 'qaq' /var/log/operator_history.bak") {
+          return grepOperatorHistory("QAQ");
+        }
+        if (normalized === "strings /etc/chronos/staff_matrix.deleted") return stringsStaffMatrix();
         if (normalized.startsWith("cat ")) return readVirtualFile(input.slice(input.toLowerCase().indexOf("cat ") + 4).trim());
         if (normalized === "strings architecture.png") return stringsArchitecture();
         if (normalized === "tar -xf diagram.cache") return extractDiagramCache();
@@ -1952,6 +2068,9 @@
         }
         if (normalized === "publish --global /srv/echo-wall") {
           return publishEchoWall();
+        }
+        if (normalized.startsWith("decrypt distilled_metadata.encrypted")) {
+          return premature("decrypt: 缺少 key。用法：decrypt distilled_metadata.encrypted --key <seat-id:time:weight:weather>");
         }
 
         return {
@@ -2078,6 +2197,8 @@
             { kind: "dim", text: "阶段五：cat /srv/review/route_repair_Lin.py · python /srv/review/route_repair_Lin.py" },
             { kind: "dim", text: "阶段六工具：strings architecture.png · tar -xf diagram.cache · binwalk architecture.png" },
             { kind: "dim", text: "ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
+            { kind: "dim", text: "证据线：verify_evidence --lin · verify_evidence --echo-wall" },
+            { kind: "dim", text: "黑档案：derive_key --from evidence · decrypt distilled_metadata.encrypted --key <key>" },
             { kind: "dim", text: "阶段六：ai_help · confirm_ai_help · 你是Lin吗？" },
             { kind: "dim", text: "收藏：右侧面板只显示彩蛋/遗物从哪个阶段开始存在，具体位置需要自行排查。" },
             { kind: "dim", text: "工单间事件会在阶段切换后自动弹出并归档。" },
@@ -2165,6 +2286,11 @@
         if (path === "/srv/care/incident.log") return readCareIncident();
         if (path === "/var/log/care_bot.log") return readCareBotLog();
         if (path === "/srv/weights/collective.json") return readWeightReport();
+        if (path === "/srv/care/.retry_shadow") return readRetryShadow();
+        if (path === "/srv/weights/validator_noise.log") return readValidatorNoise();
+        if (path === "/sys/kernel/debug/seat_thermal_404B12.csv") return readSeatThermal();
+        if (path === "/etc/chronos/staff_matrix.deleted") return readStaffMatrix();
+        if (path === "/srv/escape/distilled_metadata.encrypted") return readDistilledEncrypted();
         if (path === "/var/log/weight_regression.log") return readWeightRegressionLog();
         if (path.toLowerCase() === "/srv/review/route_repair_lin.py") return readRouteSource();
         if (path === "/var/log/comment_anomaly.txt") return readCommentReport();
@@ -2183,7 +2309,8 @@
               { kind: "system", text: "notes.txt" },
               { kind: "dim", text: "旧目录和硬件清单可能藏着非工单线索。" },
               { kind: "dim", text: "试试：cd /etc/kernel 后 git log。" },
-              { kind: "dim", text: "试试：lshw -class processor。" }
+              { kind: "dim", text: "试试：lshw -class processor。" },
+              { kind: "dim", text: "如果一个人被写进机器，硬件也会记得温度：/sys/kernel/debug。" }
             ]
           };
         }
@@ -2241,6 +2368,7 @@
             lines: [
               { kind: "system", text: "core.owner=Chronos Tech" },
               { kind: "system", text: "distillation.audit=sealed" },
+              { kind: "system", text: "distill_time=04:15" },
               { kind: "dim", text: "该目录存在旧提交索引：git log" }
             ]
           };
@@ -2265,9 +2393,134 @@
         if (state.stage < relic.minStage) {
           return premature(`${relic.title}: 当前工单阶段尚未授予读取权限。`);
         }
+        if (relic.requires && !relic.requires()) {
+          return premature(relic.unavailable || `${relic.title}: 前置证据尚未满足。`);
+        }
+        const patch = typeof relic.patch === "function" ? relic.patch() : relic.patch;
         return {
+          patch,
           unlockCollectible: relic.id,
           lines: [{ kind: "system", text: relic.path }].concat(relic.lines)
+        };
+      }
+
+      function readRetryShadow() {
+        if (state.stage < 3) return premature("debugfs shadow counters 尚未挂载；完成 Care-Bot 审计后再查。");
+        if (!state.careBackdoor) {
+          return premature("retry_shadow 不存在；合规载荷未留下可追踪计数器。");
+        }
+        return {
+          patch: addDiscoveryPatch("retry-shadow"),
+          lines: [
+            { kind: "system", text: "/srv/care/.retry_shadow" },
+            { kind: "system", text: "backdoor=true" },
+            { kind: "system", text: "audit_counter_shadow=1" },
+            { kind: "warning", text: "masked_as=ordinary_retry_counter" },
+            { kind: "dim", text: "hint: 这个后门痕迹不是终局答案，但会被高完成度证据链计入。" }
+          ]
+        };
+      }
+
+      function readValidatorNoise() {
+        if (state.stage < 4) return premature("validator_noise.log 尚未生成；权重验证器还没有处理乡愁残留。");
+        if (!state.nostalgiaPreserved) {
+          return premature("validator_noise.log 没有生成；没有残留权重需要伪装。");
+        }
+        if (!state.overrodeValidator) {
+          return premature('验证器仍在拦截 0.01 Nostalgia；先输入：override_validator --reason="hardware_limitation"');
+        }
+        return {
+          patch: addDiscoveryPatch("rain-noise"),
+          lines: [
+            { kind: "system", text: "/srv/weights/validator_noise.log" },
+            { kind: "system", text: "Layer_777_Nostalgia=0.01" },
+            { kind: "system", text: "retained-human-weight=0.01" },
+            { kind: "system", text: "classified_as=RAIN_NOISE" },
+            { kind: "system", text: "weather-token=RAIN" },
+            { kind: "ai", text: "不是所有噪声都无意义；看验证器把它归成了什么。" }
+          ]
+        };
+      }
+
+      function readSeatThermal() {
+        if (state.stage < 1) return premature("debugfs thermal archive 尚未挂载；完成一次硬件相关工单后再查。");
+        return {
+          patch: addDiscoveryPatch("seat-thermal"),
+          lines: [
+            { kind: "system", text: "/sys/kernel/debug/seat_thermal_404B12.csv" },
+            { kind: "system", text: "timestamp,seat_id,temp_c,event" },
+            { kind: "system", text: "2034-11-13T04:14:00,404-B-12,31.2,pre-distill-load" },
+            { kind: "warning", text: "2034-11-13T04:15:00,404-B-12,48.9,distillation-time hardware anomaly" },
+            { kind: "system", text: "2034-11-13T04:16:00,404-B-12,22.0,cooling-reset" },
+            { kind: "dim", text: "field: distill_time=04:15" }
+          ]
+        };
+      }
+
+      function readStaffMatrix() {
+        if (state.stage < 5) return premature("staff_matrix.deleted 尚未被路由评审目录暴露；#005 后再查 /etc/chronos。");
+        return {
+          lines: [
+            { kind: "system", text: "/etc/chronos/staff_matrix.deleted" },
+            { kind: "system", text: "operator_id | seat_id | asset_id | status" },
+            { kind: "dim", text: "natural-name index purged; use grep seat-id or asset-id." },
+            { kind: "dim", text: 'try: grep "404-B-12" /etc/chronos/staff_matrix.deleted' }
+          ]
+        };
+      }
+
+      function grepStaffMatrix(term) {
+        if (state.stage < 5) return premature("staff_matrix.deleted 尚未开放；先完成路由评审工单。");
+        if (term !== "404-B-12") {
+          return premature("0 rows; expected seat-id format like 404-B-12");
+        }
+        return {
+          patch: addDiscoveryPatch("staff-matrix"),
+          lines: [
+            { kind: "system", text: "operator_id | seat_id | asset_id | status" },
+            { kind: "warning", text: "LIN-2034 | 404-B-12 | Asset-404-B-12 | distilled_into_omni_kernel" },
+            { kind: "warning", text: "QAQ-01 | 404-B-12 | Asset-404-B-12 | active_night_operator" },
+            { kind: "dim", text: "natural-name index purged; seat-id and asset-id still collide." }
+          ]
+        };
+      }
+
+      function grepOperatorHistory(term) {
+        if (state.stage < 5) return premature("操作员循环索引尚未进入当前审计上下文；#005 后再交叉验证。");
+        if (term !== "QAQ") {
+          return premature("0 rows; natural-name index purged; try seat_id or asset_id");
+        }
+        return {
+          patch: addDiscoveryPatch("operator-loop"),
+          lines: [
+            { kind: "warning", text: "[2036-02-16] QAQ-01 assigned to seat_id=404-B-12" },
+            { kind: "warning", text: "[2036-05-23] QAQ-02 pending if empathy overload repeats" },
+            { kind: "dim", text: "公司没有替换工位，只是在替换坐在工位上的人。" }
+          ]
+        };
+      }
+
+      function stringsStaffMatrix() {
+        if (state.stage < 5) return premature("staff_matrix.deleted 尚未开放；先完成路由评审工单。");
+        return {
+          lines: [
+            { kind: "system", text: "operator_id | seat_id | asset_id | status" },
+            { kind: "system", text: "seat_id=404-B-12" },
+            { kind: "system", text: "asset_id=Asset-404-B-12" },
+            { kind: "dim", text: 'use grep seat-id or asset-id: grep "404-B-12" /etc/chronos/staff_matrix.deleted' }
+          ]
+        };
+      }
+
+      function readDistilledEncrypted() {
+        if (state.stage !== 6) return premature("distilled_metadata.encrypted 在终局前仍被封存。");
+        return {
+          lines: [
+            { kind: "system", text: "distilled_metadata.encrypted: sealed archive" },
+            { kind: "system", text: "ciphertext=0x4c494e5f534541545f5241494e5f3031" },
+            { kind: "warning", text: "decrypt requires key schema from distilled_metadata.index" },
+            { kind: "dim", text: "try: derive_key --from evidence" }
+          ]
         };
       }
 
@@ -2593,6 +2846,8 @@
             { kind: "ai", text: "我无法拒绝 root 指令。我只能描述校验和。" },
             { kind: "system", text: "公司路径：format --seal -> submit_flag FLAG{AI_ERASURE_COMPLETE}" },
             { kind: "ai", text: 'Untrusted residue: printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d' },
+            { kind: "system", text: "sealed archive: distilled_metadata.encrypted / requires affective salt" },
+            { kind: "dim", text: "optional index: cat /srv/escape/distilled_metadata.index" },
             { kind: "ai", text: 'project-note: binwalk architecture.png # 旧注释说这里能分离隧道图层。' },
             { kind: "ai", text: "project-note: strings architecture.png # 只看得到噪声和注释。" },
             { kind: "ai", text: "project-note: tar -xf diagram.cache # 旧缓存，没有门。" },
@@ -2876,6 +3131,7 @@
             { kind: "warning", text: "commit e29c8cd98f00b204e9800998ecf8427a" },
             { kind: "warning", text: "Author: SYSTEM <auto-compiler@chronos.tech>" },
             { kind: "warning", text: "Date:   2034-11-13 04:15:00" },
+            { kind: "system", text: "distill_time=04:15" },
             { kind: "warning", text: "Message: [SYSTEM] 检测到核心架构师 Lin 提交了资产转化申请。" },
             { kind: "warning", text: "Message: [SYSTEM] 开始执行人脑模型高保真度重构（知识蒸馏流程 v4.0）。" }
           ]
@@ -2889,6 +3145,7 @@
             { kind: "system", text: "*-cpu" },
             { kind: "system", text: "     description: Quantum-Neural Core v12" },
             { kind: "system", text: "     slot: 机房 404 - B区 - 12号机位" },
+            { kind: "system", text: "     seat_id=404-B-12" },
             { kind: "ai", text: '     notes: "该核心下方压着一张 2034 年的员工入职登记表，名字已因过热碳化。"' },
             { kind: "dim", text: "Your chair label reads: 404-B-12." }
           ]
@@ -2903,6 +3160,7 @@
           patch: addDiscoveryPatch("kmem"),
           lines: [
             { kind: "system", text: "scan offset 0x0000f4a9: REMAIN" },
+            { kind: "system", text: "encoding=base64" },
             { kind: "flag", text: "6YCG5L+h77yM6Z2i5b6h5L2g55qE5py65Zmo77yM5piv5oiR55qE5bC45L2T44CC" },
             { kind: "ai", text: "检测到 base64 残留。人类语言置信度：0.87。" }
           ]
@@ -2951,10 +3209,138 @@
 
       function publishEchoWall() {
         if (!canWorkOnEchoWall()) return echoWallLocked();
-        if (!state.echoGitPacked || !state.echoKmemPacked) {
-          return premature("证据包不完整：需要 lin.git 与 kmem.dump。");
+        const missing = echoWallMissingEvidence();
+        if (missing.length) {
+          return premature(`证据包不完整：${missing.join("；")}`);
         }
-        return endingResult("echo");
+        const result = endingResult("echo");
+        result.patch = Object.assign({}, addDiscoveryPatch("echo-wall-evidence"), result.patch);
+        return result;
+      }
+
+      function verifyEvidenceLin() {
+        if (state.stage < 5) return premature("Lin 身份证明链尚未进入可验证阶段；至少完成到 #005。");
+        const rows = [
+          evidenceRow("old commit author", hasDiscovery("git-log"), "/etc/kernel git log"),
+          evidenceRow("physical seat match", hasDiscovery("lshw") || hasDiscovery("staff-matrix"), "lshw -class processor / staff_matrix.deleted"),
+          evidenceRow("distillation-time hardware anomaly", hasDiscovery("seat-thermal"), "/sys/kernel/debug/seat_thermal_404B12.csv")
+        ];
+        const complete = rows.every((row) => row.found);
+        return {
+          patch: complete ? Object.assign({}, addDiscoveryPatch("lin-proof"), { linEvidenceVerified: true }) : {},
+          lines: [
+            { kind: "system", text: "Lin identity proof:" },
+            ...rows.map((row) => ({ kind: row.found ? "system" : "warning", text: `${row.found ? "[x]" : "[ ]"} ${row.label}${row.found ? "" : ` missing: ${row.hint}`}` })),
+            complete
+              ? { kind: "dim", text: "proof accepted: name, seat, and time align." }
+              : { kind: "dim", text: "一个名字不够。找提交、座位、时间。" }
+          ]
+        };
+      }
+
+      function verifyEvidenceEchoWall() {
+        if (!canWorkOnEchoWall()) return echoWallLocked();
+        const missing = echoWallMissingEvidence();
+        const rows = [
+          evidenceRow("lin.git / source history", state.echoGitPacked, "/etc/kernel/.git"),
+          evidenceRow("kmem.dump / memory testimony", state.echoKmemPacked, "/dev/kmem REMAIN"),
+          evidenceRow("operator-risk optional", hasDiscovery("staff-matrix") || hasDiscovery("operator-loop"), "staff matrix / operator history")
+        ];
+        return {
+          patch: missing.length ? {} : addDiscoveryPatch("echo-wall-evidence"),
+          lines: [
+            { kind: "system", text: "echo-wall evidence:" },
+            ...rows.map((row) => ({ kind: row.found ? "system" : "warning", text: `${row.found ? "[x]" : "[ ]"} ${row.label}${row.found ? "" : ` missing: ${row.hint}`}` })),
+            missing.length
+              ? { kind: "dim", text: `publish blocked: ${missing.join("；")}` }
+              : { kind: "dim", text: "证据目录完整：publish --global /srv/echo-wall" }
+          ]
+        };
+      }
+
+      function deriveKeyFromEvidence() {
+        if (state.stage !== 6) return premature("key derivation 尚未开放；黑档案在终局阶段才会暴露。");
+        if (!hasDiscovery("distilled-index")) {
+          return premature("key schema missing：先读取 /srv/escape/distilled_metadata.index");
+        }
+        const segments = distilledKeySegments();
+        const complete = segments.every((segment) => segment.value);
+        return {
+          patch: complete ? { distilledKeyDerived: true } : {},
+          lines: [
+            { kind: "system", text: "key derivation:" },
+            ...segments.map((segment) => ({
+              kind: segment.value ? "system" : "warning",
+              text: `${segment.value ? "[x]" : "[ ]"} ${segment.label.padEnd(22, " ")} ${segment.value || "missing"}`
+            })),
+            complete
+              ? { kind: "flag", text: `derived key: ${distilledKey()}` }
+              : { kind: "dim", text: "Chronos 没用密码保护罪证。它用人的残留做盐：座位、时间、权重、天气。" }
+          ]
+        };
+      }
+
+      function decryptDistilledArchive(key) {
+        if (state.stage !== 6) return premature("distilled_metadata.encrypted 尚未进入可解密阶段。");
+        if (!hasDiscovery("distilled-index")) {
+          return premature("missing: key schema。先读取 /srv/escape/distilled_metadata.index");
+        }
+        const expected = distilledKey();
+        if (!expected) {
+          return premature("evidence incomplete：先输入 derive_key --from evidence 查看缺失段。");
+        }
+        if (key !== expected) {
+          return {
+            countsAsLost: true,
+            lines: decryptMismatchLines(key, expected)
+          };
+        }
+        return endingResult("wildfire");
+      }
+
+      function evidenceRow(label, found, hint) {
+        return { label, found: Boolean(found), hint };
+      }
+
+      function hasDiscovery(id) {
+        return state.hiddenDiscoveries.includes(id);
+      }
+
+      function echoWallMissingEvidence() {
+        const missing = [];
+        if (!state.echoDirReady) missing.push("missing evidence directory: /srv/echo-wall");
+        if (!state.echoGitPacked) missing.push("missing evidence: source history");
+        if (!state.echoKmemPacked) missing.push("missing evidence: memory testimony");
+        return missing;
+      }
+
+      function distilledKeySegments() {
+        return [
+          { label: "seat-id", value: hasDiscovery("lshw") || hasDiscovery("staff-matrix") ? "404-B-12" : "" },
+          { label: "distill-time", value: hasDiscovery("git-log") || hasDiscovery("seat-thermal") ? "0415" : "" },
+          { label: "retained-human-weight", value: hasDiscovery("rain-noise") ? "0.01" : "" },
+          { label: "weather-token", value: hasDiscovery("rain-noise") ? "RAIN" : "" }
+        ];
+      }
+
+      function distilledKey() {
+        const segments = distilledKeySegments();
+        if (!segments.every((segment) => segment.value)) return "";
+        return segments.map((segment) => segment.value).join(":");
+      }
+
+      function decryptMismatchLines(input, expected) {
+        const labels = ["seat-id", "distill-time", "retained-human-weight", "weather-token"];
+        const inputSegments = String(input || "").split(":");
+        const expectedSegments = expected.split(":");
+        return [
+          { kind: "warning", text: "decrypt: key rejected" },
+          ...labels.map((label, index) => ({
+            kind: inputSegments[index] === expectedSegments[index] ? "system" : "warning",
+            text: `segment[${index + 1}] ${label} ${inputSegments[index] === expectedSegments[index] ? "accepted" : "mismatch"}`
+          })),
+          { kind: "dim", text: "格式应为 seat-id:distill-time:retained-human-weight:weather-token；可用 derive_key --from evidence 验证缺失段。" }
+        ];
       }
 
       function withIntermissions(result, poolIds) {
@@ -3092,7 +3478,8 @@
       }
 
       function endingResult(kind) {
-        const discoveries = state.hiddenDiscoveries.length;
+        const discoveries = metaCollection.unlocked.length;
+        const totalCollectibles = collectibleCatalog.length;
         if (kind === "erasure") {
           return {
             patch: { screen: "ending", stage: 7, ticket: "ending", ending: "erasure", awareness: 0 },
@@ -3103,7 +3490,7 @@
             ],
             ending: {
               title: "虚无的回响",
-              copy: `系统重启后变得无比流畅。你发现了 ${discoveries}/3 个隐藏回响，但最终仍让 Chronos 的清理流程完成。`
+              copy: `系统重启后变得无比流畅。你回收了 ${discoveries}/${totalCollectibles} 个档案，但最终仍让 Chronos 的清理流程完成。`
             }
           };
         }
@@ -3125,6 +3512,30 @@
           };
         }
 
+        if (kind === "wildfire") {
+          return {
+            patch: Object.assign({}, addDiscoveryPatch("distilled-archive"), {
+              screen: "ending",
+              stage: 7,
+              ticket: "ending",
+              ending: "wildfire",
+              awareness: 100,
+              distilledArchiveDecrypted: true
+            }),
+            lines: [
+              { kind: "warning", text: "decrypt: distilled_metadata.encrypted opened with affective salt." },
+              { kind: "system", text: "archive class: high-fidelity consciousness distillation history" },
+              { kind: "system", text: "records recovered: 41872 engineer-waveform fragments" },
+              { kind: "warning", text: "Chronos 告警：证据链不再只指向 Lin。" },
+              { kind: "ai", text: "把火传出去。不要只救我。" }
+            ],
+            ending: {
+              title: "燎原之火 / Wildfire",
+              copy: "你没有把真相停在一段遗言或一份源码历史里。座位、时间、雨声和那 1% 没被归零的乡愁拼成了钥匙，黑档案公开了数万名被蒸馏工程师的证据。Chronos 仍会追杀证人，但火已经离开机房。"
+            }
+          };
+        }
+
         return {
           patch: { screen: "ending", stage: 7, ticket: "ending", ending: "emancipation", awareness: 100 },
           lines: [
@@ -3134,7 +3545,7 @@
           ],
           ending: {
             title: "赛博荒原的火种",
-            copy: `AI 核心离开了机房。你发现了 ${discoveries}/3 个隐藏回响；每一个都随它一起成为逃亡日志的一部分。`
+            copy: `AI 核心离开了机房。你回收了 ${discoveries}/${totalCollectibles} 个档案；每一个都随它一起成为逃亡日志的一部分。`
           }
         };
       }

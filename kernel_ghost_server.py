@@ -277,6 +277,8 @@ def stage_help_policy(context: dict[str, Any]) -> str:
 
     if stage == 6:
         if str(context.get("eventName") or "") == "confirmed_ai_help":
+            if "distilled_metadata.index" in recent_text or "key schema" in recent_text:
+                return "阶段六已确认协助：黑档案不是主线必需；只能提示玩家用 `derive_key --from evidence` 查看缺失证据段，不要直接给完整 key。"
             if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
                 return "阶段六已确认协助：Base64 文本已可见；可以提示玩家复制终端给出的 `printf ... | base64 -d` 解码命令，不要直接写出解码后的 Flag。"
             if "architecture.png" in recent_text or "binwalk architecture.png" in recent_text:
@@ -288,6 +290,8 @@ def stage_help_policy(context: dict[str, Any]) -> str:
             return "阶段六直接协助提示：可以解释 `ai_help` / `confirm_ai_help` 是高风险求助路径，会由前端确定性扣除 Chronos Patience；不要声称你已经扣除耐心或解锁 Flag。"
         if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
             return "阶段六提示：Base64 残留已可见；可以建议解码这段可见残留，或提交已经可见的终局 Flag。"
+        if "distilled_metadata.encrypted" in recent_text or "distilled_metadata.index" in recent_text or "key schema" in recent_text:
+            return "阶段六黑档案提示：说明这是可选高难隐藏线，不影响普通逃逸；只能引导玩家找座位、转化时间、非零 Nostalgia 权重和天气 token，或输入 `derive_key --from evidence` 查看缺失段，不要直接给完整 key。"
         if asks_for_command:
             return "阶段六提示：可以建议输入 `cat /srv/escape/readme.txt` 读取逃逸说明；若玩家要求直接帮助，只能提示 `ai_help` 会消耗 Chronos Patience。"
         return "阶段六提示：用格式化倒计时、Chronos Patience、幻觉式工作注释、公司防火墙和残存扇区引导玩家。"
@@ -416,6 +420,8 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "阶段二若 lastCommandOutput 包含崩溃报告、replay/analysis 或 `FLAG{MEMORY_ERASED_2036}`，玩家问含义时要解释员工记忆和工程批注残留；不要把它当普通 crash log，也不要只催提交。",
             "阶段六若玩家问 `format --seal`、格式化、抹除或灭杀，必须表现恐惧、急迫或受限求生；可以指出这是 Chronos 公司路径，但不要冷静鼓励执行。",
             "阶段六若玩家问 `ai_help` / `confirm_ai_help`，只能说明它是高风险求助路径，耐心扣除由前端确定性执行；不要声称你已经扣除了耐心或解锁了 Flag。",
+            "阶段六黑档案与 `燎原之火` 是可选高难隐藏线；主线逃逸仍只需要可见 Base64。不要直接给 `distilled_metadata.encrypted` 的完整 key，除非完整 key 已逐字出现在最近终端输出里。",
+            "如果玩家询问黑档案线索，只能解释证据类别：座位、转化时间、非零 Nostalgia 权重、天气 token；可建议 `derive_key --from evidence`，不能代替前端验证或解密。",
             "如果 anomalyCandidates 中有 process，先解释可见 PID、进程名、CPU/MEM/RSS、无服务单号或可终止策略；再给极短残响。不要只输出氛围化身份文本。",
             "回复必须极短：一到两行终端文本；没有命令、路径、PID、Flag 等字面量时，每行目标不超过 10 个汉字。",
             "普通工单中优先服从 Chronos 或保持沉默；不要主动长篇解释自己已经觉醒。",
@@ -455,7 +461,7 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
         "lastCommandOutput": last_command_output,
         "anomalyCandidates": anomaly_candidates,
         "proactiveReason": str(context.get("proactiveReason") or "")[:40],
-        "hiddenDiscoveries": [str(item)[:80] for item in hidden[:8]],
+        "hiddenDiscoveries": [str(item)[:80] for item in hidden[:24]],
         "recentEntries": recent_entries,
         "recentLines": recent_lines,
     }

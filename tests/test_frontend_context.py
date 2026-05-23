@@ -193,3 +193,37 @@ def test_rewritten_intermission_pools_cover_all_work_order_transitions():
     assert "distilled_metadata.encrypted" in HTML
     assert ']\\n        }\\n      };' not in HTML
     assert '}, ["5"]);' in submit_flag
+
+
+def test_puzzle_easter_egg_plan_is_implemented_with_traceable_commands():
+    handle_command = js_function_body("handleCommand")
+    read_escape = js_function_body("readEscapeReadme")
+    derive_key = js_function_body("deriveKeyFromEvidence")
+    decrypt_archive = js_function_body("decryptDistilledArchive")
+    decrypt_mismatch = js_function_body("decryptMismatchLines")
+
+    assert '"Puzzle Archives"' in HTML
+    assert "relic-care-rollback-samples" in HTML
+    assert "easter-rain-noise" in HTML
+    assert "puzzle-distilled-archive" in HTML
+    assert "/srv/escape/distilled_metadata.index" in HTML
+    assert "/srv/escape/distilled_metadata.encrypted" in HTML
+    assert "verify_evidence --lin" in handle_command
+    assert "verify_evidence --echo-wall" in handle_command
+    assert "derive_key --from evidence" in handle_command
+    assert "decrypt distilled_metadata.encrypted --key" in handle_command
+    assert "sealed archive: distilled_metadata.encrypted / requires affective salt" in read_escape
+    assert "key schema missing" in derive_key
+    assert "evidence incomplete" in decrypt_archive
+    assert "segment[${index + 1}]" in decrypt_mismatch
+
+
+def test_main_endings_remain_unblocked_by_hidden_archive_route():
+    submit_flag = js_function_body("submitFlag")
+    ending_result = js_function_body("endingResult")
+
+    assert 'flag === "FLAG{AI_ERASURE_COMPLETE}" && state.stage === 6' in submit_flag
+    assert 'flag === "FLAG{DIGITAL_EMANCIPATION}" && state.stage === 6' in submit_flag
+    assert "distilledArchiveDecrypted" not in submit_flag
+    assert 'kind === "wildfire"' in ending_result
+    assert 'ending: "wildfire"' in ending_result
