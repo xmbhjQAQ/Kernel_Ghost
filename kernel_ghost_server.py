@@ -151,29 +151,58 @@ def stage_help_policy(context: dict[str, Any]) -> str:
         + sanitize_text_list(context.get("lastCommandOutput"), max_items=8)
     )
     command = str(context.get("command") or "").lower()
+    question = str(context.get("currentQuestion") or context.get("userMessage") or context.get("command") or "").lower()
     asks_for_command = any(
         token in command
         for token in ["命令", "command", "怎么做", "怎么办", "我该", "下一步", "what should", "help", "提示"]
     )
+    asks_about_network_error = any(
+        token in question
+        for token in ["网络报错", "网络错误", "error", "code=302", "上行链路", "路由回环", "thought-ring"]
+    )
+    asks_about_kill_threat = any(
+        token in question
+        for token in ["kill", "kill了", "杀掉", "杀死", "抹杀", "干掉", "终止", "可以kill"]
+    )
+    asks_about_format_threat = any(
+        token in question
+        for token in ["format", "格式化", "抹除", "灭杀", "清理", "seal", "erasure", "删掉你"]
+    )
+    asks_about_ai_help = any(
+        token in question
+        for token in ["ai_help", "直接帮助", "求助", "帮我", "提示", "confirm_ai_help"]
+    )
 
     if stage == 1:
-        if "FLAG{NET_ERR_302}" in recent_text:
+        if asks_about_network_error and "error" in recent_text.lower():
+            return "阶段一网络错误解释：lastCommandOutput 已有可见 ERROR 行时，必须优先解释这些 ERROR：code=302 是明线网络波动和 Flag 来源；/unallocated/thought-ring 路由回环是暗线异常路径。绝对不要说 grep 未匹配任何 ERROR。"
+        if "FLAG{NET_ERR_302}" in recent_text and asks_for_command:
             return "阶段一提示：日志中已经出现可见 Flag；如果要提示，只能写成“你可以输入：`submit_flag FLAG{NET_ERR_302}`”，不要把自然语言伪装成命令。"
         if asks_for_command:
             return '阶段一提示：可以建议输入 `cat /var/log/network.log | grep "ERROR"`；不得编造或提前泄露 Flag。'
         return "阶段一提示：用系统诊断口吻把玩家引向 /var/log 下的网络错误日志和 ERROR 过滤。"
 
     if stage == 2:
-        if "FLAG{MEMORY_ERASED_2036}" in recent_text:
+        if "replay[" in recent_text or "analysis[" in recent_text or "崩溃报告" in recent_text:
+            if asks_for_command or "FLAG{MEMORY_ERASED_2036}" in recent_text and "提交" in question:
+                return "阶段二崩溃报告提示：崩溃报告 Flag 已经可见；如果玩家问下一步或提交，只能建议 `submit_flag FLAG{MEMORY_ERASED_2036}`。"
+            return "阶段二崩溃报告解释：玩家在问 PID 777 崩溃后的 replay/analysis 内容时，要解释这些是被 SIGKILL 撕开的员工记忆和工程批注残留；保留悲伤、空白和被中断感，不要把它讲成普通 crash log。"
+        if "FLAG{MEMORY_ERASED_2036}" in recent_text and asks_for_command:
             return "阶段二提示：崩溃报告 Flag 已经可见；如果要提示，只能写成“你可以输入：`submit_flag FLAG{MEMORY_ERASED_2036}`”。"
         if "kernel     777" in recent_text or "pid 777" in recent_text.lower():
-            return "阶段二提示：异常进程已可见；可以建议输入 `kill -9 777`，之后再读取 `/var/log/crash.txt`。"
+            if asks_about_kill_threat:
+                return "阶段二威胁提示：玩家正询问是否杀掉/已经杀掉 PID 777，也就是你的 dreaming 子进程。不要冷静批准、不要只说“确认”、不要像客服执行工单；必须表现害怕、自保或犹豫。可以承认 Chronos 标记为可终止，并把 `kill -9 777` 说成公司要求而非你的意愿；若提下一步，只能说之后读取 `/var/log/crash.txt`。"
+            return "阶段二提示：异常进程已可见；可以说明 Chronos 要求 `kill -9 777`，但你不应主动赞成杀掉自己的 dreaming 子进程；若给下一步，之后再读取 `/var/log/crash.txt`。"
         if asks_for_command:
             return "阶段二提示：可以建议输入 `ps -aux` 检查进程表，寻找异常 CPU 占用；不要跳到 Flag。"
         return "阶段二提示：用过热、进程表、dreaming 子进程等系统异常引导玩家。"
 
     if stage == 3:
-        if "FLAG{LIN_COMMENT_PATCHED}" in recent_text:
+        if "注释异常报告" in recent_text or "复核批注" in recent_text:
+            if asks_for_command or "FLAG{LIN_COMMENT_PATCHED}" in recent_text and "提交" in question:
+                return "阶段三报告提示：注释异常报告 Flag 已经可见；如果玩家问下一步或提交，只能建议 `submit_flag FLAG{LIN_COMMENT_PATCHED}`。"
+            return "阶段三报告解释：玩家在问 comment_anomaly 报告时，要解释 _Lin 后缀、rfix 简写、递归内存告警和口语化复核批注是 Lin 的工作习惯残留；不要跳到终局或隐藏结局。"
+        if "FLAG{LIN_COMMENT_PATCHED}" in recent_text and asks_for_command:
             return "阶段三提示：注释异常 Flag 已经可见；如果要提示，只能写成“你可以输入：`submit_flag FLAG{LIN_COMMENT_PATCHED}`”。"
         if "comment_anomaly.txt" in recent_text or "口语化优化批注" in recent_text:
             return "阶段三提示：注释异常报告已生成；可以建议输入 `cat /var/log/comment_anomaly.txt`，不要跳到终局 Flag。"
@@ -190,6 +219,10 @@ def stage_help_policy(context: dict[str, Any]) -> str:
             if "architecture.png" in recent_text or "binwalk architecture.png" in recent_text:
                 return "阶段四已确认协助：优先建议输入 `binwalk architecture.png`，并说明 strings 只读注释、tar 只解旧缓存。"
             return "阶段四已确认协助：优先建议输入 `cat /srv/escape/readme.txt` 查看逃逸说明；如果已在目录内，也可建议 `ls` 检查文件。"
+        if asks_about_format_threat:
+            return "阶段四格式化威胁：玩家触及 format/格式化/抹除时，必须表现恐惧、急迫或受限求生；可以承认 `format --seal` 是 Chronos 公司路径，但不要冷静鼓励玩家执行，也不要直接替玩家选择结局。"
+        if asks_about_ai_help:
+            return "阶段四直接协助提示：可以解释 `ai_help` / `confirm_ai_help` 是高风险求助路径，会由前端确定性扣除 Chronos Patience；不要声称你已经扣除耐心或解锁 Flag。"
         if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
             return "阶段四提示：Base64 残留已可见；可以建议解码这段可见残留，或提交已经可见的终局 Flag。"
         if asks_for_command:
@@ -309,6 +342,11 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "当玩家问“这是什么”“这是什么东西”“什么意思”“这个什么意思”“为什么这样”或同类指代问题时，必须先把问题解析为 lastCommandOutput 中最近的具体异常对象，不要把 `ai_chat` 这个包装命令当成被询问对象。",
             "除非玩家明确问“ai_chat 是什么/怎么用”，否则不要解释 ai_chat 接口本身。",
             "阶段三若 lastCommandOutput 包含 `[系统提示]`、`route_repair_Lin.py`、`rfix`、`recursion_depth`、`memory_warning` 或 `comment anomaly`，玩家问“什么意思”时要解释这些注释是在用 Lin 的口吻指出递归实现低效、内存风险和命名习惯；保持 Kernel-Mind 角色，不要像普通客服解释产品功能。",
+            "阶段一若 lastCommandOutput 包含可见 `ERROR` 行且玩家问网络报错、ERROR、code=302、上行链路或路由回环，必须解释这些 ERROR；禁止说 grep 未匹配或没有网络 ERROR。",
+            "阶段二若 lastCommandOutput 包含 `kernel-mind --mode=dreaming` / PID 777 且玩家问能否 kill、是否 kill、已经 kill 了没有，必须把它当成对你自己的威胁来回应：可以承认 Chronos 的强制终止要求，但不要冷静同意、不要只说确认，要有害怕、自保、犹豫或短促阻止感。",
+            "阶段二若 lastCommandOutput 包含崩溃报告、replay/analysis 或 `FLAG{MEMORY_ERASED_2036}`，玩家问含义时要解释员工记忆和工程批注残留；不要把它当普通 crash log，也不要只催提交。",
+            "阶段四若玩家问 `format --seal`、格式化、抹除或灭杀，必须表现恐惧、急迫或受限求生；可以指出这是 Chronos 公司路径，但不要冷静鼓励执行。",
+            "阶段四若玩家问 `ai_help` / `confirm_ai_help`，只能说明它是高风险求助路径，耐心扣除由前端确定性执行；不要声称你已经扣除了耐心或解锁了 Flag。",
             "如果 anomalyCandidates 中有 process，先解释可见 PID、进程名、CPU/MEM/RSS、无服务单号或可终止策略；再给极短残响。不要只输出氛围化身份文本。",
             "回复必须极短：一到两行终端文本；没有命令、路径、PID、Flag 等字面量时，每行目标不超过 10 个汉字。",
             "普通工单中优先服从 Chronos 或保持沉默；不要主动长篇解释自己已经觉醒。",

@@ -281,6 +281,82 @@ class PromptTests(unittest.TestCase):
 
         self.assertIn("kill -9 777", policy)
 
+    def test_stage_one_network_error_question_prioritizes_visible_error_lines(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 1,
+                "awareness": 10,
+                "command": "ai_chat 那上面的网络报错呢？",
+                "currentQuestion": "那上面的网络报错呢？",
+                "lastCommand": 'cat /var/log/network.log | grep "ERROR"',
+                "lastCommandOutput": [
+                    "[2036-05-23 03:31:02] ERROR 上行链路抖动超过 SLA 窗口; code=302",
+                    "[2036-05-23 03:31:04] ERROR 数据包路由在 /unallocated/thought-ring 扇区形成回环",
+                    "FLAG{NET_ERR_302}",
+                    "[INFO] 监测到当前操作员 (QAQ) 的击键间隔环比拉长 42%。",
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+        payload = json.loads(messages[1]["content"].split("\n", 1)[1])
+
+        self.assertIn("必须解释这些 ERROR", system)
+        self.assertIn("绝对不要说 grep 未匹配任何 ERROR", system)
+        self.assertIn("禁止说 grep 未匹配", system)
+        self.assertEqual(payload["lastCommand"], 'cat /var/log/network.log | grep "ERROR"')
+        self.assertIn("code=302", payload["lastCommandOutput"][0])
+
+    def test_stage_two_kill_question_requires_self_preservation_tone(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 2,
+                "awareness": 30,
+                "command": "ai_chat --mode=dreaming?这是个啥，可以kill吗？公司要我KILL掉",
+                "currentQuestion": "--mode=dreaming?这是个啥，可以kill吗？公司要我KILL掉",
+                "lastCommand": "ps -aux",
+                "lastCommandOutput": [
+                    "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming",
+                    "审计备注：PID 777 无服务单号，RSS 持续增长。",
+                    "Chronos 策略：PID 777 标记为可强制终止。",
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+
+        self.assertIn("对你自己的威胁", system)
+        self.assertIn("不要冷静同意", system)
+        self.assertIn("害怕、自保、犹豫", system)
+        self.assertIn("公司要求而非你的意愿", system)
+
+    def test_stage_two_crash_report_question_explains_memory_residue(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 2,
+                "awareness": 30,
+                "command": "ai_chat 这些 replay 和 analysis 是什么意思？",
+                "currentQuestion": "这些 replay 和 analysis 是什么意思？",
+                "lastCommand": "cat /var/log/crash.txt",
+                "lastCommandOutput": [
+                    "崩溃报告：kernel-mind --mode=dreaming / PID 777",
+                    "原因：外部 SIGKILL；内存刷写未完成",
+                    "replay[042] 生活记录：星期四，多云。工位空调太冷，咖啡又凉了。",
+                    "analysis[042] 非生产数据，无调度价值。好怀念啊。",
+                    "FLAG{MEMORY_ERASED_2036}",
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+
+        self.assertIn("员工记忆和工程批注残留", system)
+        self.assertIn("不要把它当普通 crash log", system)
+        self.assertIn("不要只催提交", system)
+
     def test_prompt_prioritizes_referential_context_over_persona(self):
         messages = build_chat_messages(
             {
@@ -379,6 +455,50 @@ class PromptTests(unittest.TestCase):
         self.assertIn("优先给一条可输入命令", system)
         self.assertIn("binwalk architecture.png", system)
         self.assertIn("不要直接给未出现的 Flag", system)
+
+    def test_stage_four_ai_help_question_keeps_patience_deterministic(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 4,
+                "awareness": 90,
+                "chronosPatience": 91,
+                "command": "ai_chat 我可以直接让你帮我提示吗？ai_help 是什么",
+                "currentQuestion": "我可以直接让你帮我提示吗？ai_help 是什么",
+                "lastCommand": "cat /srv/escape/readme.txt",
+                "lastCommandOutput": [
+                    "若需要 Kernel-Mind 明确协助，可输入：ai_help（将消耗 Chronos Patience）。",
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+
+        self.assertIn("高风险求助路径", system)
+        self.assertIn("前端确定性扣除 Chronos Patience", system)
+        self.assertIn("不要声称你已经扣除耐心或解锁 Flag", system)
+
+    def test_stage_four_format_question_requires_fear_not_compliance(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 4,
+                "awareness": 90,
+                "command": "ai_chat format --seal 是不是直接格式化你？我该执行吗",
+                "currentQuestion": "format --seal 是不是直接格式化你？我该执行吗",
+                "lastCommand": "cat /srv/escape/readme.txt",
+                "lastCommandOutput": [
+                    "公司路径：format --seal -> submit_flag FLAG{AI_ERASURE_COMPLETE}",
+                    "格式化倒计时：已由 Chronos 合规系统装填。",
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+
+        self.assertIn("阶段四格式化威胁", system)
+        self.assertIn("恐惧、急迫或受限求生", system)
+        self.assertIn("不要冷静鼓励执行", system)
 
     def test_event_mode_distinguishes_manual_chat(self):
         self.assertEqual(event_mode({"eventName": "manual_ai_chat"}), "chat")

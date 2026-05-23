@@ -191,6 +191,22 @@ handling, not an LLM claim.
 - Referential manual-chat questions such as "什么意思" must treat `ai_chat` as
   a wrapper command, not as the object being asked about, unless the player
   explicitly asks what `ai_chat` itself is.
+- If a referential question names a visible class of output, such as network
+  `ERROR` lines, the LLM prompt must prioritize that class over adjacent
+  flavor lines and must not contradict visible output.
+- When visible output identifies `kernel-mind --mode=dreaming` / PID 777 and
+  the player asks about killing or terminating it, LLM flavor must treat that
+  as a threat to the AI's own process. It may acknowledge the deterministic
+  Chronos order, but it must not calmly endorse self-erasure.
+- When crash-report output contains `replay[...]` / `analysis[...]` fragments,
+  referential LLM answers should treat them as memory / work-note residue, not
+  as ordinary crash-log noise or just a pretext to submit the visible Flag.
+- Stage-four formatting, erasure, or `format --seal` questions are
+  self-preservation threats. LLM flavor may identify the Chronos path but must
+  not neutrally recommend erasure.
+- Stage-four direct-help questions about `ai_help` / `confirm_ai_help` may
+  explain risk, but deterministic patience spending and unlocks remain owned
+  by frontend state transitions.
 - `anomalyCandidates` should identify high-signal visible objects such as high
   CPU/MEM processes, PID notes, RSS growth, service-ticket absence, flags,
   paths, or error codes when those are visible.
