@@ -131,6 +131,30 @@ class PromptTests(unittest.TestCase):
         self.assertIn("Kernel-Mind", system)
         self.assertEqual(messages[1]["role"], "user")
 
+    def test_onboarding_prompt_uses_brasch_without_kernel_mind_persona(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "onboarding_help",
+                "operatorName": "QAQ",
+                "cwd": "/home/nightops",
+                "onboardingStep": 1,
+                "onboardingExpectedCommand": "ls",
+                "userMessage": "ls 是什么意思？",
+            }
+        )
+
+        system = messages[0]["content"]
+        payload = json.loads(messages[1]["content"].split("\n", 1)[1])
+
+        self.assertIn("你是 Brasch", system)
+        self.assertIn("严厉、刻薄", system)
+        self.assertIn("有用、可执行的 Linux", system)
+        self.assertIn("不要自称 Kernel-Mind", system)
+        self.assertIn("不要透露正式游戏工单答案", system)
+        self.assertIn("去 Web 工作台“百科”查询", system)
+        self.assertEqual(payload["expectedCommand"], "ls")
+        self.assertEqual(payload["currentQuestion"], "ls 是什么意思？")
+
     def test_manual_chat_prompt_allows_help_without_leaking_flags(self):
         messages = build_chat_messages(
             {
@@ -622,6 +646,7 @@ class PromptTests(unittest.TestCase):
         self.assertIn("不要冷静鼓励执行", system)
 
     def test_event_mode_distinguishes_manual_chat(self):
+        self.assertEqual(event_mode({"eventName": "onboarding_help"}), "onboarding")
         self.assertEqual(event_mode({"eventName": "manual_ai_chat"}), "chat")
         self.assertEqual(event_mode({"eventName": "confirmed_ai_help"}), "confirmed_help")
         self.assertEqual(event_mode({"eventName": "proactive_after_command"}), "proactive")

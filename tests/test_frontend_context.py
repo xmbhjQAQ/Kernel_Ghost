@@ -91,3 +91,62 @@ def test_terminal_tab_completion_uses_virtual_filesystem():
     assert "directoriesOnly" in complete_path_token
     assert "virtualDirectories[path]" in list_directory
     assert "isVirtualDirectory(next)" in change_directory
+
+
+def test_onboarding_flow_has_foundation_oath_and_encyclopedia_gates():
+    assert 'id="foundationScreen"' in HTML
+    assert 'data-foundation="beginner"' in HTML
+    assert "我还不熟悉 Linux 终端，也不了解密码学相关知识。" in HTML
+    assert "Brasch" in HTML
+    assert "入职宣誓" in HTML
+    assert "认为你已自动同意公司的宣誓内容" in HTML
+    assert 'id="encyclopediaSection"' in HTML
+    assert 'id="encyclopediaButton"' in HTML
+    assert 'id="encyclopediaScreen"' in HTML
+
+    start_shift = js_function_body("startShift")
+    choose_foundation = js_function_body("chooseFoundation")
+    handle_onboarding = js_function_body("handleOnboardingCommand")
+    show_oath = js_function_body("showOathEvent")
+    render_state = js_function_body("renderState")
+
+    assert 'state.screen = "foundation"' in start_shift
+    assert "beginOnboarding()" in choose_foundation
+    assert "encyclopediaVisible" in choose_foundation
+    assert 'normalized === "pwd"' in handle_onboarding
+    assert 'normalized === "ls"' in handle_onboarding
+    assert '"cd tickets", "cd ./tickets", "cd /home/nightops/tickets"' in handle_onboarding
+    assert '"cat intro.txt", "cat ./intro.txt", "cat /home/nightops/tickets/intro.txt"' in handle_onboarding
+    assert "eventConfirmButton.disabled = true" in show_oath
+    assert "updateOathConfirmState()" in show_oath
+    assert 'const showEncyclopedia = Boolean(state.encyclopediaVisible)' in render_state
+    assert 'classList.toggle("visible", showEncyclopedia)' in render_state
+
+
+def test_encyclopedia_control_opens_dedicated_modal():
+    bind_events = js_function_body("bindEvents")
+    open_encyclopedia = js_function_body("openEncyclopedia")
+    close_encyclopedia = js_function_body("closeEncyclopedia")
+
+    assert 'elements.encyclopediaButton.addEventListener("click", openEncyclopedia)' in bind_events
+    assert 'showScreen("encyclopediaScreen")' in open_encyclopedia
+    assert 'hideScreen("encyclopediaScreen")' in close_encyclopedia
+    assert "scrollIntoView" not in open_encyclopedia
+
+
+def test_onboarding_terminal_context_is_cleared_before_gameplay():
+    start_work_orders = js_function_body("startWorkOrdersAfterOath")
+
+    assert 'elements.terminalLog.textContent = ""' in start_work_orders
+    assert "commandHistory.splice(0, commandHistory.length)" in start_work_orders
+    assert "historyIndex = -1" in start_work_orders
+    assert 'screen: "playing"' in start_work_orders
+
+
+def test_onboarding_llm_context_is_separate_from_gameplay_chat():
+    build_context = js_function_body("buildLlmContext")
+    onboarding_ai_chat = js_function_body("onboardingAiChat")
+
+    assert 'eventName: "onboarding_help"' in onboarding_ai_chat
+    assert "onboardingExpectedCommand" in build_context
+    assert "onboardingStep" in build_context

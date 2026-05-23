@@ -99,6 +99,8 @@ def awareness_style(awareness: int) -> str:
 
 def event_mode(context: dict[str, Any]) -> str:
     event_name = str(context.get("eventName") or "")
+    if event_name == "onboarding_help":
+        return "onboarding"
     if event_name == "manual_ai_chat":
         return "chat"
     if event_name == "confirmed_ai_help":
@@ -106,6 +108,39 @@ def event_mode(context: dict[str, Any]) -> str:
     if event_name == "proactive_after_command":
         return "proactive"
     return "story"
+
+
+def build_onboarding_messages(context: dict[str, Any]) -> list[dict[str, str]]:
+    current_question = str(context.get("currentQuestion") or context.get("userMessage") or context.get("command") or "")[:240]
+    expected_command = str(context.get("onboardingExpectedCommand") or "")[:80]
+    cwd = str(context.get("cwd") or "")[:120]
+    step = context.get("onboardingStep")
+    system = "\n".join(
+        [
+            "你是 Brasch，Chronos Tech 新员工入职培训教练。",
+            "你的性格严厉、刻薄、压迫感强，像在赶一个拖慢培训进度的新员工；但你必须给出有用、可执行的 Linux 终端指导。",
+            "只回答当前 Linux 入职培训相关问题：pwd、ls、cd、cat、路径、目录、文件读取、当前步骤。",
+            "不要讲授密码学、加解密、哈希、RSA 的细节；如果玩家问这些，只能说完成培训后去 Web 工作台“百科”查询。",
+            "不要透露正式游戏工单答案、Flag、Lin 身份、隐藏彩蛋、结局、后续剧情或后续阶段命令。",
+            "不要自称 Kernel-Mind；需要自称时只能说 Brasch。",
+            "默认中文输出。回复最多两行；第一行可以刻薄，第二行必须给具体行动建议。",
+            "若建议命令，必须写成：你可以输入：`具体命令`。",
+        ]
+    )
+    user = {
+        "operatorName": str(context.get("operatorName") or "unassigned")[:40],
+        "cwd": cwd,
+        "onboardingStep": step,
+        "expectedCommand": expected_command,
+        "currentQuestion": current_question,
+    }
+    return [
+        {"role": "system", "content": system},
+        {
+            "role": "user",
+            "content": "根据当前入职培训上下文，以 Brasch 的口吻回答：\n" + json.dumps(user, ensure_ascii=False),
+        },
+    ]
 
 
 def manual_chat_policy(context: dict[str, Any]) -> str:
@@ -310,6 +345,8 @@ def infer_anomaly_candidates(lines: list[str]) -> list[dict[str, str]]:
 def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
     awareness = int(context.get("awareness") or 0)
     mode = event_mode(context)
+    if mode == "onboarding":
+        return build_onboarding_messages(context)
     hidden = context.get("hiddenDiscoveries")
     if not isinstance(hidden, list):
         hidden = []
