@@ -2041,7 +2041,7 @@
       function buildOrderedTerminalContext(options) {
         const entries = terminalEntries();
         const group = lastRelevantCommandGroup(entries);
-        const lastCommandOutput = group ? group.output.slice(-8) : [];
+        const lastCommandOutput = group ? group.output.slice() : [];
         return {
           recentLines: entries.slice(-12).map((entry) => entry.text.slice(0, 260)),
           recentEntries: entries.slice(-12).map((entry) => ({
@@ -2058,7 +2058,7 @@
       function terminalEntries() {
         return Array.from(elements.terminalLog.querySelectorAll(".line")).map((node) => ({
           kind: terminalLineKind(node),
-          text: node.textContent.slice(0, 260)
+          text: node.textContent
         }));
       }
 

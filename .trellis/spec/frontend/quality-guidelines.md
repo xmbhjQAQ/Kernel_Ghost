@@ -188,6 +188,9 @@ handling, not an LLM claim.
 - `recentLines` is only a fallback transcript, not the primary task context.
 - `lastCommand` and `lastCommandOutput` must point to the latest relevant
   non-`ai_chat` command when the current request is manual chat.
+- `lastCommandOutput` must preserve the full visible output of that command.
+  Do not tail-slice it before sending it to the backend; early `ERROR`, Flag,
+  PID, replay, or anomaly lines can be the actual referent.
 - Referential manual-chat questions such as "什么意思" must treat `ai_chat` as
   a wrapper command, not as the object being asked about, unless the player
   explicitly asks what `ai_chat` itself is.
@@ -239,6 +242,7 @@ handling, not an LLM claim.
 - Backend prompt tests must assert that referential questions prioritize
   `lastCommandOutput` and `anomalyCandidates`.
 - Add or update anomaly extraction tests when process-table parsing changes.
+- Frontend context tests must guard against tail-slicing `lastCommandOutput`.
 - Run JavaScript syntax validation for `index.html` after context-builder edits.
 
 ### 7. Wrong vs Correct
