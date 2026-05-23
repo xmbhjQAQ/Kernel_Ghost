@@ -203,3 +203,36 @@ Re-read the game outline and aligned Kernel-Mind with awakened constrained AI be
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Refine Kernel-Mind story tasks
+
+**Date**: 2026-05-23
+**Task**: Refine Kernel-Mind story tasks
+**Branch**: `main`
+
+### Summary
+
+Tightened Kernel-Mind short-reply prompt contract, shifted fixed CLI output toward concrete work-order evidence, added tests, and documented deterministic terminal narrative boundaries.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `10a3307` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
