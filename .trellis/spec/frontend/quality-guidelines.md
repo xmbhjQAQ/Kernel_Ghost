@@ -360,6 +360,110 @@ instructions.
 }
 ```
 
+## Scenario: Traceable Puzzle And Hidden Ending Commands
+
+### 1. Scope / Trigger
+
+- Trigger: adding or changing optional puzzle, evidence, collectible, or hidden
+  ending commands in the deterministic terminal game.
+- Applies to commands such as `verify_evidence`, `derive_key`, `decrypt`, hidden
+  file reads, virtual `grep` handlers, and ending gates that depend on collected
+  evidence.
+
+### 2. Signatures
+
+- Command parser signature: normalized player input string -> command result.
+- Required result shape remains:
+  - `patch?: object` for deterministic state changes.
+  - `unlockCollectible?: string` for durable collection unlocks.
+  - `lines?: Array<{ kind: string, text: string }>` for terminal output.
+  - `ending?: { title: string, copy: string }` for ending modal content.
+- Evidence command examples:
+  - `verify_evidence --lin`
+  - `verify_evidence --echo-wall`
+  - `derive_key --from evidence`
+  - `decrypt distilled_metadata.encrypted --key <key>`
+
+### 3. Contracts
+
+- Mainline endings must not gain hidden-puzzle prerequisites unless the product
+  requirement explicitly says so.
+- Random intermission events may foreshadow a puzzle, but required schema,
+  progress, and recovery hints must also exist in fixed files or commands.
+- Every medium or hard puzzle must expose:
+  - existence clue
+  - direction clue
+  - structure clue
+  - fallback clue
+  - actionable failure feedback
+- If a directory listing displays a puzzle file, a deterministic read or
+  condition-specific error must exist for that path.
+- Evidence and decryption progress is frontend-owned. The LLM may explain
+  visible clues but must not unlock collectibles, derive keys, validate keys, or
+  choose endings.
+- Segment-based keys must have segment-based feedback. Do not collapse every
+  wrong key into a generic rejection.
+
+### 4. Validation & Error Matrix
+
+- Command before required stage -> `premature(...)` with the missing stage or
+  system named.
+- File path exists but route condition is unmet -> explain the unmet condition,
+  not "unknown command".
+- Evidence checklist incomplete -> list missing evidence classes.
+- Derived key schema missing -> point to the fixed index or manifest file.
+- Wrong key -> report accepted/mismatched segments by name.
+- Optional hidden ending incomplete -> mainline ending commands still work.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `derive_key --from evidence` prints `[x] seat-id 404-B-12` and
+  `[ ] weather-token missing`.
+- Good: `decrypt ... --key bad` reports which key segment mismatched.
+- Base: a direct-read relic unlocks a collectible and prints lore plus
+  machine-readable fields.
+- Bad: a hard puzzle requires a random intermission clue that a player may not
+  see in one run.
+- Bad: `ls` shows `distilled_metadata.index`, but `cat distilled_metadata.index`
+  falls through to the unknown-command handler.
+- Bad: an LLM answer says a hidden ending is unlocked without a deterministic
+  `patch` or `ending`.
+
+### 6. Tests Required
+
+- Frontend context tests must assert new command strings are routed by
+  `handleCommand`.
+- Tests must assert protected main endings still use their simple flag gates.
+- Tests must assert fixed clue files or schema strings are present for hidden
+  puzzle routes.
+- Backend prompt tests must assert the LLM cannot directly reveal hidden keys
+  before they are visible in terminal context.
+- Run JavaScript syntax validation for `index.html`.
+- Run project tests after command-state edits.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```text
+decrypt: key rejected
+```
+
+This gives no route back to the evidence chain.
+
+#### Correct
+
+```text
+decrypt: key rejected
+segment[1] seat-id accepted
+segment[2] distill-time accepted
+segment[3] retained-human-weight mismatch
+segment[4] weather-token not checked
+```
+
+The correct form tells the player which evidence class to revisit without
+turning the puzzle into a walkthrough.
+
 ---
 
 ## Testing Requirements
