@@ -271,6 +271,95 @@ handling, not an LLM claim.
 The correct form makes the referent explicit before the LLM sees broad persona
 instructions.
 
+## Scenario: Durable Browser Progress And Collection State
+
+### 1. Scope / Trigger
+
+- Trigger: adding or changing `localStorage` state for the offline terminal game.
+- Applies to active run progress, durable meta-collection state, and UI that
+  renders persisted state.
+
+### 2. Signatures
+
+- Active progress key: `kernelGhost2036:progress`.
+- Durable collection key: `kernelGhost2036:collection`.
+- Progress payload:
+  - `version: number`
+  - `state: object`
+  - `terminal: Array<{ kind: string, text: string }>`
+- Collection payload:
+  - `version: number`
+  - `unlocked: string[]`
+
+### 3. Contracts
+
+- Active progress may be cleared by player restart.
+- Durable collection must survive restart / next playthrough.
+- Restore must normalize unknown or stale fields through a fresh initial state,
+  not trust raw JSON directly.
+- Terminal transcript restoration should use the same rendered line shape as
+  live output so LLM context grouping and visual replay stay consistent.
+- Fixed footer controls in side panels require the middle panel region to own
+  scrolling (`min-height: 0; overflow: auto`) so long collections cannot render
+  under Help / Restart controls.
+
+### 4. Validation & Error Matrix
+
+- Missing storage value -> fresh run / empty collection.
+- Invalid JSON or wrong `version` -> ignore persisted value and continue.
+- Unknown collectible id -> drop it during normalization.
+- Saved `isTyping: true` -> restore as `false`.
+- Long collection list -> scroll inside the middle panel, not beneath footer
+  controls.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `restartGame()` removes only `kernelGhost2036:progress` and leaves
+  `kernelGhost2036:collection` intact.
+- Base: a refreshed active run restores stage, ticket, cwd, flags, and visible
+  terminal lines.
+- Bad: storing collection unlocks only inside per-run `state`, because ending
+  restart would erase them.
+- Bad: making both the collection list and the side panel footer scroll
+  independently, causing controls to overlap recovered entries.
+
+### 6. Tests Required
+
+- JavaScript syntax validation for `index.html`.
+- Browser check that a discovered collectible exists in
+  `kernelGhost2036:collection`.
+- Browser check that refreshing restores active run state and terminal output.
+- Browser layout check that `.panel-scroll` ends before `.actions`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```json
+{
+  "state": {
+    "hiddenDiscoveries": ["git-log"],
+    "collection": ["relic-hr-announcement"]
+  }
+}
+```
+
+#### Correct
+
+```json
+{
+  "kernelGhost2036:progress": {
+    "version": 1,
+    "state": { "hiddenDiscoveries": ["git-log"] },
+    "terminal": [{ "kind": "system", "text": "..." }]
+  },
+  "kernelGhost2036:collection": {
+    "version": 1,
+    "unlocked": ["easter-git-log", "relic-hr-announcement"]
+  }
+}
+```
+
 ---
 
 ## Testing Requirements

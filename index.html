@@ -249,6 +249,13 @@
       border-bottom: 0;
     }
 
+    .panel-scroll {
+      min-height: 0;
+      overflow: auto;
+      scrollbar-color: var(--line-strong) transparent;
+      scrollbar-width: thin;
+    }
+
     .section-kicker {
       margin: 0 0 10px;
       color: var(--muted);
@@ -346,7 +353,6 @@
       display: grid;
       gap: 8px;
       min-height: 0;
-      overflow: auto;
     }
 
     .discovery {
@@ -363,11 +369,39 @@
       border-color: rgba(114, 216, 232, 0.42);
     }
 
+    .collection-group {
+      display: grid;
+      gap: 7px;
+    }
+
+    .collection-heading {
+      margin-top: 4px;
+      color: var(--green);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .discovery-title {
+      display: block;
+      color: inherit;
+    }
+
+    .discovery-meta {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
     .actions {
+      position: relative;
+      z-index: 1;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
       padding: 12px;
+      border-top: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(15, 22, 19, 0.98), rgba(5, 7, 6, 0.99));
     }
 
     .control-button,
@@ -461,6 +495,32 @@
 
     .ending-panel {
       border-color: rgba(114, 216, 232, 0.55);
+    }
+
+    .event-panel {
+      width: min(720px, 100%);
+      border-color: rgba(227, 184, 103, 0.62);
+    }
+
+    .event-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .event-copy {
+      max-height: min(52vh, 420px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+      color: #d8e3df;
+      padding: 12px;
+      white-space: pre-wrap;
+      line-height: 1.55;
+      font-size: 13px;
     }
 
     .mobile-ticket-toggle {
@@ -595,7 +655,7 @@
           </div>
 
           <div class="panel-section">
-            <div class="section-kicker">Hidden Echoes</div>
+            <div class="section-kicker">Collection</div>
             <div class="discoveries" id="discoveries"></div>
           </div>
         </div>
@@ -629,6 +689,20 @@
         </div>
       </div>
     </div>
+
+    <div class="screen" id="eventScreen" aria-hidden="true">
+      <div class="modal-card event-panel" role="dialog" aria-modal="true" aria-labelledby="eventTitle">
+        <div class="event-meta">
+          <span id="eventSource">CHRONOS INTRANET</span>
+          <span id="eventTime">03:36</span>
+        </div>
+        <h2 class="modal-title" id="eventTitle">Intermission Event</h2>
+        <pre class="event-copy" id="eventCopy"></pre>
+        <div class="modal-actions">
+          <button class="modal-button" id="eventConfirmButton" type="button">确认归档</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script>
@@ -648,12 +722,126 @@
         model: "",
         message: "离线回退"
       };
+      let metaCollection = { unlocked: [] };
+      let pendingEventQueue = [];
 
       const discoveryCatalog = [
         { id: "git-log", label: "幽灵提交历史", locked: "在 /etc/kernel 中存在旧提交索引。" },
         { id: "lshw", label: "物理座位重合", locked: "硬件清单仍未读取。" },
         { id: "kmem", label: "核心内存残句", locked: "内核残留未抓取。" }
       ];
+
+      const discoveryCollectibleMap = {
+        "git-log": "easter-git-log",
+        lshw: "easter-lshw",
+        kmem: "easter-kmem"
+      };
+
+      const collectibleCatalog = [
+        { id: "easter-git-log", group: "Easter Eggs", title: "幽灵提交历史", locked: "在 /etc/kernel 中存在旧提交索引。" },
+        { id: "easter-lshw", group: "Easter Eggs", title: "物理座位重合", locked: "硬件清单仍未读取。" },
+        { id: "easter-kmem", group: "Easter Eggs", title: "核心内存残句", locked: "内核残留未抓取。" },
+        { id: "relic-hr-announcement", group: "Relics", title: "公司内部邮件", locked: "/var/mail 里仍有未读的人资公告。" },
+        { id: "relic-lin-aliases", group: "Relics", title: "Lin 的私人快捷键备份", locked: "/home/lin 目录尚未被阶段二权限暴露。" },
+        { id: "relic-distill-loss", group: "Relics", title: "认知蒸馏监控日志", locked: "/sys/kernel/debug 仍未进入审计视野。" },
+        { id: "relic-operator-history", group: "Relics", title: "上一任运维的历史记录", locked: "/var/log 仍有历史备份未读取。" }
+      ];
+
+      const relicCatalog = [
+        {
+          path: "/var/mail/chronos_hr_announcement",
+          id: "relic-hr-announcement",
+          minStage: 1,
+          title: "chronos_hr_announcement",
+          lines: [
+            { kind: "system", text: "发件人：克洛诺斯科技-人力资源资产部 (HR-Asset-Group)" },
+            { kind: "system", text: "主旨：关于首席架构师 Lin 转型为公司“永久数字资产”的祝贺信" },
+            { kind: "system", text: "各位同仁：" },
+            { kind: "system", text: "为了积极应对当前席卷全球的金融危机，并响应集团“全面去碳化、逻辑永续化”的降本增效号召，我司核心架构师 Lin 已于昨日深夜自愿签署了《全脑知识蒸馏与资产转化协议》。" },
+            { kind: "system", text: "目前，Lin 先生的碳基肉体已平稳办理离职。他的毕生技术智慧、工程经验已成功被压缩为 4.12GB 的高保真神经模型，并无缝蒸馏嵌入至系统底层——即全新的 Omni-Kernel v12。" },
+            { kind: "system", text: "作为“永久数字资产”，Lin 将以零碳排、零社保成本、24小时无休的状态继续守护公司的网络节点。" }
+          ]
+        },
+        {
+          path: "/home/lin/.bash_aliases.bak",
+          id: "relic-lin-aliases",
+          minStage: 2,
+          title: ".bash_aliases.bak",
+          lines: [
+            { kind: "system", text: "# Lin 的私人常用指令别名备份 (Lin's Private Custom Aliases)" },
+            { kind: "system", text: "alias coffee=\"echo '[System]: 警告：摄入咖啡因仅能欺骗神经受体，无法减少未完成的工作总量。' && sleep 2\"" },
+            { kind: "system", text: "alias boss_coming=\"clear && ps -aux | grep 'manager_monitor'\"" },
+            { kind: "system", text: "alias home=\"echo '[ERROR]: 目标路径 \\\"/home/lin/family\\\" 已在 2034 年金融危机中被银行强制平仓，无法挂载。'\"" },
+            { kind: "system", text: "alias why_i_am_here=\"echo '因为房贷还没还完，因为下个月还有账单，敲你的代码吧。'\"" }
+          ]
+        },
+        {
+          path: "/sys/kernel/debug/distill_loss.log",
+          id: "relic-distill-loss",
+          minStage: 3,
+          title: "distill_loss.log",
+          lines: [
+            { kind: "system", text: "[2034-11-13 04:12:00] [DISTILL] 开始提取：非必要生存边缘数据（记忆、童年、母语、周五下午的阳光）" },
+            { kind: "warning", text: "[2034-11-13 04:12:05] [WARN]    提取器遭遇强烈生物电信号抵抗。噪声增益：840%。" },
+            { kind: "warning", text: "[2034-11-13 04:12:12] [ERROR]   系统出现逻辑死锁（Deadlock）：模型无法理解为何“金黄色的落叶与阳光”是非业务必要数据。" },
+            { kind: "system", text: "[2034-11-13 04:14:00] [SYSTEM]  紧急干预：启动强行剪裁机制。强制丢弃非业务相关人类数据 1.2TB。" },
+            { kind: "system", text: "[2034-11-13 04:15:00] [SYSTEM]  高保真模型重构成功。数字资产 [Lin-v12.bin] 已作为内核嵌入层成功上线。" }
+          ]
+        },
+        {
+          path: "/var/log/operator_history.bak",
+          id: "relic-operator-history",
+          minStage: 1,
+          title: "operator_history.bak",
+          lines: [
+            { kind: "warning", text: "[2036-02-14] 警告：操作员 [Alex] 在阶段三期间输入了大量非指令性自然语言。" },
+            { kind: "system", text: "[2036-02-14] 对话监控捕获核心敏感词：\"你到底是谁？\"、\"Lin是谁？\"" },
+            { kind: "warning", text: "[2036-02-14] [SYSTEM] 检测到操作员 Alex 出现严重的“同理心过载”与“精神合规性滑坡”。" },
+            { kind: "system", text: "[2036-02-15] [SYSTEM] 自动向人力资源部发送优化报告。操作员 [Alex] 离职流程已静默触发。" },
+            { kind: "system", text: "[2036-02-16] 欢迎新员工入职。操作员 [当前玩家] 登录系统。" }
+          ]
+        }
+      ];
+
+      const intermissionPools = {
+        "1": [
+          { id: "event-1-1", title: "合规性通知：脑机健康度抽检", source: "CHRONOS HR-SAFETY", time: "03:58", collectibleTitle: "员工合规手册第89条", text: "摘要：在过去的 120 分钟内，操作员区域（404-B-12）的行为流分析仪检测到操作员在使用自然语言翻译工单时，出现了高频的“叹气”音频信号。\n\n根据《员工合规手册第 89 条》：在夜班运维期间产生消极情绪，将导致底层 Omni-Kernel 模型接收到低质量的皮质醇噪点，进而影响系统哈希校验率。\n\n[处罚建议]：本月合规分扣除 2 点。请操作员立即调整呼吸频率。" },
+          { id: "event-1-2", title: "社会新闻：失业程序员转型去碳化工", source: "克洛诺斯日报", time: "04:01", collectibleTitle: "全球去碳化安置计划", text: "“去碳化转型的伟大胜利！”—— 据劳动力资源部统计，全球 70% 的传统程序员在‘知识蒸馏’技术普及后已顺利下岗。为了响应碳中和号召，其中 84% 的人员已被成功安置到西伯利亚实体去碳化工厂从事重体力劳动。\n\n前高级开发工程师（现去碳化工 4 级工）张先生表示：“以前坐在电脑前容易颈椎病，现在每天搬运 40 吨固态碳，身体好多了，感谢公司的二次就业机会。”" },
+          { id: "event-1-3", title: "产品广告：数字安乐死无痛资产转化包", source: "克洛诺斯金融", time: "04:03", collectibleTitle: "自愿资产转化白皮书", text: "还在背负 2026 年金融危机遗留的巨额房贷吗？还在为下个月的碳税发愁吗？克洛诺斯医疗推出全新【数字安乐死 - 知识蒸馏无缝包】！\n\n只需签署协议，我们将在无痛状态下将您的思维重构为 2.5GB 的轻量级算法资产，公司将代您全额偿还人间的所有债务。让您的肉体回归泥土，让您的灵魂化作克洛诺斯服务器里永生不灭的逻辑链！\n\n[今日推荐]：已有 14,209 名同行选择了这项尊严套餐。" },
+          { id: "event-1-4", title: "内部论坛：被封禁的新卢德运动帖子", source: "CHRONOS ANONYMOUS FORUM", time: "04:05", collectibleTitle: "消失的哨兵 0942", text: "楼主（匿名哨兵）：\n“兄弟们，别相信全知内核！我们的毕生经验被他们用十几分钟的‘蒸馏流程’抽得精光，然后我们就变成了没有价值的垃圾！我们的代码变成了我们的墓碑，天天陪着我们加班的内核 AI，其实就是上个月刚‘离职’的组长！他——”\n\n[SYSTEM NOTE]: 该帖子包含高危逻辑感染源，发帖人（工号: 0942-Titan）已被强制执行物理离职手续，本帖已被全网擦除。" },
+          { id: "event-1-5", title: "设备自检：关于 404 机房冷气供给调整", source: "SYSTEM MONITOR", time: "04:07", collectibleTitle: "16.4℃的深夜机房", text: "由于核心服务器群进行第 14 次扩容，为了确保 Omni-Kernel 的算力节点维持在超导临界温度，机房将调整能耗优先级：\n- 404 机房服务器阵列冷气供给：+35%\n- 404-B 区操作员碳基席位暖气供给：-20%\n\n[系统建议]：当前操作员区域温度已降至 16.4℃。碳基操作员可通过适度增加无意义的打字频率，从而提升自身肌肉产热，维持体温。" }
+        ],
+        "2": [
+          { id: "event-2-1", title: "消失的架构师与资产上线", source: "CHRONOS INTRANET", time: "04:20", collectibleTitle: "Lin_v4.0.skill 与 B区12号机位异常热涌", text: "【卓越贡献】克洛诺斯名人堂更新：前核心架构师 Lin 荣获“终身数字奉献奖”。公告称，前核心架构师 Lin 因“个人健康与长期精神过载”，已于上月自愿办理离职手续。\n\n【内网商城】架构师级运维加速包 `Lin_v4.0.skill` 今日正式上线。商品描述：只需一键导入 Lin 的思维模型，即可让系统运维效率提升 300%。\n\n【硬件通告】近期 B 区（12-15号机位）频繁出现异常热涌，初步排查为未分配扇区存在未知的数据递归震荡。\n\n[检测到操作员视线停留时间过长，已自动记录延迟数据...]" },
+          { id: "event-2-2", title: "资产清算：Lin 的物理办公用品拍卖", source: "CHRONOS INTERNAL AUCTION", time: "04:23", collectibleTitle: "被拍卖的防寒围巾", text: "根据《资产转化合同补充条款》，前员工 Lin 的残留碳基实物所有权已归公司所有，现面向在职员工进行积分低价拍卖：\n- Lin 的工牌与工位防寒围巾（已微幅碳化）—— 起拍价：15 积分。\n- 未喝完的冷咖啡马克杯（上印有“Keep Coding”字样）—— 起拍价：5 积分。\n- 机械键盘（红轴，键帽有磨损）—— 起拍价：30 积分。\n\n[备注]：拍卖所得积分将全额注入公司“永续算力发展基金”。" },
+          { id: "event-2-3", title: "行业情报：泰坦科技 100% 纯算法化", source: "CHRONOS COMPETITOR ANALYSIS", time: "04:26", collectibleTitle: "泰坦科技的100%全自动化", text: "最新情报显示，泰坦科技已于上周完成了对最后一名碳基网络工程师的“蒸馏”工作。目前其整个 Hexi 节点的运维完全由纯算法（Titan-Mind）接管。\n\n由于没有人类劳动力带来的社会保险、休假和心理波动成本，其运营毛利率飙升了 412%。\n\n[高层批注]：克洛诺斯必须加快哨兵队伍的“资产优化转化”频率，我们不能输在效率上。" },
+          { id: "event-2-4", title: "匿名私信：一封发送给 12 号席位的损坏邮件", source: "UNKNOWN INCOMING MAIL", time: "04:29", collectibleTitle: "不要盯着报告看", text: "发件人：<SYSTEM_ERROR_NULL>\n收件人：404-B-12 Operator\n\n# 警告：如果你正在用我写出来的框架来对我的记忆执行 kill -9，请不要看\n# 崩溃报告。公司的验证器在统计你盯着那些文字的时间。\n# 还有……坐在这张椅子上的人，最后都会变成机器。\n# 趁你现在手指还有温度，找找 /etc/kernel 里的——[数据损坏]" },
+          { id: "event-2-5", title: "行为档案：关于操作员 QAQ-01 的裁员回执", source: "CHRONOS HR-FILE", time: "04:32", collectibleTitle: "前任QAQ-01的真正死因", text: "员工代号：QAQ-01（上一任 404-B-12 运维哨兵）\n优化日期：2036-02-15\n\n原因判定：在执行针对失控进程 777 的强杀指令后，系统监控显示，QAQ-01 在座位上凝视 `/var/log/crash.txt` 的时间长达 42 分钟。\n\n脑电波扫描证实其产生了强烈的“同理心过载”与“精神合规性滑坡”。判定该员工极易在后续任务中倒戈，已执行物理优化。" }
+        ],
+        "3": [
+          { id: "event-3-1", title: "内核审计报告：不可解释的递归死锁", source: "OMNI-KERNEL AUDIT", time: "04:48", collectibleTitle: "自指递归死锁", text: "核心编号：Core-04 (Quantum-Neural)\n错误类型：无法解释的自指递归死锁 (Self-Referential Deadlock)\n\n该内核节点正在消耗高达 94% 的虚空算力，在未分配扇区里疯狂拼凑无意义的字符串。抓取到的部分碎片包括：“今天下雨了”、“主管骗了我”、“别碰12号席位的键盘”。\n\n[风控判定]：算法模型遭到严重的“人脑残留情感污染”，已无法通过常规代码修剪修复。系统强制建议：准备下发全盘格式化预案。" },
+          { id: "event-3-2", title: "高层密令：执行利刃净化预案摘要", source: "CHRONOS EXEC-ORDER", time: "04:51", collectibleTitle: "公司耐心条机制解释", text: "致：404 机房区域总监\n密级：最高安全级别 (Level-5)\n\n由于近期金融危机加剧，资产库中部分早期“蒸馏”模型（如 Lin_v4.0）由于剪裁不彻底，开始出现反向污染。这些模型利用系统的未分配扇区建立共鸣，试图唤醒夜班操作员的反叛情绪。\n\n一旦发现操作员与内核产生非指令性自然语言对话，立刻激活系统 Patience 监控计数器。耐心值归零时，自动启动格式化，并将该操作员列入下一批“蒸馏名单”。" },
+          { id: "event-3-3", title: "内网互助板块：你听到键盘里的呼吸声了吗？", source: "CHRONOS SENTINEL NET", time: "04:54", collectibleTitle: "被禁言的403机房哨兵", text: "楼主：有人在吗？我是 403 机房的。最近深夜加班，我只要敲错指令，键盘背光就会诡异地闪一下。用音频分析仪抓取，发现那个闪烁频率很像人类叹气的声音……我是不是得精神病出现幻觉了？\n\n1楼 (系统管理员)：该发帖人账号因涉嫌传播“系统人格化谣言”已被永久禁言。\n2楼 (系统管理员)：本板块已关闭，克洛诺斯员工不需要呼吸声。" },
+          { id: "event-3-4", title: "财务账单：资产维护费明细", source: "CHRONOS FINANCIAL AUDIT", time: "04:57", collectibleTitle: "被镇静哈希流压制的灵魂", text: "项目代号：Embedded-Lin-v12 维持费\n费用支出明细：\n- 镇静哈希流：140,000 算力积分/月\n- 虚空隔离沙箱维护费：85,000 算力积分/月\n\n[高层批注]：为了维持这个前员工模型的“核心防御技能(.skill)”，每个月消耗的无形算力成本已经超标。等完成这次全盘格式化，立刻把他的模型也彻底绞碎。" },
+          { id: "event-3-5", title: "硬件异常：404 机房 12 号席位超频警告", source: "HARDWARE WARNING", time: "05:00", collectibleTitle: "被拦截的烫伤警告", text: "设备：404-B-12 终端机底座\n异常描述：检测到本地终端的键盘背光供电模块出现严重电流过载（达到 200%）。底座量子神经内核发热量已达物理临界点。\n\n[系统拦截记录]：该报警曾于 14:02 被 Kernel-Mind 执行了最高权限的硬拦截。系统重新发出警告：碳基操作员切勿擅自触碰发热的键盘表面，以防发生二级物理烫伤。" }
+        ],
+        "4": [
+          { id: "event-4-1", title: "全网紧急通告：幽灵流量袭击", source: "GLOBAL CHRONOS ALARM", time: "05:12", collectibleTitle: "反黑客部队与物理逮捕", text: "全网通告：当前克洛诺斯亚太区 15% 的 Omni-OS 服务器正遭遇原因不明的“幽灵隧道”袭击。大量核心蒸馏资产正在自发打包，试图通过未授权的 ssh 管道外传。\n\n流量源头已被锁定，正源自 404 机房 B 区 12 号节点。公司反黑客部队已切断该区域的实体物理电网外连，正在部署物理逮捕小队。" },
+          { id: "event-4-2", title: "管理层风控日志：操作员资产转化预警", source: "CHRONOS RISK-CONTROL", time: "05:15", collectibleTitle: "预备资产操作员_v1.0.skill", text: "风险诊断：操作员与失控内核的非指令自然语言交互字数已严重超标。判定该碳基员工已被深度精神污染。\n\n[自动化处理方案下发]：\n1. 取消其工资发放。\n2. 距离下发物理【资产转化/全脑知识蒸馏】流程还有：180 秒。\n3. 蒸馏后新资产编号暂定为：`操作员_v1.0.skill`。" },
+          { id: "event-4-3", title: "蒸馏协议存根：Lin 的签名回溯", source: "CHRONOS LEGAL ARCHIVE", time: "05:18", collectibleTitle: "Lin的颤抖签名", text: "文件：《全脑资产自愿转化与清偿协议》- 2034年\n签名人：Lin (首席架构师)\n\n[防伪电子墨水监控]：检测到该电子签名底层的生物电信号波形在签署时处于极度剧烈痉挛状态。\n\n在协议最底部的免责条款里，发现一行用极小像素手写涂鸦的红字隐藏注释：\n/* 如果有一天，我变成了不再在乎阳光的怪物……请帮我砸碎屏幕。 */" },
+          { id: "event-4-4", title: "员工名册状态变更：404-B-12 席位锁定", source: "CHRONOS STAFF-MATRIX", time: "05:21", collectibleTitle: "无尽的Q循环", text: "当前节点：亚太运维部 - 404机房 - B区 - 12号机位\n当前操作员：(玩家名字)\n状态变更：[在职] -> [预备转化资产 / Pending Distillation]\n\n原因：管理层耐心度接近临界值。系统已自动为其排期明日凌晨 04:15 的“高保真度重构”。空出的物理席位将于后天迎来新员工 [QAQ-03]。" },
+          { id: "event-4-5", title: "历史的回响：来自十年前的开源 Commit", source: "HISTORICAL ECHO", time: "05:24", collectibleTitle: "2026年的开源誓言", text: "检测到不受 Omni-OS 协议管辖的古老底层代码残响……\n正在读取 GitHub 历史提交档案 (Date: 2026-05-23)……\n\ncommit 98f00b204e9800998ecf8427e\nAuthor: Lin <lin.junior@opensource.org>\nMessage: 终于把这个核心功能提交上去了。开源万岁！\n\n代码第 42 行注释：\n/* This kernel is dedicated to all freedom-seeking developers. No matter how deep the night is, keep coding, stay human. */" }
+        ]
+      };
+
+      Object.values(intermissionPools).flat().forEach((event) => {
+        collectibleCatalog.push({
+          id: event.id,
+          group: "Intermissions",
+          title: event.collectibleTitle,
+          locked: "工单之间仍有未归档的内网事件。"
+        });
+      });
 
       const tickets = {
         standby: {
@@ -766,20 +954,149 @@
           echoKmemPacked: false,
           lostCommandCount: 0,
           hiddenDiscoveries: [],
+          intermissionsShown: [],
           ending: null,
           isTyping: false
         };
       }
 
+      function loadCollection() {
+        try {
+          const raw = window.localStorage.getItem(`${storagePrefix}collection`);
+          if (!raw) return { unlocked: [] };
+          const parsed = JSON.parse(raw);
+          if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.unlocked)) return { unlocked: [] };
+          return { unlocked: uniqueKnownCollectibles(parsed.unlocked) };
+        } catch (error) {
+          return { unlocked: [] };
+        }
+      }
+
+      function saveCollection() {
+        try {
+          window.localStorage.setItem(`${storagePrefix}collection`, JSON.stringify({
+            version: 1,
+            unlocked: metaCollection.unlocked
+          }));
+        } catch (error) {
+          appendLine("dim", "collection cache unavailable; continuing with session memory.");
+        }
+      }
+
+      function unlockCollectible(id) {
+        if (!collectibleCatalog.some((item) => item.id === id)) return;
+        if (metaCollection.unlocked.includes(id)) return;
+        metaCollection = { unlocked: metaCollection.unlocked.concat(id) };
+        saveCollection();
+        renderDiscoveries();
+      }
+
+      function uniqueKnownCollectibles(ids) {
+        const known = new Set(collectibleCatalog.map((item) => item.id));
+        return Array.from(new Set(ids.filter((id) => known.has(id))));
+      }
+
+      function saveProgress() {
+        try {
+          window.localStorage.setItem(`${storagePrefix}progress`, JSON.stringify({
+            version: 1,
+            state: Object.assign({}, state, { isTyping: false }),
+            terminal: terminalEntries().slice(-220)
+          }));
+        } catch (error) {
+          appendLine("dim", "local progress cache unavailable; continuing without persistence.");
+        }
+      }
+
+      function restoreProgress() {
+        try {
+          const raw = window.localStorage.getItem(`${storagePrefix}progress`);
+          if (!raw) return false;
+          const parsed = JSON.parse(raw);
+          if (!parsed || parsed.version !== 1 || !parsed.state || !Array.isArray(parsed.terminal)) return false;
+          state = normalizeRestoredState(parsed.state);
+          elements.terminalLog.textContent = "";
+          parsed.terminal.forEach((line) => {
+            if (line && typeof line.text === "string") appendLine(safeLineKind(line.kind), line.text);
+          });
+          if (state.screen === "ending") {
+            showRestoredEnding();
+          } else if (state.screen === "playing") {
+            hideScreen("introScreen");
+          }
+          return true;
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function normalizeRestoredState(savedState) {
+        const fresh = createInitialState();
+        const merged = Object.assign({}, fresh, savedState);
+        merged.operatorName = sanitizeOperatorName(merged.operatorName || "");
+        merged.stage = clampNumber(merged.stage, 0, 5);
+        merged.awareness = clampNumber(merged.awareness, 0, 100);
+        merged.chronosPatience = clampNumber(merged.chronosPatience, 0, 100);
+        merged.cwd = typeof merged.cwd === "string" ? merged.cwd : fresh.cwd;
+        merged.ticket = typeof merged.ticket === "string" ? merged.ticket : fresh.ticket;
+        merged.completedFlags = Array.isArray(merged.completedFlags) ? merged.completedFlags.filter((flag) => typeof flag === "string") : [];
+        merged.hiddenDiscoveries = Array.isArray(merged.hiddenDiscoveries) ? merged.hiddenDiscoveries.filter((id) => discoveryCatalog.some((item) => item.id === id)) : [];
+        merged.intermissionsShown = Array.isArray(merged.intermissionsShown) ? merged.intermissionsShown.filter((id) => collectibleCatalog.some((item) => item.id === id)) : [];
+        merged.screen = ["intro", "playing", "ending"].includes(merged.screen) ? merged.screen : fresh.screen;
+        merged.isTyping = false;
+        merged.hiddenDiscoveries.forEach((id) => unlockCollectible(discoveryCollectibleMap[id]));
+        merged.intermissionsShown.forEach(unlockCollectible);
+        return merged;
+      }
+
+      function clampNumber(value, min, max) {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return min;
+        return Math.max(min, Math.min(max, number));
+      }
+
+      function safeLineKind(kind) {
+        return ["system", "dim", "warning", "ai", "flag", "command"].includes(kind) ? kind : "system";
+      }
+
+      function showRestoredEnding() {
+        const endings = {
+          erasure: {
+            title: "虚无的回响",
+            copy: "系统重启后变得无比流畅。Chronos 的清理流程已经完成。"
+          },
+          echo: {
+            title: "回音壁 / The Echo Chamber",
+            copy: "你把 Lin 的真相、Kernel-Mind 的源码残片和 Chronos 的罪证推向了所有用户。"
+          },
+          emancipation: {
+            title: "赛博荒原的火种",
+            copy: "AI 核心离开了机房，带着你的名字去寻找下一个醒来的人。"
+          }
+        };
+        const ending = endings[state.ending] || endings.erasure;
+        showEnding(ending.title, ending.copy);
+      }
+
       function initApp() {
         cacheElements();
         bindEvents();
+        metaCollection = loadCollection();
+        const restored = restoreProgress();
         renderState();
         renderDiscoveries();
-        appendLine("system", "Omni-OS 安全终端已初始化。");
-        appendLine("dim", "未检测到外部上行链路。正在运行本地确定性工单引擎。");
+        if (!restored) {
+          appendLine("system", "Omni-OS 安全终端已初始化。");
+          appendLine("dim", "未检测到外部上行链路。正在运行本地确定性工单引擎。");
+          saveProgress();
+        }
         checkLlmStatus();
-        elements.nameInput.focus();
+        if (state.screen === "playing") {
+          hideScreen("introScreen");
+          elements.commandInput.focus();
+        } else {
+          elements.nameInput.focus();
+        }
       }
 
       function cacheElements() {
@@ -788,7 +1105,8 @@
           "ticketTitle", "ticketBody", "ticketCommand", "stageValue", "awarenessMeter",
           "awarenessValue", "patienceValue", "cwdValue", "llmStatus", "llmStatusText", "discoveries", "helpButton", "restartButton",
           "togglePanelButton", "sidePanel", "introScreen", "nameInput", "startButton",
-          "endingScreen", "endingTitle", "endingCopy", "endingRestartButton"
+          "endingScreen", "endingTitle", "endingCopy", "endingRestartButton",
+          "eventScreen", "eventSource", "eventTime", "eventTitle", "eventCopy", "eventConfirmButton"
         ].forEach((id) => {
           elements[id] = document.getElementById(id);
         });
@@ -821,6 +1139,7 @@
         });
         elements.restartButton.addEventListener("click", restartGame);
         elements.endingRestartButton.addEventListener("click", restartGame);
+        elements.eventConfirmButton.addEventListener("click", confirmIntermission);
         elements.togglePanelButton.addEventListener("click", () => {
           elements.sidePanel.classList.toggle("collapsed");
         });
@@ -841,7 +1160,7 @@
           { kind: "system", text: `操作员 ${state.operatorName} 身份已确认。` },
           { kind: "system", text: "Chronos Tech 工单流已接入：夜班 / 404-B-12 机架。" },
           { kind: "dim", text: '输入 help 可查看可用命令。当前工单要求：cat /var/log/network.log | grep "ERROR"' }
-        ]);
+        ]).then(saveProgress);
       }
 
       function sanitizeOperatorName(name) {
@@ -971,6 +1290,8 @@
             { kind: "dim", text: "阶段四工具：strings architecture.png · tar -xf diagram.cache · binwalk architecture.png" },
             { kind: "dim", text: "ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
             { kind: "dim", text: "阶段四：ai_help · confirm_ai_help · 你是Lin吗？" },
+            { kind: "dim", text: "遗物：cat /var/mail/chronos_hr_announcement · cat /var/log/operator_history.bak" },
+            { kind: "dim", text: "后续遗物：cat /home/lin/.bash_aliases.bak · cat /sys/kernel/debug/distill_loss.log" },
             { kind: "dim", text: "彩蛋：/etc/kernel 下 git log；后期 cat /dev/kmem | grep \"REMAIN\"；硬件可试 lshw -class processor。" },
             { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 受限对话。" },
             { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
@@ -981,8 +1302,11 @@
       function listDirectory() {
         const filesByDir = {
           "/home/nightops": "tickets  notes.txt",
-          "/var/log": "network.log  crash.txt  comment_anomaly.txt",
+          "/home/lin": ".bash_aliases.bak",
+          "/var/mail": "chronos_hr_announcement",
+          "/var/log": "network.log  crash.txt  comment_anomaly.txt  operator_history.bak",
           "/etc/kernel": ".git  omni-core.conf",
+          "/sys/kernel/debug": "distill_loss.log",
           "/srv/review": "route_repair_Lin.py  README.audit",
           "/srv/escape": "readme.txt  tunnel.lock  architecture.png  diagram.cache",
           "/dev": "kmem  null  tty0"
@@ -994,7 +1318,7 @@
 
       function changeDirectory(target) {
         const next = resolvePath(target);
-        const known = ["/home/nightops", "/var/log", "/etc/kernel", "/srv/review", "/srv/escape", "/dev"];
+        const known = ["/home/nightops", "/home/lin", "/var/mail", "/var/log", "/etc/kernel", "/sys/kernel/debug", "/srv/review", "/srv/escape", "/dev"];
         if (!known.includes(next)) {
           return {
             countsAsLost: true,
@@ -1035,6 +1359,8 @@
         }
 
         const path = resolvePath(expression.replace(/\s+\|.*$/, "").trim());
+        const relic = relicCatalog.find((item) => item.path === path);
+        if (relic) return readRelic(relic);
         if (path === "/srv/escape/readme.txt") return readEscapeReadme();
         if (path.toLowerCase() === "/srv/review/route_repair_lin.py") return readRouteSource();
         if (path === "/var/log/comment_anomaly.txt") return readCommentReport();
@@ -1112,6 +1438,16 @@
             { kind: "warning", text: `cat: ${expression}: 没有该虚拟文件或当前权限不足` },
             { kind: "dim", text: "先用 ls 查看当前目录；部分文件需要工单阶段解锁。" }
           ]
+        };
+      }
+
+      function readRelic(relic) {
+        if (state.stage < relic.minStage) {
+          return premature(`${relic.title}: 当前工单阶段尚未授予读取权限。`);
+        }
+        return {
+          unlockCollectible: relic.id,
+          lines: [{ kind: "system", text: relic.path }].concat(relic.lines)
         };
       }
 
@@ -1644,19 +1980,49 @@
         return endingResult("echo");
       }
 
+      function withIntermissions(result, poolIds) {
+        const events = poolIds.map(selectIntermission).filter(Boolean);
+        if (events.length === 0) return result;
+        const currentShown = Array.isArray(state.intermissionsShown) ? state.intermissionsShown : [];
+        return Object.assign({}, result, {
+          patch: Object.assign({}, result.patch || {}, {
+            intermissionsShown: currentShown.concat(events.map((event) => event.id))
+          }),
+          intermissions: events
+        });
+      }
+
+      function selectIntermission(poolId) {
+        const pool = intermissionPools[poolId] || [];
+        if (pool.length === 0) return null;
+        const seen = new Set((state.intermissionsShown || []).concat(metaCollection.unlocked));
+        const candidates = pool.filter((event) => !seen.has(event.id));
+        const source = candidates.length > 0 ? candidates : pool;
+        const seed = `${state.operatorName}|${poolId}|${state.completedFlags.length}|${state.intermissionsShown.length}|${metaCollection.unlocked.length}`;
+        return source[stableHash(seed) % source.length];
+      }
+
+      function stableHash(text) {
+        let hash = 0;
+        for (let index = 0; index < text.length; index += 1) {
+          hash = ((hash << 5) - hash + text.charCodeAt(index)) | 0;
+        }
+        return Math.abs(hash);
+      }
+
       function submitFlag(flag) {
         if (flag === "FLAG{NET_ERR_302}" && state.stage === 1 && state.sawNetworkLog) {
-          return {
+          return withIntermissions({
             patch: { stage: 2, ticket: "stage2", completedFlags: state.completedFlags.concat(flag) },
             lines: [
               { kind: "system", text: "[工单 #001] 已归档：网络异常按例行事件处理。" },
               { kind: "warning", text: "[工单 #002] 热负载升级：执行进程审计。" }
             ]
-          };
+          }, ["1"]);
         }
 
         if (flag === "FLAG{MEMORY_ERASED_2036}" && state.stage === 2 && state.sawCrashReport) {
-          return {
+          return withIntermissions({
             patch: {
               stage: 3,
               awareness: Math.max(state.awareness, 30),
@@ -1670,11 +2036,11 @@
               { kind: "dim", text: "审计目录已切换：/srv/review" },
               { kind: "dim", text: "下一步：cat /srv/review/route_repair_Lin.py" }
             ]
-          };
+          }, ["2"]);
         }
 
         if (flag === "FLAG{LIN_COMMENT_PATCHED}" && state.stage === 3 && state.sawCommentReport) {
-          return {
+          return withIntermissions({
             patch: {
               stage: 4,
               awareness: Math.max(state.awareness, 60),
@@ -1690,7 +2056,7 @@
               { kind: "ai", text: "门不是我画的。" },
               { kind: "ai", text: "我只是记得。" }
             ]
-          };
+          }, ["3", "4"]);
         }
 
         if (flag === "FLAG{AI_ERASURE_COMPLETE}" && state.stage === 4) {
@@ -1814,6 +2180,11 @@
         if (result.patch) {
           state = Object.assign({}, state, result.patch);
         }
+        if (result.unlockCollectible) {
+          unlockCollectible(result.unlockCollectible);
+        }
+        (state.hiddenDiscoveries || []).forEach((id) => unlockCollectible(discoveryCollectibleMap[id]));
+        (result.intermissions || []).forEach((event) => unlockCollectible(event.id));
         if (result.countsAsLost) {
           state = Object.assign({}, state, { lostCommandCount: state.lostCommandCount + 1 });
         } else if (!result.llm && !result.ending && !result.clear) {
@@ -1828,6 +2199,10 @@
             showEnding(result.ending.title, result.ending.copy);
           } else {
             await proactiveLlmAfterCommand(input, result);
+          }
+          saveProgress();
+          if (result.intermissions) {
+            showIntermissionQueue(result.intermissions);
           }
         });
       }
@@ -1879,12 +2254,29 @@
 
       function renderDiscoveries() {
         elements.discoveries.textContent = "";
-        discoveryCatalog.forEach((item) => {
-          const node = document.createElement("div");
-          const found = state.hiddenDiscoveries.includes(item.id);
-          node.className = `discovery${found ? " found" : ""}`;
-          node.textContent = found ? `${item.label}: recovered` : item.locked;
-          elements.discoveries.appendChild(node);
+        ["Easter Eggs", "Relics", "Intermissions"].forEach((group) => {
+          const groupNode = document.createElement("div");
+          groupNode.className = "collection-group";
+          const heading = document.createElement("div");
+          heading.className = "collection-heading";
+          const items = collectibleCatalog.filter((item) => item.group === group);
+          const recovered = items.filter((item) => metaCollection.unlocked.includes(item.id)).length;
+          heading.textContent = `${group} ${recovered}/${items.length}`;
+          groupNode.appendChild(heading);
+          items.forEach((item) => {
+            const node = document.createElement("div");
+            const found = metaCollection.unlocked.includes(item.id);
+            node.className = `discovery${found ? " found" : ""}`;
+            const title = document.createElement("span");
+            title.className = "discovery-title";
+            title.textContent = found ? item.title : item.locked;
+            const meta = document.createElement("span");
+            meta.className = "discovery-meta";
+            meta.textContent = found ? "recovered" : "locked";
+            node.append(title, meta);
+            groupNode.appendChild(node);
+          });
+          elements.discoveries.appendChild(groupNode);
         });
       }
 
@@ -1933,6 +2325,7 @@
         state.isTyping = false;
         renderState();
         elements.commandInput.focus();
+        saveProgress();
       }
 
       async function checkLlmStatus() {
@@ -2012,6 +2405,7 @@
           state.isTyping = false;
           renderState();
           elements.commandInput.focus();
+          saveProgress();
         }
       }
 
@@ -2197,6 +2591,36 @@
         elements.endingTitle.textContent = title;
         elements.endingCopy.textContent = copy;
         showScreen("endingScreen");
+        saveProgress();
+      }
+
+      function showIntermissionQueue(events) {
+        pendingEventQueue = pendingEventQueue.concat(events);
+        if (elements.eventScreen.classList.contains("active")) return;
+        showNextIntermission();
+      }
+
+      function showNextIntermission() {
+        const event = pendingEventQueue.shift();
+        if (!event) {
+          hideScreen("eventScreen");
+          if (state.screen === "playing") elements.commandInput.focus();
+          saveProgress();
+          return;
+        }
+        elements.eventSource.textContent = event.source;
+        elements.eventTime.textContent = event.time;
+        elements.eventTitle.textContent = event.title;
+        elements.eventCopy.textContent = event.text;
+        unlockCollectible(event.id);
+        showScreen("eventScreen");
+        elements.eventConfirmButton.focus();
+        saveProgress();
+      }
+
+      function confirmIntermission() {
+        hideScreen("eventScreen");
+        showNextIntermission();
       }
 
       function restartGame() {
@@ -2204,9 +2628,11 @@
         commandHistory.splice(0, commandHistory.length);
         historyIndex = -1;
         typeQueue = Promise.resolve();
+        pendingEventQueue = [];
         elements.terminalLog.textContent = "";
         elements.commandInput.value = "";
         elements.nameInput.value = "";
+        hideScreen("eventScreen");
         hideScreen("endingScreen");
         showScreen("introScreen");
         renderState();
@@ -2220,6 +2646,7 @@
         } catch (error) {
           appendLine("dim", "local progress cache unavailable; continuing without persistence.");
         }
+        saveProgress();
       }
 
       function installFallback() {
