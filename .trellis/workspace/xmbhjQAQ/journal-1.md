@@ -38,3 +38,36 @@ Added and validated the frontend interactive-space offline H5 delivery spec, the
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Build Kernel Ghost offline web game
+
+**Date**: 2026-05-23
+**Task**: Build Kernel Ghost offline web game
+**Branch**: `main`
+
+### Summary
+
+Implemented and verified the offline H5 MVP for Kernel Ghost: 2036, including pseudo-terminal gameplay, deterministic command engine, hidden discoveries, dual endings, responsive layout, and GitHub push.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3a93aa2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
