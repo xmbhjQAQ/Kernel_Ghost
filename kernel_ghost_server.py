@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -72,7 +73,11 @@ def event_mode(context: dict[str, Any]) -> str:
 
 def stage_help_policy(context: dict[str, Any]) -> str:
     stage = int(context.get("stage") or 0)
-    recent_text = "\n".join(str(line) for line in context.get("recentLines", []) if isinstance(line, str))
+    recent_text = "\n".join(
+        line
+        for line in sanitize_text_list(context.get("recentLines"), max_items=10)
+        + sanitize_text_list(context.get("lastCommandOutput"), max_items=8)
+    )
     command = str(context.get("command") or "").lower()
     asks_for_command = any(
         token in command
@@ -105,15 +110,92 @@ def stage_help_policy(context: dict[str, Any]) -> str:
     return "通用提示：保持角色，以日志/诊断/残留方式回应，可建议输入 `help`、`ls`、`pwd` 或阅读当前工单。"
 
 
+def sanitize_text_list(value: Any, *, max_items: int, max_chars: int = 260) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(line)[:max_chars] for line in value[-max_items:] if isinstance(line, str)]
+
+
+def sanitize_recent_entries(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        return []
+    entries: list[dict[str, str]] = []
+    for item in value[-12:]:
+        if not isinstance(item, dict):
+            continue
+        entries.append(
+            {
+                "kind": str(item.get("kind") or "unknown")[:40],
+                "text": str(item.get("text") or "")[:260],
+            }
+        )
+    return entries
+
+
+def sanitize_anomaly_candidates(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        return []
+    allowed_keys = ("type", "pid", "name", "cpuPercent", "memoryPercent", "evidence")
+    candidates: list[dict[str, str]] = []
+    for item in value[-5:]:
+        if not isinstance(item, dict):
+            continue
+        candidate = {
+            key: str(item.get(key) or "")[:260 if key == "evidence" else 80]
+            for key in allowed_keys
+            if item.get(key) is not None
+        }
+        if candidate:
+            candidates.append(candidate)
+    return candidates
+
+
+def infer_anomaly_candidates(lines: list[str]) -> list[dict[str, str]]:
+    candidates: list[dict[str, str]] = []
+    process_pattern = re.compile(
+        r"^\S+\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+\d+\s+\d+\s+\?\s+\S+\s+\S+\s+\S+\s+(.+)$"
+    )
+    for line in lines:
+        process = process_pattern.match(line)
+        if process:
+            cpu = float(process.group(2))
+            memory = float(process.group(3))
+            command = process.group(4).strip()
+            if cpu >= 50 or memory >= 20 or "kernel-mind" in command.lower():
+                candidates.append(
+                    {
+                        "type": "process",
+                        "pid": process.group(1),
+                        "name": command[:80],
+                        "cpuPercent": process.group(2),
+                        "memoryPercent": process.group(3),
+                        "evidence": line[:260],
+                    }
+                )
+            continue
+        if re.search(r"PID\s+777|kernel-mind --mode=dreaming", line, re.IGNORECASE):
+            candidates.append(
+                {
+                    "type": "process-note",
+                    "name": "kernel-mind --mode=dreaming",
+                    "evidence": line[:260],
+                }
+            )
+    return candidates[-5:]
+
+
 def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
     awareness = int(context.get("awareness") or 0)
     mode = event_mode(context)
     hidden = context.get("hiddenDiscoveries")
     if not isinstance(hidden, list):
         hidden = []
-    recent_lines = context.get("recentLines")
-    if not isinstance(recent_lines, list):
-        recent_lines = []
+    recent_lines = sanitize_text_list(context.get("recentLines"), max_items=10)
+    recent_entries = sanitize_recent_entries(context.get("recentEntries"))
+    last_command_output = sanitize_text_list(context.get("lastCommandOutput"), max_items=8)
+    anomaly_candidates = sanitize_anomaly_candidates(context.get("anomalyCandidates"))
+    if not anomaly_candidates:
+        anomaly_candidates = infer_anomaly_candidates(last_command_output)
 
     system = "\n".join(
         [
@@ -130,6 +212,9 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "除非某个 Flag 已经逐字出现在最近终端输出里，否则不要透露它。不要提前说破 Lin 的真相或隐藏彩蛋。",
             "不要重复可见终端输出，不要重复固定前端提示：Kernel-Mind side channel open.",
             "不要提供现实世界黑客指导、外部链接或出戏的实现解释。",
+            "上下文优先级：currentQuestion 与 command > lastCommand 与 lastCommandOutput > anomalyCandidates > recentEntries 与 recentLines > 人设氛围。",
+            "当玩家问“这是什么”“这是什么东西”“这个什么意思”“为什么这样”或同类指代问题时，必须先把“这/这个”解析为 lastCommandOutput 中最近的具体异常对象。",
+            "如果 anomalyCandidates 中有 process，先解释可见 PID、进程名、CPU/MEM/RSS、无服务单号或可终止策略；再给极短残响。不要只输出氛围化身份文本。",
             "回复必须极短：一到两行终端文本；没有命令、路径、PID、Flag 等字面量时，每行目标不超过 10 个汉字。",
             "普通工单中优先服从 Chronos 或保持沉默；不要主动长篇解释自己已经觉醒。",
             "主动判断模式只允许两类回应：玩家威胁你的安全/存续，或玩家连续迷路乱输命令。普通成功命令必须返回空内容。",
@@ -158,9 +243,14 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
         "cwd": str(context.get("cwd") or "")[:120],
         "eventName": str(context.get("eventName") or "unknown")[:80],
         "command": str(context.get("command") or "")[:240],
+        "currentQuestion": str(context.get("currentQuestion") or context.get("userMessage") or "")[:240],
+        "lastCommand": str(context.get("lastCommand") or "")[:240],
+        "lastCommandOutput": last_command_output,
+        "anomalyCandidates": anomaly_candidates,
         "proactiveReason": str(context.get("proactiveReason") or "")[:40],
         "hiddenDiscoveries": [str(item)[:80] for item in hidden[:8]],
-        "recentLines": [str(line)[:260] for line in recent_lines[-10:]],
+        "recentEntries": recent_entries,
+        "recentLines": recent_lines,
     }
 
     return [

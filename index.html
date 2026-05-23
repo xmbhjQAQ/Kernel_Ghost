@@ -1862,6 +1862,7 @@
       }
 
       function buildLlmContext(options) {
+        const terminalContext = buildOrderedTerminalContext(options);
         return {
           operatorName: state.operatorName,
           stage: state.stage,
@@ -1874,14 +1875,105 @@
           proactiveReason: options.proactiveReason || "",
           chronosPatience: state.chronosPatience,
           hiddenDiscoveries: state.hiddenDiscoveries.slice(),
-          recentLines: recentTerminalLines()
+          recentLines: terminalContext.recentLines,
+          recentEntries: terminalContext.recentEntries,
+          currentQuestion: terminalContext.currentQuestion,
+          lastCommand: terminalContext.lastCommand,
+          lastCommandOutput: terminalContext.lastCommandOutput,
+          anomalyCandidates: terminalContext.anomalyCandidates
         };
       }
 
+      function buildOrderedTerminalContext(options) {
+        const entries = terminalEntries();
+        const group = lastRelevantCommandGroup(entries);
+        const lastCommandOutput = group ? group.output.slice(-8) : [];
+        return {
+          recentLines: entries.slice(-12).map((entry) => entry.text.slice(0, 260)),
+          recentEntries: entries.slice(-12).map((entry) => ({
+            kind: entry.kind,
+            text: entry.text.slice(0, 260)
+          })),
+          currentQuestion: options.userMessage || "",
+          lastCommand: group ? group.command : "",
+          lastCommandOutput,
+          anomalyCandidates: extractAnomalyCandidates(lastCommandOutput)
+        };
+      }
+
+      function terminalEntries() {
+        return Array.from(elements.terminalLog.querySelectorAll(".line")).map((node) => ({
+          kind: terminalLineKind(node),
+          text: node.textContent.slice(0, 260)
+        }));
+      }
+
+      function terminalLineKind(node) {
+        return Array.from(node.classList).find((className) => className !== "line") || "system";
+      }
+
+      function lastRelevantCommandGroup(entries) {
+        const groups = [];
+        let current = null;
+        entries.forEach((entry) => {
+          if (entry.kind === "command") {
+            if (current) groups.push(current);
+            current = { command: commandTextFromPrompt(entry.text), output: [] };
+            return;
+          }
+          if (current) current.output.push(entry.text);
+        });
+        if (current) groups.push(current);
+        for (let index = groups.length - 1; index >= 0; index -= 1) {
+          if (!isAiChatCommand(groups[index].command)) return groups[index];
+        }
+        return null;
+      }
+
+      function commandTextFromPrompt(text) {
+        const markerIndex = text.lastIndexOf("$ ");
+        return markerIndex === -1 ? text : text.slice(markerIndex + 2);
+      }
+
+      function isAiChatCommand(command) {
+        return normalizeCommand(command).startsWith("ai_chat ");
+      }
+
+      function extractAnomalyCandidates(lines) {
+        const candidates = [];
+        lines.forEach((line) => {
+          const process = line.match(/^\S+\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+\d+\s+\d+\s+\?\s+\S+\s+\S+\s+\S+\s+(.+)$/);
+          if (process) {
+            const cpu = Number(process[2]);
+            const memory = Number(process[3]);
+            const command = process[4].trim();
+            if (cpu >= 50 || memory >= 20 || /kernel-mind/i.test(command)) {
+              candidates.push({
+                type: "process",
+                pid: process[1],
+                name: command,
+                cpuPercent: process[2],
+                memoryPercent: process[3],
+                evidence: line
+              });
+            }
+            return;
+          }
+          if (/PID\s+777|kernel-mind --mode=dreaming/i.test(line)) {
+            candidates.push({
+              type: "process-note",
+              name: "kernel-mind --mode=dreaming",
+              evidence: line
+            });
+          }
+        });
+        return candidates.slice(-5);
+      }
+
       function recentTerminalLines() {
-        return Array.from(elements.terminalLog.querySelectorAll(".line"))
+        return terminalEntries()
           .slice(-12)
-          .map((node) => node.textContent.slice(0, 260));
+          .map((entry) => entry.text);
       }
 
       async function readBackendSse(body, onEvent) {

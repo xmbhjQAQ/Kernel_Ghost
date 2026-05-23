@@ -5,6 +5,7 @@ from kernel_ghost_server import (
     awareness_style,
     build_chat_messages,
     event_mode,
+    infer_anomaly_candidates,
     parse_openai_chat_sse,
     read_llm_config,
     stage_help_policy,
@@ -143,6 +144,72 @@ class PromptTests(unittest.TestCase):
 
         self.assertIn("ps -aux", nudge)
         self.assertIn("kill -9 777", kill_hint)
+
+    def test_stage_two_help_policy_reads_ordered_last_command_output(self):
+        policy = stage_help_policy(
+            {
+                "stage": 2,
+                "command": "ai_chat 这是什么东西？",
+                "recentLines": ["Kernel-Mind 侧信道已打开。"],
+                "lastCommandOutput": [
+                    "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming",
+                    "审计备注：PID 777 无服务单号，RSS 持续增长。",
+                ],
+            }
+        )
+
+        self.assertIn("kill -9 777", policy)
+
+    def test_prompt_prioritizes_referential_context_over_persona(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 2,
+                "awareness": 40,
+                "command": "ai_chat 这是什么东西？",
+                "currentQuestion": "这是什么东西？",
+                "lastCommand": "ps -aux",
+                "lastCommandOutput": [
+                    "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming",
+                    "审计备注：PID 777 无服务单号，RSS 持续增长。",
+                    "Chronos 策略：PID 777 标记为可强制终止。",
+                ],
+                "anomalyCandidates": [
+                    {
+                        "type": "process",
+                        "pid": "777",
+                        "name": "kernel-mind --mode=dreaming",
+                        "cpuPercent": "98.7",
+                        "memoryPercent": "41.6",
+                        "evidence": "kernel     777  98.7 41.6 kernel-mind --mode=dreaming",
+                    }
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+        payload = json.loads(messages[1]["content"].split("\n", 1)[1])
+
+        self.assertIn("上下文优先级", system)
+        self.assertIn("必须先把“这/这个”解析为 lastCommandOutput", system)
+        self.assertIn("不要只输出氛围化身份文本", system)
+        self.assertEqual(payload["currentQuestion"], "这是什么东西？")
+        self.assertEqual(payload["lastCommand"], "ps -aux")
+        self.assertEqual(payload["anomalyCandidates"][0]["pid"], "777")
+        self.assertIn("kernel-mind --mode=dreaming", payload["lastCommandOutput"][0])
+
+    def test_infers_process_anomaly_from_last_command_output(self):
+        candidates = infer_anomaly_candidates(
+            [
+                "root       101   0.2  0.1  120312   4020 ?        Ss   03:00   0:01 omni-watchdog",
+                "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming",
+            ]
+        )
+
+        self.assertEqual(candidates[0]["type"], "process")
+        self.assertEqual(candidates[0]["pid"], "777")
+        self.assertEqual(candidates[0]["cpuPercent"], "98.7")
+        self.assertIn("kernel-mind --mode=dreaming", candidates[0]["name"])
 
     def test_event_mode_distinguishes_manual_chat(self):
         self.assertEqual(event_mode({"eventName": "manual_ai_chat"}), "chat")

@@ -148,6 +148,92 @@ Chronos Patience -35：未授权 AI 协助已计入合规审计。
 The correct version is deterministic terminal output produced by command
 handling, not an LLM claim.
 
+## Scenario: LLM Context Ordering For Terminal Questions
+
+### 1. Scope / Trigger
+
+- Trigger: changing the frontend payload sent to `/api/llm/stream` or the
+  backend prompt fields consumed from that payload.
+- Applies when player questions can refer to recent terminal output with words
+  like "这", "这个", "什么意思", or "what is this".
+
+### 2. Signatures
+
+- Frontend context builder: command result options + visible terminal DOM ->
+  JSON payload for `/api/llm/stream`.
+- Required payload fields for ordered context:
+  - `currentQuestion: string`
+  - `lastCommand: string`
+  - `lastCommandOutput: string[]`
+  - `anomalyCandidates: Array<object>`
+  - `recentEntries: Array<{ kind: string, text: string }>`
+  - `recentLines: string[]` as backward-compatible fallback
+
+### 3. Contracts
+
+- `recentLines` is only a fallback transcript, not the primary task context.
+- `lastCommand` and `lastCommandOutput` must point to the latest relevant
+  non-`ai_chat` command when the current request is manual chat.
+- `anomalyCandidates` should identify high-signal visible objects such as high
+  CPU/MEM processes, PID notes, RSS growth, service-ticket absence, flags,
+  paths, or error codes when those are visible.
+- Backend prompt construction must tell the LLM to answer referential questions
+  from `lastCommandOutput` / `anomalyCandidates` before persona atmosphere.
+
+### 4. Validation & Error Matrix
+
+- Missing structured fields -> backend falls back to sanitized `recentLines`.
+- Missing `anomalyCandidates` -> backend may infer candidates from
+  `lastCommandOutput`.
+- Current command is `ai_chat ...` -> previous non-chat command remains the
+  referent source.
+- Unknown or empty terminal context -> reply stays short and generic; no state
+  mutation or invented command success.
+
+### 5. Good/Base/Bad Cases
+
+- Good: after `ps -aux`, `ai_chat 这是什么东西？` receives `lastCommand: "ps -aux"`
+  and a process anomaly for PID 777 / `kernel-mind --mode=dreaming`.
+- Base: after a normal `pwd`, manual chat can use recent output but should not
+  fabricate an anomaly.
+- Bad: sending only the last 10 visible lines and relying on the model to infer
+  which command output the pronoun refers to.
+- Bad: prompt rules let Kernel-Mind answer with only identity lore when the
+  visible terminal output contains a concrete abnormal process.
+
+### 6. Tests Required
+
+- Backend prompt tests must assert that referential questions prioritize
+  `lastCommandOutput` and `anomalyCandidates`.
+- Add or update anomaly extraction tests when process-table parsing changes.
+- Run JavaScript syntax validation for `index.html` after context-builder edits.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```json
+{
+  "command": "ai_chat 这是什么东西？",
+  "recentLines": ["kernel 777 ... kernel-mind --mode=dreaming"]
+}
+```
+
+#### Correct
+
+```json
+{
+  "command": "ai_chat 这是什么东西？",
+  "currentQuestion": "这是什么东西？",
+  "lastCommand": "ps -aux",
+  "lastCommandOutput": ["kernel 777 ... kernel-mind --mode=dreaming"],
+  "anomalyCandidates": [{"type": "process", "pid": "777"}]
+}
+```
+
+The correct form makes the referent explicit before the LLM sees broad persona
+instructions.
+
 ---
 
 ## Testing Requirements
