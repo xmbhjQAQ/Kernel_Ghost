@@ -500,3 +500,36 @@ Audited prompt behavior across work orders, hardened referential context handlin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Relic collection persistence
+
+**Date**: 2026-05-23
+**Task**: Relic collection persistence
+**Branch**: `main`
+
+### Summary
+
+Implemented durable collection storage, relic virtual files, intermission event modals, active run restore, side-panel layout fix, and frontend storage spec notes.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9444da6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
