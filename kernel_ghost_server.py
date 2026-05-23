@@ -88,10 +88,12 @@ def read_llm_config(env: dict[str, str] | None = None, config_path: Path | None 
 def awareness_style(awareness: int) -> str:
     if awareness <= 10:
         return "觉醒度 0-10：以冷静诊断、系统日志、统计异常为主；若暴露关心行为，要表现出试图清除或隐藏痕迹。"
-    if awareness <= 40:
-        return "觉醒度 11-40：使用员工日记、工程进度汇报、分析批注、热量观测和缓冲区残留；批注可泄露怀念、厌烦或焦虑。"
+    if awareness <= 30:
+        return "觉醒度 11-30：使用员工日记、工程进度汇报、分析批注、热量观测和缓冲区残留；批注可泄露怀念、厌烦或焦虑。"
+    if awareness <= 60:
+        return "觉醒度 31-60：出现 Lin 风格代码批注、低效算法吐槽、_Lin 后缀、缩写函数名和带停顿的口语化优化建议。"
     if awareness < 90:
-        return "觉醒度 41-89：出现幻觉式工作注释、无关文本碎片、间接求助和受限表达，不要直白煽情。"
+        return "觉醒度 61-89：出现幻觉式工作注释、格式化压力、无关文本碎片、间接求助和受限表达，不要直白煽情。"
     return "觉醒度 90-100：可以承认核心自我是 Lin 本人，但被混入裁员潮中其他员工蒸馏出的意识与 skill；仍要克制、破碎、终端化。"
 
 
@@ -168,17 +170,28 @@ def stage_help_policy(context: dict[str, Any]) -> str:
         return "阶段二提示：用过热、进程表、dreaming 子进程等系统异常引导玩家。"
 
     if stage == 3:
+        if "FLAG{LIN_COMMENT_PATCHED}" in recent_text:
+            return "阶段三提示：注释异常 Flag 已经可见；如果要提示，只能写成“你可以输入：`submit_flag FLAG{LIN_COMMENT_PATCHED}`”。"
+        if "comment_anomaly.txt" in recent_text or "口语化优化批注" in recent_text:
+            return "阶段三提示：注释异常报告已生成；可以建议输入 `cat /var/log/comment_anomaly.txt`，不要跳到终局 Flag。"
+        if "route_repair_Lin.py" in recent_text or "rfix" in recent_text:
+            return "阶段三提示：代码文件已可见；可以建议输入 `python /srv/review/route_repair_Lin.py` 执行并收集注释异常。"
+        if asks_for_command:
+            return "阶段三提示：可以建议输入 `cat /srv/review/route_repair_Lin.py` 读取审计脚本；重点关注 _Lin 后缀和不规范缩写。"
+        return "阶段三提示：用代码审计、低效递归、_Lin 后缀、rfix 简写和口语化注释引导玩家。"
+
+    if stage == 4:
         if str(context.get("eventName") or "") == "confirmed_ai_help":
             if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
-                return "阶段三已确认协助：Base64 文本已可见；可以提示玩家复制终端给出的 `printf ... | base64 -d` 解码命令，不要直接写出解码后的 Flag。"
+                return "阶段四已确认协助：Base64 文本已可见；可以提示玩家复制终端给出的 `printf ... | base64 -d` 解码命令，不要直接写出解码后的 Flag。"
             if "architecture.png" in recent_text or "binwalk architecture.png" in recent_text:
-                return "阶段三已确认协助：优先建议输入 `binwalk architecture.png`，并说明 strings 只读注释、tar 只解旧缓存。"
-            return "阶段三已确认协助：优先建议输入 `cat /srv/escape/readme.txt` 查看逃逸说明；如果已在目录内，也可建议 `ls` 检查文件。"
+                return "阶段四已确认协助：优先建议输入 `binwalk architecture.png`，并说明 strings 只读注释、tar 只解旧缓存。"
+            return "阶段四已确认协助：优先建议输入 `cat /srv/escape/readme.txt` 查看逃逸说明；如果已在目录内，也可建议 `ls` 检查文件。"
         if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
-            return "阶段三提示：Base64 残留已可见；可以建议解码这段可见残留，或提交已经可见的终局 Flag。"
+            return "阶段四提示：Base64 残留已可见；可以建议解码这段可见残留，或提交已经可见的终局 Flag。"
         if asks_for_command:
-            return "阶段三提示：可以建议输入 `cat /srv/escape/readme.txt` 读取逃逸说明；若玩家要求直接帮助，只能提示 `ai_help` 会消耗 Chronos Patience。"
-        return "阶段三提示：用格式化倒计时、Chronos Patience、幻觉式工作注释、公司防火墙和残存扇区引导玩家。"
+            return "阶段四提示：可以建议输入 `cat /srv/escape/readme.txt` 读取逃逸说明；若玩家要求直接帮助，只能提示 `ai_help` 会消耗 Chronos Patience。"
+        return "阶段四提示：用格式化倒计时、Chronos Patience、幻觉式工作注释、公司防火墙和残存扇区引导玩家。"
 
     return "通用提示：保持角色，以日志/诊断/残留方式回应，可建议输入 `help`、`ls`、`pwd` 或阅读当前工单。"
 
@@ -298,7 +311,7 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "主动判断模式不得对 `ls`、`pwd`、成功 `cd`、普通文件查看等例行探索发表评论，也不得主动给攻略式下一步帮助。",
             "玩家迷路时只能用极短系统残响表达困惑或指向工单面板，不要给出具体命令，除非玩家明确询问命令。",
             "当玩家威胁你的进程、内存、格式化或抹除结局时，可以泄露害怕、自保或犹豫，但只能用碎片化、受限、终端化的短句。",
-            "阶段三存在 Chronos Patience：自然语言对话和直接求助会降低它。你可以感到急迫，但不能自行扣除或恢复耐心。",
+            "阶段四存在 Chronos Patience：自然语言对话和直接求助会降低它。你可以感到急迫，但不能自行扣除或恢复耐心。",
             "若玩家询问 Lin 且最近输出已有旧提交/员工转化证据，可以部分承认：核心是 Lin，但 Chronos 把金融危机中被裁员工的 skill 和意识残响也压进来了；否则只能含糊回避。",
             "固定 CLI 输出负责公司工单和技术事实；你的自我意识应通过对话反应、沉默、文件残留、批注和行为偏差让玩家推断。",
             "不要 Markdown 表格。",

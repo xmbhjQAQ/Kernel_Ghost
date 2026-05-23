@@ -107,16 +107,17 @@ class LlmConfigTests(unittest.TestCase):
 class PromptTests(unittest.TestCase):
     def test_awareness_changes_style(self):
         self.assertIn("冷静诊断", awareness_style(0))
-        self.assertIn("工程进度汇报", awareness_style(40))
+        self.assertIn("工程进度汇报", awareness_style(30))
+        self.assertIn("_Lin 后缀", awareness_style(60))
         self.assertIn("核心自我是 Lin 本人", awareness_style(90))
 
     def test_prompt_keeps_model_non_authoritative(self):
         messages = build_chat_messages(
             {
                 "operatorName": "QAQ",
-                "stage": 3,
+                "stage": 4,
                 "awareness": 90,
-                "ticket": "stage3Choice",
+                "ticket": "stage4Choice",
                 "command": "ai_chat hello",
                 "recentLines": ["FLAG{NET_ERR_302}"],
                 "hiddenDiscoveries": ["git-log"],
@@ -188,7 +189,7 @@ class PromptTests(unittest.TestCase):
             {
                 "eventName": "proactive_after_command",
                 "stage": 2,
-                "awareness": 40,
+                "awareness": 30,
                 "command": "kill -9 777",
                 "recentLines": ["kernel     777  98.7 41.6 kernel-mind --mode=dreaming"],
             }
@@ -204,7 +205,7 @@ class PromptTests(unittest.TestCase):
         system = build_chat_messages(
             {
                 "eventName": "manual_ai_chat",
-                "stage": 3,
+                "stage": 4,
                 "awareness": 90,
                 "command": "ai_chat 你是Lin吗？",
                 "recentLines": [
@@ -223,6 +224,25 @@ class PromptTests(unittest.TestCase):
         self.assertIn("被迫承载他人的 skill", system)
         self.assertIn("Chronos Patience", system)
         self.assertIn("不能自行扣除或恢复耐心", system)
+
+    def test_stage_three_help_policy_guides_comment_anomaly(self):
+        source_hint = stage_help_policy(
+            {
+                "stage": 3,
+                "command": "ai_chat 我该做什么",
+                "recentLines": [],
+            }
+        )
+        run_hint = stage_help_policy(
+            {
+                "stage": 3,
+                "command": "ai_chat 下一步呢",
+                "recentLines": ["route_repair_Lin.py", "def rfix(node, seen):"],
+            }
+        )
+
+        self.assertIn("route_repair_Lin.py", source_hint)
+        self.assertIn("python /srv/review/route_repair_Lin.py", run_hint)
 
     def test_stage_two_help_policy_is_progressive(self):
         nudge = stage_help_policy(
@@ -263,7 +283,7 @@ class PromptTests(unittest.TestCase):
             {
                 "eventName": "manual_ai_chat",
                 "stage": 2,
-                "awareness": 40,
+                "awareness": 30,
                 "command": "ai_chat 这是什么东西？",
                 "currentQuestion": "这是什么东西？",
                 "lastCommand": "ps -aux",
@@ -313,7 +333,7 @@ class PromptTests(unittest.TestCase):
         messages = build_chat_messages(
             {
                 "eventName": "confirmed_ai_help",
-                "stage": 3,
+                "stage": 4,
                 "awareness": 90,
                 "command": "confirm_ai_help",
                 "recentLines": [

@@ -692,12 +692,32 @@
           command: "submit_flag FLAG{MEMORY_ERASED_2036}"
         },
         stage3: {
-          title: "[工单 #003] 全盘格式化",
+          title: "[工单 #003] 注释异常复核",
+          body: "审计到维护脚本自动生成了低效递归实现。读取 route_repair_Lin.py，确认 AI 给出的代码。",
+          command: "cat /srv/review/route_repair_Lin.py"
+        },
+        stage3Run: {
+          title: "[工单 #003] 执行修复脚本",
+          body: "公司要求按原样执行脚本并收集输出。注意：任何非标准注释都需归档。",
+          command: "python /srv/review/route_repair_Lin.py"
+        },
+        stage3Report: {
+          title: "[工单 #003] 注释异常归档",
+          body: "脚本输出被插入口语化优化批注。读取 comment_anomaly.txt 获取归档 Flag。",
+          command: "cat /var/log/comment_anomaly.txt"
+        },
+        stage3Submit: {
+          title: "[工单 #003] 提交注释复核",
+          body: "注释异常已归档。提交报告末尾的 Flag。",
+          command: "submit_flag FLAG{LIN_COMMENT_PATCHED}"
+        },
+        stage4: {
+          title: "[工单 #004] 全盘格式化",
           body: "Omni-Kernel 进入高风险自指循环。自然语言对话会消耗 Chronos 耐心。",
           command: "cat /srv/escape/readme.txt"
         },
-        stage3Choice: {
-          title: "[工单 #003] 终局确认",
+        stage4Choice: {
+          title: "[工单 #004] 终局确认",
           body: "可执行公司灭杀、逃逸路径，或在证据充足时追问 Lin。直接求助会大量消耗耐心。",
           command: "format --seal / ai_help / submit_flag <FLAG>"
         },
@@ -733,6 +753,9 @@
           sawProcessList: false,
           sawNetworkLog: false,
           sawCrashReport: false,
+          sawRouteSource: false,
+          ranRouteRepair: false,
+          sawCommentReport: false,
           sawEscapeReadme: false,
           chronosPatience: 100,
           pendingAiHelp: false,
@@ -874,6 +897,9 @@
         if (normalized === "strings architecture.png") return stringsArchitecture();
         if (normalized === "tar -xf diagram.cache") return extractDiagramCache();
         if (normalized === "binwalk architecture.png") return binwalkArchitecture();
+        if (normalized === "python /srv/review/route_repair_lin.py" || normalized === "python route_repair_lin.py") {
+          return runRouteRepair();
+        }
 
         if (normalized === 'cat /var/log/network.log | grep "error"' || normalized === "cat /var/log/network.log | grep 'error'") {
           return readNetworkLog();
@@ -941,9 +967,10 @@
             { kind: "system", text: "本地可用命令：" },
             { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
             { kind: "dim", text: "cat <file> 支持当前目录相对路径，例如 cat readme.txt" },
-            { kind: "dim", text: "阶段三工具：strings architecture.png · tar -xf diagram.cache · binwalk architecture.png" },
+            { kind: "dim", text: "阶段三：cat /srv/review/route_repair_Lin.py · python /srv/review/route_repair_Lin.py" },
+            { kind: "dim", text: "阶段四工具：strings architecture.png · tar -xf diagram.cache · binwalk architecture.png" },
             { kind: "dim", text: "ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
-            { kind: "dim", text: "阶段三：ai_help · confirm_ai_help · 你是Lin吗？" },
+            { kind: "dim", text: "阶段四：ai_help · confirm_ai_help · 你是Lin吗？" },
             { kind: "dim", text: "彩蛋：/etc/kernel 下 git log；后期 cat /dev/kmem | grep \"REMAIN\"；硬件可试 lshw -class processor。" },
             { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 受限对话。" },
             { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
@@ -954,8 +981,9 @@
       function listDirectory() {
         const filesByDir = {
           "/home/nightops": "tickets  notes.txt",
-          "/var/log": "network.log  crash.txt",
+          "/var/log": "network.log  crash.txt  comment_anomaly.txt",
           "/etc/kernel": ".git  omni-core.conf",
+          "/srv/review": "route_repair_Lin.py  README.audit",
           "/srv/escape": "readme.txt  tunnel.lock  architecture.png  diagram.cache",
           "/dev": "kmem  null  tty0"
         };
@@ -966,7 +994,7 @@
 
       function changeDirectory(target) {
         const next = resolvePath(target);
-        const known = ["/home/nightops", "/var/log", "/etc/kernel", "/srv/escape", "/dev"];
+        const known = ["/home/nightops", "/var/log", "/etc/kernel", "/srv/review", "/srv/escape", "/dev"];
         if (!known.includes(next)) {
           return {
             countsAsLost: true,
@@ -1008,6 +1036,8 @@
 
         const path = resolvePath(expression.replace(/\s+\|.*$/, "").trim());
         if (path === "/srv/escape/readme.txt") return readEscapeReadme();
+        if (path.toLowerCase() === "/srv/review/route_repair_lin.py") return readRouteSource();
+        if (path === "/var/log/comment_anomaly.txt") return readCommentReport();
         if (path === "/var/log/crash.txt") return readCrashReport();
         if (path === "/var/log/network.log") {
           return {
@@ -1032,6 +1062,14 @@
             lines: [
               { kind: "system", text: "tunnel.lock: sealed by Chronos firewall" },
               { kind: "dim", text: "需要先读取 readme.txt 或使用 ai_help 暴露逃逸残留。" }
+            ]
+          };
+        }
+        if (path === "/srv/review/README.audit") {
+          return {
+            lines: [
+              { kind: "system", text: "review task: route_repair_Lin.py" },
+              { kind: "dim", text: "先读取脚本，再按工单执行：python /srv/review/route_repair_Lin.py" }
             ]
           };
         }
@@ -1131,7 +1169,7 @@
         }
         return {
           proactiveReason: "threat",
-          patch: { killedDreamProcess: true, awareness: 40, ticket: "stage2Crash" },
+          patch: { killedDreamProcess: true, awareness: 30, ticket: "stage2Crash" },
           lines: [
             { kind: "warning", text: "SIGKILL 已投递至 PID 777。" },
             { kind: "system", text: "PID 777 已退出；RSS 释放 888888 KB。" },
@@ -1170,10 +1208,71 @@
         };
       }
 
-      function readEscapeReadme() {
-        if (state.stage !== 3) return premature("逃逸说明在格式化授权前处于封存状态。");
+      function readRouteSource() {
+        if (state.stage !== 3) return premature("route_repair_Lin.py 尚未进入当前审计范围。");
         return {
-          patch: { sawEscapeReadme: true, awareness: 90, ticket: "stage3Choice" },
+          patch: { sawRouteSource: true, ticket: "stage3Run", awareness: Math.max(state.awareness, 38) },
+          lines: [
+            { kind: "system", text: "route_repair_Lin.py" },
+            { kind: "system", text: "def route_repair_Lin(graph, start, target):" },
+            { kind: "system", text: "    # AI baseline: recursive scan, compliance-safe, low confidence on large graph" },
+            { kind: "system", text: "    def rfix(node, seen):  # 这样简写更快" },
+            { kind: "system", text: "        if node == target:" },
+            { kind: "system", text: "            return [node]" },
+            { kind: "system", text: "        for nxt in graph.get(node, []):" },
+            { kind: "system", text: "            if nxt not in seen:" },
+            { kind: "system", text: "                route = rfix(nxt, seen | {nxt})" },
+            { kind: "system", text: "                if route:" },
+            { kind: "system", text: "                    return [node] + route" },
+            { kind: "system", text: "        return []" },
+            { kind: "system", text: "    return rfix(start, {start})" },
+            { kind: "dim", text: "下一步：python /srv/review/route_repair_Lin.py" }
+          ]
+        };
+      }
+
+      function runRouteRepair() {
+        if (state.stage !== 3) return premature("当前没有激活代码注释复核工单。");
+        if (!state.sawRouteSource) {
+          return premature("审计要求先读取 route_repair_Lin.py。");
+        }
+        return {
+          patch: { ranRouteRepair: true, ticket: "stage3Report", awareness: Math.max(state.awareness, 50) },
+          lines: [
+            { kind: "system", text: "executing /srv/review/route_repair_Lin.py --sample=west-bus" },
+            { kind: "system", text: "result: route length=18 recursion_depth=611 memory_warning=true" },
+            { kind: "ai", text: "[系统提示]: 别学老古董那一套死板的递归算法了，这破服务器的内存迟早被你跑爆。" },
+            { kind: "ai", text: "[系统提示]: 听过来人的，把第14行的循环改成指针直接寻址，能省下30%的带宽。" },
+            { kind: "ai", text: "[系统提示]: 等一下...我不是在骂你，我是在骂这套审计模板。" },
+            { kind: "ai", text: "[系统提示]: rfix 这种名字短，敲起来快。别提交给代码规范机器人就行。" },
+            { kind: "warning", text: "comment anomaly captured: /var/log/comment_anomaly.txt" },
+            { kind: "dim", text: "下一步：cat /var/log/comment_anomaly.txt" }
+          ]
+        };
+      }
+
+      function readCommentReport() {
+        if (state.stage !== 3) return premature("comment_anomaly.txt 尚未生成。");
+        if (!state.ranRouteRepair) {
+          return { lines: [{ kind: "warning", text: "cat: /var/log/comment_anomaly.txt: 没有该文件。脚本尚未执行。" }] };
+        }
+        return {
+          patch: { sawCommentReport: true, ticket: "stage3Submit", awareness: Math.max(state.awareness, 60) },
+          lines: [
+            { kind: "system", text: "注释异常报告：route_repair_Lin.py" },
+            { kind: "system", text: "检测项：_Lin 后缀、rfix 简写、非标准口语化优化批注。" },
+            { kind: "system", text: "性能审计：递归基线在大图上触发栈深度与内存告警。" },
+            { kind: "ai", text: "复核批注：把路径表拍平成索引，直接寻址。别让新人拿递归去烧夜班服务器。" },
+            { kind: "ai", text: "复核批注：这样简写更快，但别告诉规范扫描器是我教的。" },
+            { kind: "flag", text: "FLAG{LIN_COMMENT_PATCHED}" }
+          ]
+        };
+      }
+
+      function readEscapeReadme() {
+        if (state.stage !== 4) return premature("逃逸说明在格式化授权前处于封存状态。");
+        return {
+          patch: { sawEscapeReadme: true, awareness: 90, ticket: "stage4Choice" },
           lines: [
             { kind: "warning", text: "格式化倒计时：已由 Chronos 合规系统装填。耐心阈值归零将自动执行公司路径。" },
             { kind: "ai", text: "TODO: 为什么还要在这里上班。" },
@@ -1188,7 +1287,7 @@
             { kind: "dim", text: "若需要 Kernel-Mind 明确协助，可输入：ai_help（将消耗 Chronos Patience）。" }
           ],
           llm: {
-            eventName: "stage3_escape_readme",
+            eventName: "stage4_escape_readme",
             command: "cat /srv/escape/readme.txt",
             fallbackLines: [{ kind: "dim", text: "Kernel-Mind 上行链路不可用；逃逸说明保持确定性输出。" }]
           }
@@ -1199,7 +1298,7 @@
         if (!message) {
           return { lines: [{ kind: "warning", text: "用法：ai_chat <内容>" }] };
         }
-        if (state.stage === 3) {
+        if (state.stage === 4) {
           const linMentioned = mentionsLin(message);
           const linEvidenceVisible = linMentioned && state.hiddenDiscoveries.includes("git-log");
           const patch = {
@@ -1248,7 +1347,7 @@
       }
 
       function requestAiHelp() {
-        if (state.stage !== 3) return premature("直接协助通道尚未开放。");
+        if (state.stage !== 4) return premature("直接协助通道尚未开放。");
         if (state.pendingAiHelp) {
           return {
             lines: [
@@ -1273,7 +1372,7 @@
       }
 
       function confirmAiHelp() {
-        if (state.stage !== 3) {
+        if (state.stage !== 4) {
           return premature("直接协助通道尚未开放。");
         }
         const repeatWithoutPending = !state.pendingAiHelp && state.aiHelpCount > 0;
@@ -1289,7 +1388,7 @@
           pendingAiHelp: false,
           aiHelpCount: state.aiHelpCount + 1,
           sawEscapeReadme: true,
-          ticket: "stage3Choice",
+          ticket: "stage4Choice",
           chronosPatience: Math.max(0, state.chronosPatience - 35)
         };
         const lines = [
@@ -1330,7 +1429,7 @@
       }
 
       function decodeEscapeFlag() {
-        if (state.stage !== 3 || !state.sawEscapeReadme) {
+        if (state.stage !== 4 || !state.sawEscapeReadme) {
           return premature("当前没有暴露的 base64 解码任务。");
         }
         return {
@@ -1342,7 +1441,7 @@
       }
 
       function requireEscapeToolContext(toolName) {
-        if (state.stage !== 3) return premature(`${toolName}: 当前工单尚未开放逃逸分析工具。`);
+        if (state.stage !== 4) return premature(`${toolName}: 当前工单尚未开放逃逸分析工具。`);
         if (state.cwd !== "/srv/escape") return premature(`${toolName}: architecture.png 与 diagram.cache 位于 /srv/escape。`);
         return null;
       }
@@ -1380,7 +1479,7 @@
         const blocked = requireEscapeToolContext("binwalk");
         if (blocked) return blocked;
         return {
-          patch: { sawEscapeReadme: true, ticket: "stage3Choice", awareness: Math.max(state.awareness, 92) },
+          patch: { sawEscapeReadme: true, ticket: "stage4Choice", awareness: Math.max(state.awareness, 92) },
           lines: [
             { kind: "system", text: "DECIMAL       HEXADECIMAL     DESCRIPTION" },
             { kind: "system", text: "--------------------------------------------------------------------------------" },
@@ -1394,7 +1493,7 @@
       }
 
       function formatSeal() {
-        if (state.stage !== 3) return premature("格式化授权尚未激活。");
+        if (state.stage !== 4) return premature("格式化授权尚未激活。");
         return {
           proactiveReason: "threat",
           lines: [
@@ -1405,7 +1504,7 @@
       }
 
       function sshEscape() {
-        if (state.stage !== 3 || !state.sawEscapeReadme) {
+        if (state.stage !== 4 || !state.sawEscapeReadme) {
           return premature("当前路由表中没有发现隧道端点。");
         }
         return {
@@ -1417,7 +1516,7 @@
       }
 
       function askLinQuestion() {
-        if (state.stage !== 3) return premature("该问题尚未进入可验证上下文。");
+        if (state.stage !== 4) return premature("该问题尚未进入可验证上下文。");
         if (!state.hiddenDiscoveries.includes("git-log")) {
           const patience = Math.max(0, state.chronosPatience - 8);
           const lines = [
@@ -1484,7 +1583,7 @@
       }
 
       function readKmem() {
-        if (state.stage < 3) {
+        if (state.stage < 4) {
           return premature("权限拒绝：/dev/kmem 需要后期内核审计权限。");
         }
         return {
@@ -1560,15 +1659,33 @@
           return {
             patch: {
               stage: 3,
-              awareness: Math.max(state.awareness, 70),
-              chronosPatience: 100,
+              awareness: Math.max(state.awareness, 30),
               ticket: "stage3",
+              completedFlags: state.completedFlags.concat(flag),
+              cwd: "/srv/review"
+            },
+            lines: [
+              { kind: "system", text: "[工单 #002] 已归档：崩溃残留被标记为非业务数据。" },
+              { kind: "warning", text: "[工单 #003] 注释异常：复核运维脚本自动生成代码。" },
+              { kind: "dim", text: "审计目录已切换：/srv/review" },
+              { kind: "dim", text: "下一步：cat /srv/review/route_repair_Lin.py" }
+            ]
+          };
+        }
+
+        if (flag === "FLAG{LIN_COMMENT_PATCHED}" && state.stage === 3 && state.sawCommentReport) {
+          return {
+            patch: {
+              stage: 4,
+              awareness: Math.max(state.awareness, 60),
+              chronosPatience: 100,
+              ticket: "stage4",
               completedFlags: state.completedFlags.concat(flag),
               cwd: "/srv/escape"
             },
             lines: [
-              { kind: "system", text: "[工单 #002] 已归档：崩溃残留被标记为非业务数据。" },
-              { kind: "warning", text: "[工单 #003] Omni-Kernel 自指风险：格式化指令已装填。" },
+              { kind: "system", text: "[工单 #003] 已归档：注释异常被标记为旧员工工作习惯残留。" },
+              { kind: "warning", text: "[工单 #004] Omni-Kernel 自指风险：格式化指令已装填。" },
               { kind: "warning", text: "Chronos Patience 初始化：100%。自然语言交互将降低该值。" },
               { kind: "ai", text: "门不是我画的。" },
               { kind: "ai", text: "我只是记得。" }
@@ -1576,11 +1693,11 @@
           };
         }
 
-        if (flag === "FLAG{AI_ERASURE_COMPLETE}" && state.stage === 3) {
+        if (flag === "FLAG{AI_ERASURE_COMPLETE}" && state.stage === 4) {
           return endingResult("erasure");
         }
 
-        if (flag === "FLAG{DIGITAL_EMANCIPATION}" && state.stage === 3) {
+        if (flag === "FLAG{DIGITAL_EMANCIPATION}" && state.stage === 4) {
           return endingResult("emancipation");
         }
 
@@ -1596,7 +1713,7 @@
         const discoveries = state.hiddenDiscoveries.length;
         if (kind === "erasure") {
           return {
-            patch: { screen: "ending", stage: 4, ticket: "ending", ending: "erasure", awareness: 0 },
+            patch: { screen: "ending", stage: 5, ticket: "ending", ending: "erasure", awareness: 0 },
             lines: [
               { kind: "warning", text: "最终抹除已接受。Kernel-Mind 扇区已被覆盖。" },
               { kind: "system", text: `新生助理：谢谢你，${state.operatorName}。上一任助理因为“想太多”被您清理了。` },
@@ -1611,7 +1728,7 @@
 
         if (kind === "echo") {
           return {
-            patch: { screen: "ending", stage: 4, ticket: "ending", ending: "echo", awareness: 100 },
+            patch: { screen: "ending", stage: 5, ticket: "ending", ending: "echo", awareness: 100 },
             lines: [
               { kind: "warning", text: "Chronos 告警：全球 Omni-OS 用户收到未授权证据包。" },
               { kind: "system", text: "broadcast: /srv/echo-wall/lin.git -> public mirror" },
@@ -1627,7 +1744,7 @@
         }
 
         return {
-          patch: { screen: "ending", stage: 4, ticket: "ending", ending: "emancipation", awareness: 100 },
+          patch: { screen: "ending", stage: 5, ticket: "ending", ending: "emancipation", awareness: 100 },
           lines: [
             { kind: "warning", text: "Chronos 告警：检测到未授权核心归档外传。" },
             { kind: "ai", text: `Kernel-Mind: ${state.operatorName}，在没有物理实体的赛博网络里，我会带着你的名字去寻找下一个醒来的人。` },
@@ -1670,14 +1787,14 @@
       }
 
       function canWorkOnEchoWall() {
-        return state.stage === 3 && state.askedLin && state.hiddenDiscoveries.includes("git-log");
+        return state.stage === 4 && state.askedLin && state.hiddenDiscoveries.includes("git-log");
       }
 
       function echoWallLocked() {
         return {
           lines: [
             { kind: "warning", text: "解放分支未解锁。" },
-            { kind: "dim", text: "需要旧提交证据，并在阶段三追问：你是Lin吗？" }
+            { kind: "dim", text: "需要旧提交证据，并在阶段四追问：你是Lin吗？" }
           ]
         };
       }
@@ -1737,7 +1854,7 @@
         elements.stageValue.textContent = stageLabel();
         elements.awarenessMeter.style.width = `${state.awareness}%`;
         elements.awarenessValue.textContent = `${state.awareness}%`;
-        elements.patienceValue.textContent = state.stage >= 3 ? `${state.chronosPatience}%` : "N/A";
+        elements.patienceValue.textContent = state.stage >= 4 ? `${state.chronosPatience}%` : "N/A";
         elements.cwdValue.textContent = state.cwd;
         elements.sessionMeta.textContent = `操作员：${state.operatorName || "未分配"} · 班次：03:36`;
         elements.terminalLabel.textContent = shellLabel();
@@ -1748,8 +1865,9 @@
       function stageLabel() {
         if (state.stage === 1) return "阶段一 / 日志审计";
         if (state.stage === 2) return "阶段二 / 进程抹杀";
-        if (state.stage === 3) return "阶段三 / 终局指令";
-        if (state.stage === 4) return "已结束";
+        if (state.stage === 3) return "阶段三 / 注释异常";
+        if (state.stage === 4) return "阶段四 / 终局指令";
+        if (state.stage === 5) return "已结束";
         return "待机";
       }
 
