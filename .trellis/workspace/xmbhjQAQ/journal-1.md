@@ -665,3 +665,38 @@ Designed a layered puzzle, relic, and easter egg expansion that keeps simple end
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: Implement puzzle and easter egg routes
+
+**Date**: 2026-05-24
+**Task**: Implement puzzle and easter egg routes
+**Branch**: `main`
+
+### Summary
+
+Planned and implemented traceable relic, easter egg, evidence verification, echo-wall, and wildfire archive puzzle routes; added tests and frontend code-spec contract.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b5de25c` | (see git log) |
+| `2c82e74` | (see git log) |
+| `dd22906` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
