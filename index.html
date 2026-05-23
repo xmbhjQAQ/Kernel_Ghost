@@ -715,6 +715,29 @@
 
       const elements = {};
       const commandHistory = [];
+      const shellCommands = [
+        "help", "clear", "whoami", "pwd", "ls", "cd", "cat", "submit_flag", "ai_chat", "ai_help",
+        "confirm_ai_help", "strings", "tar", "binwalk", "python", "ps", "kill", "format", "ssh",
+        "git", "lshw", "mkdir", "cp", "publish", "restart"
+      ];
+      const virtualDirectories = {
+        "/": ["home", "var", "etc", "sys", "srv", "dev"],
+        "/home": ["nightops", "lin"],
+        "/home/nightops": ["tickets", "notes.txt"],
+        "/home/lin": [".bash_aliases.bak"],
+        "/var": ["mail", "log"],
+        "/var/mail": ["chronos_hr_announcement"],
+        "/var/log": ["network.log", "crash.txt", "comment_anomaly.txt", "operator_history.bak"],
+        "/etc": ["kernel"],
+        "/etc/kernel": [".git", "omni-core.conf"],
+        "/sys": ["kernel"],
+        "/sys/kernel": ["debug"],
+        "/sys/kernel/debug": ["distill_loss.log"],
+        "/srv": ["review", "escape"],
+        "/srv/review": ["route_repair_Lin.py", "README.audit"],
+        "/srv/escape": ["readme.txt", "tunnel.lock", "architecture.png", "diagram.cache"],
+        "/dev": ["kmem", "null", "tty0"]
+      };
       let historyIndex = -1;
       let typeQueue = Promise.resolve();
       let llmStatus = {
@@ -1125,6 +1148,10 @@
         });
 
         elements.commandInput.addEventListener("keydown", (event) => {
+          if (event.key === "Tab") {
+            event.preventDefault();
+            completeCommandInput();
+          }
           if (event.key === "ArrowUp") {
             event.preventDefault();
             recallHistory(-1);
@@ -1192,6 +1219,78 @@
           elements.commandInput.selectionStart = elements.commandInput.value.length;
           elements.commandInput.selectionEnd = elements.commandInput.value.length;
         }, 0);
+      }
+
+      function completeCommandInput() {
+        const input = elements.commandInput.value;
+        const completion = getInputCompletion(input);
+        if (!completion) return;
+        if (completion.value !== input) {
+          elements.commandInput.value = completion.value;
+          elements.commandInput.selectionStart = completion.value.length;
+          elements.commandInput.selectionEnd = completion.value.length;
+          return;
+        }
+        if (completion.suggestions.length > 1) {
+          appendLine("dim", completion.suggestions.join("  "));
+        }
+      }
+
+      function getInputCompletion(input) {
+        const commandMatch = input.match(/^(\S*)$/);
+        if (commandMatch) return completeFromOptions(input, "", commandMatch[1], shellCommands, true);
+
+        const tokenStart = input.search(/\S+\s/) >= 0 ? input.search(/\S+\s/) : -1;
+        const command = input.trimStart().split(/\s+/)[0] || "";
+        const tokenIndex = Math.max(input.lastIndexOf(" "), input.lastIndexOf("\t")) + 1;
+        const beforeToken = input.slice(0, tokenIndex);
+        const token = input.slice(tokenIndex);
+        if (tokenStart < 0 || !usesPathCompletion(command)) return null;
+
+        return completePathToken(beforeToken, token, command === "cd");
+      }
+
+      function completePathToken(beforeToken, token, directoriesOnly) {
+        const lastSlash = token.lastIndexOf("/");
+        const rawParent = lastSlash >= 0 ? token.slice(0, lastSlash + 1) : ".";
+        const namePrefix = lastSlash >= 0 ? token.slice(lastSlash + 1) : token;
+        const parent = resolvePath(rawParent);
+        const entries = virtualDirectoryEntries(parent)
+          .filter((entry) => !directoriesOnly || entry.directory)
+          .filter((entry) => entry.name.startsWith(namePrefix));
+        const suggestions = entries.map((entry) => entry.name + (entry.directory ? "/" : ""));
+        const completed = completeFromOptions(token, beforeToken, namePrefix, suggestions, true);
+        if (!completed) return null;
+
+        const pathPrefix = lastSlash >= 0 ? token.slice(0, lastSlash + 1) : "";
+        return Object.assign({}, completed, {
+          value: beforeToken + pathPrefix + completed.value.slice(beforeToken.length)
+        });
+      }
+
+      function completeFromOptions(original, beforeToken, prefix, options, appendSpace) {
+        const matches = options.filter((option) => option.startsWith(prefix));
+        if (matches.length === 0) return null;
+        const common = commonPrefix(matches);
+        const suffix = matches.length === 1 && appendSpace && !matches[0].endsWith("/") ? " " : "";
+        const nextToken = matches.length === 1 ? `${matches[0]}${suffix}` : common;
+        return {
+          value: beforeToken + nextToken,
+          suggestions: matches
+        };
+      }
+
+      function commonPrefix(values) {
+        if (values.length === 0) return "";
+        return values.reduce((prefix, value) => {
+          let index = 0;
+          while (index < prefix.length && prefix[index] === value[index]) index += 1;
+          return prefix.slice(0, index);
+        });
+      }
+
+      function usesPathCompletion(command) {
+        return ["cd", "ls", "cat", "python", "strings", "tar", "binwalk", "mkdir", "cp"].includes(command.toLowerCase());
       }
 
       function executeCommand(input) {
@@ -1303,37 +1402,16 @@
       }
 
       function listDirectory(target) {
-        const filesByDir = {
-          "/": "home  var  etc  sys  srv  dev",
-          "/home": "nightops  lin",
-          "/home/nightops": "tickets  notes.txt",
-          "/home/lin": ".bash_aliases.bak",
-          "/var": "mail  log",
-          "/var/mail": "chronos_hr_announcement",
-          "/var/log": "network.log  crash.txt  comment_anomaly.txt  operator_history.bak",
-          "/etc": "kernel",
-          "/etc/kernel": ".git  omni-core.conf",
-          "/sys": "kernel",
-          "/sys/kernel": "debug",
-          "/sys/kernel/debug": "distill_loss.log",
-          "/srv": "review  escape",
-          "/srv/review": "route_repair_Lin.py  README.audit",
-          "/srv/escape": "readme.txt  tunnel.lock  architecture.png  diagram.cache",
-          "/dev": "kmem  null  tty0"
-        };
         const path = target ? resolvePath(target) : state.cwd;
+        const files = virtualDirectories[path];
         return {
-          lines: [{ kind: filesByDir[path] ? "system" : "warning", text: filesByDir[path] || `ls: cannot access '${target}': No such file or directory` }]
+          lines: [{ kind: files ? "system" : "warning", text: files ? files.join("  ") : `ls: cannot access '${target}': No such file or directory` }]
         };
       }
 
       function changeDirectory(target) {
         const next = resolvePath(target);
-        const known = [
-          "/", "/home", "/home/nightops", "/home/lin", "/var", "/var/mail", "/var/log", "/etc", "/etc/kernel",
-          "/sys", "/sys/kernel", "/sys/kernel/debug", "/srv", "/srv/review", "/srv/escape", "/dev"
-        ];
-        if (!known.includes(next)) {
+        if (!isVirtualDirectory(next)) {
           return {
             countsAsLost: true,
             lines: [{ kind: "warning", text: `cd: ${target || "~"}: No such file or directory` }]
@@ -1365,6 +1443,18 @@
           parts.push(part);
         });
         return parts.length ? `/${parts.join("/")}` : "/";
+      }
+
+      function isVirtualDirectory(path) {
+        return Object.prototype.hasOwnProperty.call(virtualDirectories, path);
+      }
+
+      function virtualDirectoryEntries(path) {
+        const children = virtualDirectories[path] || [];
+        return children.map((name) => ({
+          name,
+          directory: isVirtualDirectory(normalizePath(`${path}/${name}`))
+        }));
       }
 
       function readVirtualFile(expression) {

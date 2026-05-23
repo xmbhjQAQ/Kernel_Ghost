@@ -39,8 +39,9 @@ def test_virtual_shell_keeps_linux_root_directory_semantics():
     list_directory = js_function_body("listDirectory")
     resolve_path = js_function_body("resolvePath")
 
-    assert '"/"' in change_directory
-    assert '"/": "home  var  etc  sys  srv  dev"' in list_directory
+    assert '"/": ["home", "var", "etc", "sys", "srv", "dev"]' in HTML
+    assert "isVirtualDirectory(next)" in change_directory
+    assert "virtualDirectories[path]" in list_directory
     assert 'rawTarget.startsWith("/")' in resolve_path
     assert "normalizePath(rawTarget)" in resolve_path
 
@@ -64,3 +65,29 @@ def test_ending_modal_can_close_without_restart():
     assert 'elements.endingCloseButton.addEventListener("click", closeEnding)' in bind_events
     assert 'hideScreen("endingScreen")' in close_ending
     assert "restartGame" not in close_ending
+
+
+def test_terminal_tab_completion_is_bound_to_command_input():
+    bind_events = js_function_body("bindEvents")
+    complete_command_input = js_function_body("completeCommandInput")
+
+    assert 'event.key === "Tab"' in bind_events
+    assert "event.preventDefault()" in bind_events
+    assert "completeCommandInput()" in bind_events
+    assert "getInputCompletion(input)" in complete_command_input
+
+
+def test_terminal_tab_completion_uses_virtual_filesystem():
+    assert "const shellCommands = [" in HTML
+    assert "const virtualDirectories = {" in HTML
+    get_input_completion = js_function_body("getInputCompletion")
+    complete_path_token = js_function_body("completePathToken")
+    list_directory = js_function_body("listDirectory")
+    change_directory = js_function_body("changeDirectory")
+
+    assert "completeFromOptions(input" in get_input_completion
+    assert "usesPathCompletion(command)" in get_input_completion
+    assert "virtualDirectoryEntries(parent)" in complete_path_token
+    assert "directoriesOnly" in complete_path_token
+    assert "virtualDirectories[path]" in list_directory
+    assert "isVirtualDirectory(next)" in change_directory
