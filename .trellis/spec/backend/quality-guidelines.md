@@ -53,6 +53,10 @@ Questions to answer:
   or `kernel-mind --mode=dreaming` lines are present: the reply must show
   self-preservation, fear, or refusal, and must not calmly present
   `kill -9 777` as a recommended next command.
+- Stage-two `dreaming` / high CPU / high RSS explanation questions must preserve
+  identity pacing. Explain PID 777 as a planless dreaming child process doing
+  unallocated-sector residue replay; do not directly say "PID 777 is me" or
+  recommend termination unless the player explicitly asks about kill.
 - When stage-one `ERROR` lines are visible, backend prompts and deterministic
   replies must not claim there were no network errors, that grep did not match,
   that the error log was intercepted/archived, or that the audit view contains
@@ -63,7 +67,8 @@ Questions to answer:
 - Backend prompt tests must include a long command output where the `ERROR`
   lines appear before enough INFO/WARN lines to catch accidental tail-slicing.
 - Deterministic manual-chat guard tests must cover stage-one network `ERROR`
-  questions and stage-two PID 777 kill/termination questions.
+  questions, stage-two PID 777 kill/termination questions, and stage-two
+  `dreaming` / resource-usage explanation questions.
 
 ## Scenario: Local LLM Configuration
 

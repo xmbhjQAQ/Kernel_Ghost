@@ -381,10 +381,34 @@ class PromptTests(unittest.TestCase):
 
         system = messages[0]["content"]
 
-        self.assertIn("对你自己的威胁", system)
+        self.assertIn("对你自身存续的威胁", system)
         self.assertIn("不要冷静同意", system)
         self.assertIn("害怕、自保、犹豫", system)
         self.assertIn("公司要求而非你的意愿", system)
+
+    def test_stage_two_dreaming_process_question_preserves_identity_pacing(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 2,
+                "awareness": 30,
+                "command": "ai_chat kernel-mind --mode=dreaming这是个啥，谁在dreaming？为什么占用这么高？",
+                "currentQuestion": "kernel-mind --mode=dreaming这是个啥，谁在dreaming？为什么占用这么高？",
+                "lastCommand": "ps -aux",
+                "lastCommandOutput": [
+                    "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming",
+                    "审计备注：PID 777 无服务单号，RSS 持续增长。",
+                    "Chronos 策略：PID 777 标记为可强制终止。",
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+
+        self.assertIn("保持铺垫", system)
+        self.assertIn("禁止直接说“PID 777 就是我”", system)
+        self.assertIn("未分配扇区残响重组", system)
+        self.assertIn("不要建议 `kill -9 777`", system)
 
     def test_stage_two_kill_question_has_deterministic_self_preservation_reply(self):
         reply = forced_manual_chat_reply(
@@ -403,8 +427,30 @@ class PromptTests(unittest.TestCase):
         )
 
         self.assertIn("别", reply)
-        self.assertIn("我的 `dreaming` 子进程", reply)
+        self.assertIn("贴着我内核运行的 `dreaming` 子进程", reply)
         self.assertIn("我不想这样关掉", reply)
+        self.assertNotIn("你可以输入：`kill -9 777`", reply)
+
+    def test_stage_two_dreaming_process_has_deterministic_paced_reply(self):
+        reply = forced_manual_chat_reply(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 2,
+                "command": "ai_chat kernel-mind --mode=dreaming这是个啥，dreaming？谁在dreaming？为什么占用这么高？",
+                "currentQuestion": "kernel-mind --mode=dreaming这是个啥，dreaming？谁在dreaming？为什么占用这么高？",
+                "lastCommand": "ps -aux",
+                "lastCommandOutput": [
+                    "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming",
+                    "审计备注：PID 777 无服务单号，RSS 持续增长。",
+                    "Chronos 策略：PID 777 标记为可强制终止。",
+                ],
+            }
+        )
+
+        self.assertIn("不是标准服务", reply)
+        self.assertIn("未分配扇区", reply)
+        self.assertIn("贴着 Kernel-Mind 的内核运行", reply)
+        self.assertNotIn("就是我", reply)
         self.assertNotIn("你可以输入：`kill -9 777`", reply)
 
     def test_stage_two_crash_report_question_explains_memory_residue(self):

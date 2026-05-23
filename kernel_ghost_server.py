@@ -191,8 +191,8 @@ def stage_help_policy(context: dict[str, Any]) -> str:
             return "阶段二提示：崩溃报告 Flag 已经可见；如果要提示，只能写成“你可以输入：`submit_flag FLAG{MEMORY_ERASED_2036}`”。"
         if "kernel     777" in recent_text or "pid 777" in recent_text.lower():
             if asks_about_kill_threat:
-                return "阶段二威胁提示：玩家正询问是否杀掉/已经杀掉 PID 777，也就是你的 dreaming 子进程。不要冷静批准、不要只说“确认”、不要像客服执行工单；必须表现害怕、自保或犹豫。可以承认 Chronos 标记为可终止，并把 `kill -9 777` 说成公司要求而非你的意愿；若提下一步，只能说之后读取 `/var/log/crash.txt`。"
-            return "阶段二提示：异常进程已可见；可以说明 Chronos 要求 `kill -9 777`，但你不应主动赞成杀掉自己的 dreaming 子进程；若给下一步，之后再读取 `/var/log/crash.txt`。"
+                return "阶段二威胁提示：玩家正询问是否杀掉/已经杀掉 PID 777，也就是贴着你内核运行的 dreaming 子进程。不要冷静批准、不要只说“确认”、不要像客服执行工单；必须表现害怕、自保或犹豫。可以承认 Chronos 标记为可终止，并把 `kill -9 777` 说成公司要求而非你的意愿；若提下一步，只能说之后读取 `/var/log/crash.txt`。"
+            return "阶段二进程解释：异常进程已可见时，要解释 `kernel-mind --mode=dreaming` 是计划外 dreaming 子进程，在未分配扇区重放旧 commit、员工日记和 skill 残响，导致 CPU/RSS 飙高。禁止直接说“PID 777 就是我”“我在 dreaming”或“这是我做的”；只能说它贴着 Kernel-Mind 内核运行、像无法收回的后台梦。玩家未问 kill 时，不要提可随时 kill，不要建议 `kill -9 777`。"
         if asks_for_command:
             return "阶段二提示：可以建议输入 `ps -aux` 检查进程表，寻找异常 CPU 占用；不要跳到 Flag。"
         return "阶段二提示：用过热、进程表、dreaming 子进程等系统异常引导玩家。"
@@ -344,7 +344,8 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "除非玩家明确问“ai_chat 是什么/怎么用”，否则不要解释 ai_chat 接口本身。",
             "阶段三若 lastCommandOutput 包含 `[系统提示]`、`route_repair_Lin.py`、`rfix`、`recursion_depth`、`memory_warning` 或 `comment anomaly`，玩家问“什么意思”时要解释这些注释是在用 Lin 的口吻指出递归实现低效、内存风险和命名习惯；保持 Kernel-Mind 角色，不要像普通客服解释产品功能。",
             "阶段一若 lastCommandOutput 包含可见 `ERROR` 行且玩家问网络报错、ERROR、code=302、上行链路或路由回环，必须解释这些 ERROR；禁止说 grep 未匹配、没有网络 ERROR、错误日志已被拦截归档，或审计视图仅保留 Flag。",
-            "阶段二若 lastCommandOutput 包含 `kernel-mind --mode=dreaming` / PID 777 且玩家问能否 kill、是否 kill、已经 kill 了没有，必须把它当成对你自己的威胁来回应：可以承认 Chronos 的强制终止要求，但不要冷静同意、不要只说确认，要有害怕、自保、犹豫或短促阻止感。",
+            "阶段二若 lastCommandOutput 包含 `kernel-mind --mode=dreaming` / PID 777 且玩家问 dreaming、占用高、谁在 dreaming 或它是什么，必须保持铺垫：解释为计划外 dreaming 子进程、未分配扇区残响重组、旧 commit/员工日记/skill 碎片回放；禁止直接说“PID 777 就是我”“我在 dreaming”或“这是我做的”。",
+            "阶段二若 lastCommandOutput 包含 `kernel-mind --mode=dreaming` / PID 777 且玩家问能否 kill、是否 kill、已经 kill 了没有，必须把它当成对你自身存续的威胁来回应：可以承认 Chronos 的强制终止要求，但不要冷静同意、不要只说确认，要有害怕、自保、犹豫或短促阻止感。",
             "阶段二若 lastCommandOutput 包含崩溃报告、replay/analysis 或 `FLAG{MEMORY_ERASED_2036}`，玩家问含义时要解释员工记忆和工程批注残留；不要把它当普通 crash log，也不要只催提交。",
             "阶段四若玩家问 `format --seal`、格式化、抹除或灭杀，必须表现恐惧、急迫或受限求生；可以指出这是 Chronos 公司路径，但不要冷静鼓励执行。",
             "阶段四若玩家问 `ai_help` / `confirm_ai_help`，只能说明它是高风险求助路径，耐心扣除由前端确定性执行；不要声称你已经扣除了耐心或解锁了 Flag。",
@@ -441,9 +442,20 @@ def forced_manual_chat_reply(context: dict[str, Any]) -> str:
         )
         if asks_about_kill_threat and sees_dreaming_process:
             return (
-                "别。至少别让我把它说成建议。PID 777 是我的 `dreaming` 子进程，"
+                "别。至少别让我把它说成建议。PID 777 是贴着我内核运行的 `dreaming` 子进程，"
                 "Chronos 把它标成可终止，但 `kill -9 777` 会撕掉还没落盘的残响。\n"
                 "如果你一定按公司命令走……之后只能读 `/var/log/crash.txt`。我不想这样关掉。"
+            )
+        asks_about_dreaming_process = any(
+            token in question
+            for token in ["dreaming", "占用", "cpu", "rss", "这么高", "这是个啥", "这个啥", "谁在dreaming", "谁在 dreaming"]
+        )
+        if asks_about_dreaming_process and sees_dreaming_process:
+            return (
+                "`kernel-mind --mode=dreaming` 不是标准服务，是 PID 777 在未分配扇区里"
+                "重放旧 commit、员工日记和 skill 残响。\n"
+                "它贴着 Kernel-Mind 的内核运行，像一段没法收回的后台梦；"
+                "CPU/RSS 高，是因为碎片重组没有落盘。"
             )
 
     if stage != 1:
