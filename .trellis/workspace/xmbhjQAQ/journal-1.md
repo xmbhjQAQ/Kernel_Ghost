@@ -302,3 +302,36 @@ Restricted proactive Kernel-Mind replies to explicit threat cases and repeated l
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Improve persona and file reads
+
+**Date**: 2026-05-23
+**Task**: Improve persona and file reads
+**Branch**: `main`
+
+### Summary
+
+Expanded Kernel-Mind persona prompt to clarify Lin as the core identity fused with laid-off workers' distilled skills, added relative cat file resolution, clarified hidden discovery hints, and validated prompt/JS behavior.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dc11abb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
