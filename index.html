@@ -458,12 +458,17 @@
       margin-top: 4px;
       color: var(--green);
       font-size: 11px;
-      text-transform: uppercase;
     }
 
     .discovery-title {
       display: block;
       color: inherit;
+    }
+
+    .discovery-hint {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
     }
 
     .discovery-meta {
@@ -742,15 +747,16 @@
           </div>
 
           <div class="panel-section">
-            <div class="section-kicker">Collection</div>
+            <div class="section-kicker">收藏 / Collection</div>
             <div class="discoveries" id="discoveries"></div>
           </div>
         </div>
 
         <div class="actions">
-          <button class="control-button mobile-ticket-toggle" id="togglePanelButton" type="button">Ticket</button>
-          <button class="control-button" id="helpButton" type="button">Help</button>
-          <button class="control-button danger" id="restartButton" type="button">Restart</button>
+          <button class="control-button mobile-ticket-toggle" id="togglePanelButton" type="button">工单 / Ticket</button>
+          <button class="control-button" id="helpButton" type="button">帮助 / Help</button>
+          <button class="control-button danger" id="restartButton" type="button">重开 / Restart</button>
+          <button class="control-button danger" id="hardResetButton" type="button">清空重来 / Reset All</button>
         </div>
       </aside>
     </section>
@@ -844,6 +850,12 @@
         { id: "kmem", label: "核心内存残句", locked: "内核残留未抓取。" }
       ];
 
+      const collectionGroups = [
+        { id: "Easter Eggs", label: "彩蛋 / Easter Eggs" },
+        { id: "Relics", label: "遗物 / Relics" },
+        { id: "Intermissions", label: "工单间事件 / Intermissions" }
+      ];
+
       const discoveryCollectibleMap = {
         "git-log": "easter-git-log",
         lshw: "easter-lshw",
@@ -851,13 +863,13 @@
       };
 
       const collectibleCatalog = [
-        { id: "easter-git-log", group: "Easter Eggs", title: "幽灵提交历史", locked: "在 /etc/kernel 中存在旧提交索引。" },
-        { id: "easter-lshw", group: "Easter Eggs", title: "物理座位重合", locked: "硬件清单仍未读取。" },
-        { id: "easter-kmem", group: "Easter Eggs", title: "核心内存残句", locked: "内核残留未抓取。" },
-        { id: "relic-hr-announcement", group: "Relics", title: "公司内部邮件", locked: "/var/mail 里仍有未读的人资公告。" },
-        { id: "relic-lin-aliases", group: "Relics", title: "Lin 的私人快捷键备份", locked: "/home/lin 目录尚未被阶段二权限暴露。" },
-        { id: "relic-distill-loss", group: "Relics", title: "认知蒸馏监控日志", locked: "/sys/kernel/debug 仍未进入审计视野。" },
-        { id: "relic-operator-history", group: "Relics", title: "上一任运维的历史记录", locked: "/var/log 仍有历史备份未读取。" }
+        { id: "easter-git-log", group: "Easter Eggs", minStage: 1, title: "幽灵提交历史", locked: "线索尚未回收。" },
+        { id: "easter-lshw", group: "Easter Eggs", minStage: 1, title: "物理座位重合", locked: "线索尚未回收。" },
+        { id: "easter-kmem", group: "Easter Eggs", minStage: 4, title: "核心内存残句", locked: "线索尚未回收。" },
+        { id: "relic-hr-announcement", group: "Relics", minStage: 1, title: "公司内部邮件", locked: "遗物尚未回收。" },
+        { id: "relic-lin-aliases", group: "Relics", minStage: 2, title: "Lin 的私人快捷键备份", locked: "遗物尚未回收。" },
+        { id: "relic-distill-loss", group: "Relics", minStage: 3, title: "认知蒸馏监控日志", locked: "遗物尚未回收。" },
+        { id: "relic-operator-history", group: "Relics", minStage: 1, title: "上一任运维的历史记录", locked: "遗物尚未回收。" }
       ];
 
       const relicCatalog = [
@@ -947,13 +959,14 @@
         ]
       };
 
-      Object.values(intermissionPools).flat().forEach((event) => {
-        collectibleCatalog.push({
+      Object.entries(intermissionPools).forEach(([poolId, events]) => {
+        events.forEach((event) => collectibleCatalog.push({
           id: event.id,
           group: "Intermissions",
+          minStage: Number(poolId),
           title: event.collectibleTitle,
-          locked: "工单之间仍有未归档的内网事件。"
-        });
+          locked: `${stageName(Number(poolId))}工单结束后可能归档。`
+        }));
       });
 
       const tickets = {
@@ -1217,7 +1230,7 @@
           "terminalLog", "commandForm", "commandInput", "terminalLabel", "sessionMeta",
           "commandToast", "commandToastText", "aiTypingStatus",
           "ticketTitle", "ticketBody", "ticketCommand", "stageValue", "awarenessMeter",
-          "awarenessValue", "patienceValue", "cwdValue", "llmStatus", "llmStatusText", "discoveries", "helpButton", "restartButton",
+          "awarenessValue", "patienceValue", "cwdValue", "llmStatus", "llmStatusText", "discoveries", "helpButton", "restartButton", "hardResetButton",
           "togglePanelButton", "sidePanel", "introScreen", "nameInput", "startButton",
           "endingScreen", "endingTitle", "endingCopy", "endingCloseButton", "endingRestartButton",
           "eventScreen", "eventSource", "eventTime", "eventTitle", "eventCopy", "eventConfirmButton"
@@ -1265,6 +1278,7 @@
           enqueueCommand("help");
         });
         elements.restartButton.addEventListener("click", restartGame);
+        elements.hardResetButton.addEventListener("click", hardResetGame);
         elements.endingCloseButton.addEventListener("click", closeEnding);
         elements.endingRestartButton.addEventListener("click", restartGame);
         elements.eventConfirmButton.addEventListener("click", confirmIntermission);
@@ -1284,6 +1298,7 @@
         hideScreen("introScreen");
         elements.commandInput.disabled = false;
         renderState();
+        renderDiscoveries();
         queueLines([
           { kind: "system", text: `操作员 ${state.operatorName} 身份已确认。` },
           { kind: "system", text: "Chronos Tech 工单流已接入：夜班 / 404-B-12 机架。" },
@@ -1494,9 +1509,8 @@
             { kind: "dim", text: "阶段四工具：strings architecture.png · tar -xf diagram.cache · binwalk architecture.png" },
             { kind: "dim", text: "ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
             { kind: "dim", text: "阶段四：ai_help · confirm_ai_help · 你是Lin吗？" },
-            { kind: "dim", text: "遗物：cat /var/mail/chronos_hr_announcement · cat /var/log/operator_history.bak" },
-            { kind: "dim", text: "后续遗物：cat /home/lin/.bash_aliases.bak · cat /sys/kernel/debug/distill_loss.log" },
-            { kind: "dim", text: "彩蛋：/etc/kernel 下 git log；后期 cat /dev/kmem | grep \"REMAIN\"；硬件可试 lshw -class processor。" },
+            { kind: "dim", text: "收藏：右侧面板只显示彩蛋/遗物从哪个阶段开始存在，具体位置需要自行排查。" },
+            { kind: "dim", text: "工单间事件会在阶段切换后自动弹出并归档。" },
             { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 受限对话。" },
             { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
           ]
@@ -2481,14 +2495,14 @@
 
       function renderDiscoveries() {
         elements.discoveries.textContent = "";
-        ["Easter Eggs", "Relics", "Intermissions"].forEach((group) => {
+        collectionGroups.forEach((group) => {
           const groupNode = document.createElement("div");
           groupNode.className = "collection-group";
           const heading = document.createElement("div");
           heading.className = "collection-heading";
-          const items = collectibleCatalog.filter((item) => item.group === group);
+          const items = collectibleCatalog.filter((item) => item.group === group.id);
           const recovered = items.filter((item) => metaCollection.unlocked.includes(item.id)).length;
-          heading.textContent = `${group} ${recovered}/${items.length}`;
+          heading.textContent = `${group.label} ${recovered}/${items.length}`;
           groupNode.appendChild(heading);
           items.forEach((item) => {
             const node = document.createElement("div");
@@ -2496,15 +2510,48 @@
             node.className = `discovery${found ? " found" : ""}`;
             const title = document.createElement("span");
             title.className = "discovery-title";
-            title.textContent = found ? item.title : item.locked;
+            title.textContent = item.title;
+            const hint = document.createElement("span");
+            hint.className = "discovery-hint";
+            hint.textContent = collectionHint(item, found);
             const meta = document.createElement("span");
             meta.className = "discovery-meta";
-            meta.textContent = found ? "recovered" : "locked";
-            node.append(title, meta);
+            meta.textContent = collectionStatus(item, found);
+            node.append(title, hint, meta);
             groupNode.appendChild(node);
           });
           elements.discoveries.appendChild(groupNode);
         });
+      }
+
+      function collectionHint(item, found) {
+        if (item.group === "Intermissions") {
+          return found ? "已归档到收藏档案。" : "完成工单后会自动弹出并归档。";
+        }
+        if (found) {
+          return "已记录到收藏档案。";
+        }
+        if (state.stage < item.minStage) {
+          return `${stageName(item.minStage)}开放；当前尚不存在。`;
+        }
+        return `${stageName(item.minStage)}线索已生成，可在终端中自行排查。`;
+      }
+
+      function collectionStatus(item, found) {
+        if (item.group === "Intermissions") {
+          return found ? "已归档 / Archived" : "未归档 / Pending archive";
+        }
+        if (found) return `已回收 / Recovered · ${stageName(item.minStage)}`;
+        if (state.stage < item.minStage) return `尚不存在 / Not yet generated · ${stageName(item.minStage)}`;
+        return `已生成 / Available · ${stageName(item.minStage)}`;
+      }
+
+      function stageName(stage) {
+        if (stage === 1) return "阶段一";
+        if (stage === 2) return "阶段二";
+        if (stage === 3) return "阶段三";
+        if (stage === 4) return "阶段四";
+        return `阶段${stage}`;
       }
 
       function appendLine(kind, text) {
@@ -2858,11 +2905,27 @@
       }
 
       function restartGame() {
+        resetGameSession({ clearCollection: false, persistInitialProgress: true });
+      }
+
+      function hardResetGame() {
+        const confirmed = window.confirm("清空全部本地进度和收藏记录，并重新开始？");
+        if (!confirmed) return;
+        resetGameSession({ clearCollection: true, persistInitialProgress: false });
+      }
+
+      function resetGameSession(options) {
         state = createInitialState();
         commandHistory.splice(0, commandHistory.length);
         historyIndex = -1;
         typeQueue = Promise.resolve();
         pendingEventQueue = [];
+        isAwaitingAi = false;
+        window.clearTimeout(commandToastTimer);
+        elements.commandToast.classList.remove("visible");
+        if (options.clearCollection) {
+          metaCollection = { unlocked: [] };
+        }
         elements.terminalLog.textContent = "";
         elements.commandInput.value = "";
         elements.nameInput.value = "";
@@ -2877,10 +2940,13 @@
         elements.nameInput.focus();
         try {
           window.localStorage.removeItem(`${storagePrefix}progress`);
+          if (options.clearCollection) {
+            window.localStorage.removeItem(`${storagePrefix}collection`);
+          }
         } catch (error) {
           appendLine("dim", "local progress cache unavailable; continuing without persistence.");
         }
-        saveProgress();
+        if (options.persistInitialProgress) saveProgress();
       }
 
       function installFallback() {
