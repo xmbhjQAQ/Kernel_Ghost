@@ -104,3 +104,36 @@ Added a standard-library backend for OpenAI-compatible Chat Completions streamin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Enhance Kernel-Mind assistant
+
+**Date**: 2026-05-23
+**Task**: Enhance Kernel-Mind assistant
+**Branch**: `main`
+
+### Summary
+
+Updated Kernel-Mind prompts to support natural ai_chat conversation and progressive task hints while preserving deterministic game authority and flag secrecy; softened duplicate frontend side-channel text and extended prompt tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `15d97b7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
