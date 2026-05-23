@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
+- **Total Sessions**: 8
 - **Last Active**: 2026-05-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~238 | Active |
+| `journal-1.md` | ~271 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-05-23 | Apply revised story setting | `d6a2bde` | `main` |
 | 7 | 2026-05-23 | Refine Kernel-Mind story tasks | `10a3307` | `main` |
 | 6 | 2026-05-23 | Align Kernel-Mind persona | `26c4576` | `main` |
 | 5 | 2026-05-23 | Fix Kernel Ghost terminal layout | `6337b0f` | `main` |

@@ -236,3 +236,36 @@ Tightened Kernel-Mind short-reply prompt contract, shifted fixed CLI output towa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Apply revised story setting
+
+**Date**: 2026-05-23
+**Task**: Apply revised story setting
+**Branch**: `main`
+
+### Summary
+
+Implemented revised Kernel-Mind story/persona setting: Stage 1 hidden care traces, Stage 2 employee-memory crash fragments, Stage 3 Chronos patience/help pressure, Echo Chamber hidden ending, prompt updates, and validation tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d6a2bde` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
