@@ -188,6 +188,9 @@ handling, not an LLM claim.
 - `recentLines` is only a fallback transcript, not the primary task context.
 - `lastCommand` and `lastCommandOutput` must point to the latest relevant
   non-`ai_chat` command when the current request is manual chat.
+- Referential manual-chat questions such as "什么意思" must treat `ai_chat` as
+  a wrapper command, not as the object being asked about, unless the player
+  explicitly asks what `ai_chat` itself is.
 - `anomalyCandidates` should identify high-signal visible objects such as high
   CPU/MEM processes, PID notes, RSS growth, service-ticket absence, flags,
   paths, or error codes when those are visible.

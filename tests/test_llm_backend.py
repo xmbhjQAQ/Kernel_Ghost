@@ -156,6 +156,7 @@ class PromptTests(unittest.TestCase):
         identity = manual_chat_policy({"userMessage": "你是谁？"})
         normal = manual_chat_policy({"userMessage": "这个游戏怎么玩？"})
         sensitive = manual_chat_policy({"userMessage": "Chronos 到底做了什么？"})
+        referential = manual_chat_policy({"userMessage": "什么意思"})
         system = build_chat_messages(
             {
                 "eventName": "manual_ai_chat",
@@ -172,6 +173,8 @@ class PromptTests(unittest.TestCase):
         self.assertIn("直接、正常、有用地回答", normal)
         self.assertIn("玩家触及身份真相", sensitive)
         self.assertIn("可以克制、回避", sensitive)
+        self.assertIn("刚才终端输出", referential)
+        self.assertIn("不要解释 ai_chat", referential)
         self.assertIn("手动聊天必须先回答问题本身", system)
         self.assertIn("手动聊天默认直答", system)
         self.assertIn("只有触及敏感主题时才使用回避", system)
@@ -309,12 +312,40 @@ class PromptTests(unittest.TestCase):
         payload = json.loads(messages[1]["content"].split("\n", 1)[1])
 
         self.assertIn("上下文优先级", system)
-        self.assertIn("必须先把“这/这个”解析为 lastCommandOutput", system)
+        self.assertIn("必须先把问题解析为 lastCommandOutput", system)
         self.assertIn("不要只输出氛围化身份文本", system)
         self.assertEqual(payload["currentQuestion"], "这是什么东西？")
         self.assertEqual(payload["lastCommand"], "ps -aux")
         self.assertEqual(payload["anomalyCandidates"][0]["pid"], "777")
         self.assertIn("kernel-mind --mode=dreaming", payload["lastCommandOutput"][0])
+
+    def test_stage_three_referential_prompt_explains_comment_output_not_ai_chat(self):
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 3,
+                "awareness": 60,
+                "command": "ai_chat 什么意思",
+                "currentQuestion": "什么意思",
+                "lastCommand": "python /srv/review/route_repair_Lin.py",
+                "lastCommandOutput": [
+                    "result: route length=18 recursion_depth=611 memory_warning=true",
+                    "[系统提示]: 别学老古董那一套死板的递归算法了，这破服务器的内存迟早被你跑爆。",
+                    "[系统提示]: rfix 这种名字短，敲起来快。别提交给代码规范机器人就行。",
+                    "comment anomaly captured: /var/log/comment_anomaly.txt",
+                ],
+            }
+        )
+
+        system = messages[0]["content"]
+        payload = json.loads(messages[1]["content"].split("\n", 1)[1])
+
+        self.assertIn("不要把 `ai_chat` 这个包装命令当成被询问对象", system)
+        self.assertIn("除非玩家明确问“ai_chat 是什么/怎么用”", system)
+        self.assertIn("用 Lin 的口吻指出递归实现低效、内存风险和命名习惯", system)
+        self.assertEqual(payload["currentQuestion"], "什么意思")
+        self.assertEqual(payload["lastCommand"], "python /srv/review/route_repair_Lin.py")
+        self.assertIn("[系统提示]", payload["lastCommandOutput"][1])
 
     def test_infers_process_anomaly_from_last_command_output(self):
         candidates = infer_anomaly_candidates(

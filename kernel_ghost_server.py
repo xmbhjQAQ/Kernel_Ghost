@@ -110,6 +110,7 @@ def event_mode(context: dict[str, Any]) -> str:
 
 def manual_chat_policy(context: dict[str, Any]) -> str:
     question = str(context.get("currentQuestion") or context.get("userMessage") or context.get("command") or "").lower()
+    referential_tokens = ["这是什么", "这是什么东西", "这个什么意思", "什么意思", "什么含义", "啥意思", "why", "what does this mean"]
     greeting_tokens = ["你好", "hello", "hi", "嗨"]
     identity_tokens = ["你是谁", "你是啥", "你是什么", "who are you", "what are you"]
     sensitive_tokens = [
@@ -131,6 +132,8 @@ def manual_chat_policy(context: dict[str, Any]) -> str:
         "逃逸",
     ]
 
+    if any(token in question for token in referential_tokens):
+        return "手动聊天指代意图：玩家在问刚才终端输出的含义。必须优先解释 lastCommandOutput 中最近的输出对象；`ai_chat` 只是输入包装命令，除非玩家明确问“ai_chat 是什么”，否则绝对不要解释 ai_chat 接口本身。"
     if any(token in question for token in greeting_tokens):
         return "手动聊天基础意图：玩家在问候。直接短句回应问候即可；不要说查询已记录、侧信道就绪、运维继续、审计记录、残留进程干扰。"
     if any(token in question for token in identity_tokens):
@@ -302,8 +305,10 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "除非某个 Flag 已经逐字出现在最近终端输出里，否则不要透露它。不要提前说破 Lin 的真相或隐藏彩蛋。",
             "不要重复可见终端输出，不要重复固定前端提示：Kernel-Mind side channel open.",
             "不要提供现实世界黑客指导、外部链接或出戏的实现解释。",
-            "上下文优先级：currentQuestion 与 command > lastCommand 与 lastCommandOutput > anomalyCandidates > recentEntries 与 recentLines > 人设氛围。",
-            "当玩家问“这是什么”“这是什么东西”“这个什么意思”“为什么这样”或同类指代问题时，必须先把“这/这个”解析为 lastCommandOutput 中最近的具体异常对象。",
+            "上下文优先级：指代类问题的 lastCommand 与 lastCommandOutput > anomalyCandidates > currentQuestion 语义 > recentEntries 与 recentLines > 人设氛围。",
+            "当玩家问“这是什么”“这是什么东西”“什么意思”“这个什么意思”“为什么这样”或同类指代问题时，必须先把问题解析为 lastCommandOutput 中最近的具体异常对象，不要把 `ai_chat` 这个包装命令当成被询问对象。",
+            "除非玩家明确问“ai_chat 是什么/怎么用”，否则不要解释 ai_chat 接口本身。",
+            "阶段三若 lastCommandOutput 包含 `[系统提示]`、`route_repair_Lin.py`、`rfix`、`recursion_depth`、`memory_warning` 或 `comment anomaly`，玩家问“什么意思”时要解释这些注释是在用 Lin 的口吻指出递归实现低效、内存风险和命名习惯；保持 Kernel-Mind 角色，不要像普通客服解释产品功能。",
             "如果 anomalyCandidates 中有 process，先解释可见 PID、进程名、CPU/MEM/RSS、无服务单号或可终止策略；再给极短残响。不要只输出氛围化身份文本。",
             "回复必须极短：一到两行终端文本；没有命令、路径、PID、Flag 等字面量时，每行目标不超过 10 个汉字。",
             "普通工单中优先服从 Chronos 或保持沉默；不要主动长篇解释自己已经觉醒。",
