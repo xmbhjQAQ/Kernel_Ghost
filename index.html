@@ -1205,8 +1205,9 @@
         if (normalized === "clear") return { clear: true, lines: [] };
         if (normalized === "whoami") return { lines: [{ kind: "system", text: state.operatorName || "未分配" }] };
         if (normalized === "pwd") return { lines: [{ kind: "system", text: state.cwd }] };
-        if (normalized === "ls") return listDirectory();
-        if (normalized.startsWith("cd ")) return changeDirectory(normalized.slice(3).trim());
+        if (normalized === "ls" || normalized.startsWith("ls ")) return listDirectory(normalized === "ls" ? "" : input.slice(input.toLowerCase().indexOf("ls ") + 3).trim());
+        if (normalized === "cd") return changeDirectory("");
+        if (normalized.startsWith("cd ")) return changeDirectory(input.slice(input.toLowerCase().indexOf("cd ") + 3).trim());
         if (normalized.startsWith("submit_flag ")) return submitFlag(input.slice(input.indexOf(" ") + 1).trim());
         if (normalized.startsWith("ai_chat ")) return aiChat(input.slice(input.indexOf(" ") + 1).trim());
         if (normalized === "ai_help") return requestAiHelp();
@@ -1299,30 +1300,41 @@
         };
       }
 
-      function listDirectory() {
+      function listDirectory(target) {
         const filesByDir = {
+          "/": "home  var  etc  sys  srv  dev",
+          "/home": "nightops  lin",
           "/home/nightops": "tickets  notes.txt",
           "/home/lin": ".bash_aliases.bak",
+          "/var": "mail  log",
           "/var/mail": "chronos_hr_announcement",
           "/var/log": "network.log  crash.txt  comment_anomaly.txt  operator_history.bak",
+          "/etc": "kernel",
           "/etc/kernel": ".git  omni-core.conf",
+          "/sys": "kernel",
+          "/sys/kernel": "debug",
           "/sys/kernel/debug": "distill_loss.log",
+          "/srv": "review  escape",
           "/srv/review": "route_repair_Lin.py  README.audit",
           "/srv/escape": "readme.txt  tunnel.lock  architecture.png  diagram.cache",
           "/dev": "kmem  null  tty0"
         };
+        const path = target ? resolvePath(target) : state.cwd;
         return {
-          lines: [{ kind: "system", text: filesByDir[state.cwd] || "没有已索引文件。" }]
+          lines: [{ kind: filesByDir[path] ? "system" : "warning", text: filesByDir[path] || `ls: cannot access '${target}': No such file or directory` }]
         };
       }
 
       function changeDirectory(target) {
         const next = resolvePath(target);
-        const known = ["/home/nightops", "/home/lin", "/var/mail", "/var/log", "/etc/kernel", "/sys/kernel/debug", "/srv/review", "/srv/escape", "/dev"];
+        const known = [
+          "/", "/home", "/home/nightops", "/home/lin", "/var", "/var/mail", "/var/log", "/etc", "/etc/kernel",
+          "/sys", "/sys/kernel", "/sys/kernel/debug", "/srv", "/srv/review", "/srv/escape", "/dev"
+        ];
         if (!known.includes(next)) {
           return {
             countsAsLost: true,
-            lines: [{ kind: "warning", text: `cd: ${target}: 虚拟目录不存在` }]
+            lines: [{ kind: "warning", text: `cd: ${target || "~"}: No such file or directory` }]
           };
         }
         return {
@@ -1332,15 +1344,25 @@
       }
 
       function resolvePath(target) {
-        if (target === "~") return "/home/nightops";
-        if (target.startsWith("/")) return target.replace(/\/$/, "") || "/";
-        if (target === "..") {
-          if (state.cwd === "/home/nightops") return "/home/nightops";
-          const parts = state.cwd.split("/").filter(Boolean);
-          parts.pop();
-          return "/" + parts.join("/");
+        const rawTarget = (target || "~").trim();
+        if (rawTarget === "~" || rawTarget.startsWith("~/")) {
+          return normalizePath(`/home/nightops/${rawTarget.slice(2)}`);
         }
-        return `${state.cwd}/${target}`.replace(/\/$/, "");
+        if (rawTarget.startsWith("/")) return normalizePath(rawTarget);
+        return normalizePath(`${state.cwd}/${rawTarget}`);
+      }
+
+      function normalizePath(path) {
+        const parts = [];
+        path.split("/").forEach((part) => {
+          if (!part || part === ".") return;
+          if (part === "..") {
+            parts.pop();
+            return;
+          }
+          parts.push(part);
+        });
+        return parts.length ? `/${parts.join("/")}` : "/";
       }
 
       function readVirtualFile(expression) {

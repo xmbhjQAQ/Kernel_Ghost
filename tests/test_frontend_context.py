@@ -32,3 +32,25 @@ def test_terminal_entries_do_not_truncate_command_context_before_grouping():
 
     assert "text: node.textContent" in body
     assert "node.textContent.slice(" not in body
+
+
+def test_virtual_shell_keeps_linux_root_directory_semantics():
+    change_directory = js_function_body("changeDirectory")
+    list_directory = js_function_body("listDirectory")
+    resolve_path = js_function_body("resolvePath")
+
+    assert '"/"' in change_directory
+    assert '"/": "home  var  etc  sys  srv  dev"' in list_directory
+    assert 'rawTarget.startsWith("/")' in resolve_path
+    assert "normalizePath(rawTarget)" in resolve_path
+
+
+def test_virtual_shell_normalizes_common_linux_path_segments():
+    resolve_path = js_function_body("resolvePath")
+    normalize_path = js_function_body("normalizePath")
+
+    assert 'target || "~"' in resolve_path
+    assert 'rawTarget === "~" || rawTarget.startsWith("~/")' in resolve_path
+    assert 'part === "."' in normalize_path
+    assert 'part === ".."' in normalize_path
+    assert 'return parts.length ? `/${parts.join("/")}` : "/"' in normalize_path
