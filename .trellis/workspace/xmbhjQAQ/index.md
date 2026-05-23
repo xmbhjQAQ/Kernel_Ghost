@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 10
+- **Total Sessions**: 11
 - **Last Active**: 2026-05-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~337 | Active |
+| `journal-1.md` | ~370 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 11 | 2026-05-23 | Add escape analysis tools | `40d4983` | `main` |
 | 10 | 2026-05-23 | Improve persona and file reads | `dc11abb` | `main` |
 | 9 | 2026-05-23 | Reduce proactive AI chatter | `f09a7ea` | `main` |
 | 8 | 2026-05-23 | Apply revised story setting | `d6a2bde` | `main` |
