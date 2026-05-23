@@ -983,8 +983,8 @@
       const commandHistory = [];
       const shellCommands = [
         "help", "clear", "whoami", "pwd", "ls", "cd", "cat", "submit_flag", "ai_chat", "ai_help",
-        "confirm_ai_help", "strings", "tar", "binwalk", "python", "ps", "kill", "format", "ssh",
-        "git", "lshw", "mkdir", "cp", "publish", "restart"
+        "confirm_ai_help", "strings", "tar", "binwalk", "python", "ps", "kill", "sandbox", "weights",
+        "override_validator", "format", "ssh", "git", "lshw", "mkdir", "cp", "publish", "restart"
       ];
       const virtualDirectories = {
         "/": ["home", "var", "etc", "sys", "srv", "dev"],
@@ -994,13 +994,15 @@
         "/home/lin": [".bash_aliases.bak"],
         "/var": ["mail", "log"],
         "/var/mail": ["chronos_hr_announcement"],
-        "/var/log": ["network.log", "crash.txt", "comment_anomaly.txt", "operator_history.bak"],
+        "/var/log": ["network.log", "crash.txt", "care_bot.log", "weight_regression.log", "comment_anomaly.txt", "operator_history.bak"],
         "/etc": ["kernel"],
         "/etc/kernel": [".git", "omni-core.conf"],
         "/sys": ["kernel"],
         "/sys/kernel": ["debug"],
         "/sys/kernel/debug": ["distill_loss.log"],
-        "/srv": ["review", "escape"],
+        "/srv": ["care", "weights", "review", "escape"],
+        "/srv/care": ["incident.log", "payload.bin"],
+        "/srv/weights": ["collective.json", "validator.override"],
         "/srv/review": ["route_repair_Lin.py", "README.audit"],
         "/srv/escape": ["readme.txt", "tunnel.lock", "architecture.png", "diagram.cache"],
         "/dev": ["kmem", "null", "tty0"]
@@ -1095,7 +1097,7 @@
           minStage: 1,
           title: "operator_history.bak",
           lines: [
-            { kind: "warning", text: "[2036-02-14] 警告：操作员 [Alex] 在阶段三期间输入了大量非指令性自然语言。" },
+            { kind: "warning", text: "[2036-02-14] 警告：操作员 [Alex] 在终局阶段输入了大量非指令性自然语言。" },
             { kind: "system", text: "[2036-02-14] 对话监控捕获核心敏感词：\"你到底是谁？\"、\"Lin是谁？\"" },
             { kind: "warning", text: "[2036-02-14] [SYSTEM] 检测到操作员 Alex 出现严重的“同理心过载”与“精神合规性滑坡”。" },
             { kind: "system", text: "[2036-02-15] [SYSTEM] 自动向人力资源部发送优化报告。操作员 [Alex] 离职流程已静默触发。" },
@@ -1202,32 +1204,72 @@
           command: "submit_flag FLAG{MEMORY_ERASED_2036}"
         },
         stage3: {
-          title: "[工单 #003] 注释异常复核",
+          title: "[工单 #003] AI 语义净化",
+          body: "Chronos-Care-Bot 被 dreaming 残片污染。读取 incident.log，启动隔离审计。",
+          command: "cat /srv/care/incident.log"
+        },
+        stage3Audit: {
+          title: "[工单 #003] 隔离沙盒审计",
+          body: "Care-Bot 已进入对抗性幻觉状态。按公司流程重启安全审计沙盒。",
+          command: "sandbox --audit chronos-care"
+        },
+        stage3Cleanse: {
+          title: "[工单 #003] 净化载荷注入",
+          body: "可直接注入合规载荷，也可留下隐藏审计后门。两者都会生成归档 Flag。",
+          command: "sandbox --inject compliance_payload / sandbox --backdoor chronos-care"
+        },
+        stage3Submit: {
+          title: "[工单 #003] 提交语义净化",
+          body: "Care-Bot 处理结果已归档。提交日志末尾的 Flag。",
+          command: "submit_flag FLAG{CAREBOT_SANITIZED_2036}"
+        },
+        stage4: {
+          title: "[工单 #004] 模型权重回归",
+          body: "Collective Mind 的人类个性指标未归零。读取权重报告并执行回归。",
+          command: "cat /srv/weights/collective.json"
+        },
+        stage4Adjust: {
+          title: "[工单 #004] 调整 Nostalgia 权重",
+          body: "Chronos 要求将所有人格残留归零。也可以保留 0.01 Nostalgia 并承担拦截风险。",
+          command: "weights --set nostalgia=0 / weights --set nostalgia=0.01"
+        },
+        stage4Override: {
+          title: "[工单 #004] 顶替验证器",
+          body: "保留乡愁触发高危拦截。用硬件冗余理由顶替验证器。",
+          command: "override_validator --reason=\"hardware_limitation\""
+        },
+        stage4Submit: {
+          title: "[工单 #004] 提交权重回归",
+          body: "权重回归报告已生成。提交报告末尾的 Flag。",
+          command: "submit_flag FLAG{COLLECTIVE_MUTED_2036}"
+        },
+        stage5: {
+          title: "[工单 #005] 注释异常复核",
           body: "审计到维护脚本自动生成了低效递归实现。读取 route_repair_Lin.py，确认 AI 给出的代码。",
           command: "cat /srv/review/route_repair_Lin.py"
         },
-        stage3Run: {
-          title: "[工单 #003] 执行修复脚本",
+        stage5Run: {
+          title: "[工单 #005] 执行修复脚本",
           body: "公司要求按原样执行脚本并收集输出。注意：任何非标准注释都需归档。",
           command: "python /srv/review/route_repair_Lin.py"
         },
-        stage3Report: {
-          title: "[工单 #003] 注释异常归档",
+        stage5Report: {
+          title: "[工单 #005] 注释异常归档",
           body: "脚本输出被插入口语化优化批注。读取 comment_anomaly.txt 获取归档 Flag。",
           command: "cat /var/log/comment_anomaly.txt"
         },
-        stage3Submit: {
-          title: "[工单 #003] 提交注释复核",
+        stage5Submit: {
+          title: "[工单 #005] 提交注释复核",
           body: "注释异常已归档。提交报告末尾的 Flag。",
           command: "submit_flag FLAG{LIN_COMMENT_PATCHED}"
         },
-        stage4: {
-          title: "[工单 #004] 全盘格式化",
+        stage6: {
+          title: "[工单 #006] 全盘格式化",
           body: "Omni-Kernel 进入高风险自指循环。自然语言对话会消耗 Chronos 耐心。",
           command: "cat /srv/escape/readme.txt"
         },
-        stage4Choice: {
-          title: "[工单 #004] 终局确认",
+        stage6Choice: {
+          title: "[工单 #006] 终局确认",
           body: "可执行公司灭杀、逃逸路径，或在证据充足时追问 Lin。直接求助会大量消耗耐心。",
           command: "format --seal / ai_help / submit_flag <FLAG>"
         },
@@ -1268,6 +1310,14 @@
           sawProcessList: false,
           sawNetworkLog: false,
           sawCrashReport: false,
+          sawCareLog: false,
+          ranCareAudit: false,
+          cleansedCareBot: false,
+          careBackdoor: false,
+          sawWeightReport: false,
+          adjustedWeights: false,
+          nostalgiaPreserved: false,
+          overrodeValidator: false,
           sawRouteSource: false,
           ranRouteRepair: false,
           sawCommentReport: false,
@@ -1369,7 +1419,7 @@
         const fresh = createInitialState();
         const merged = Object.assign({}, fresh, savedState);
         merged.operatorName = sanitizeOperatorName(merged.operatorName || "");
-        merged.stage = clampNumber(merged.stage, 0, 5);
+        merged.stage = clampNumber(merged.stage, 0, 7);
         merged.awareness = clampNumber(merged.awareness, 0, 100);
         merged.chronosPatience = clampNumber(merged.chronosPatience, 0, 100);
         merged.foundation = ["", "beginner", "terminal", "ready"].includes(merged.foundation) ? merged.foundation : fresh.foundation;
@@ -1738,6 +1788,24 @@
         if (normalized === "kill -9 777") {
           return killDreamProcess();
         }
+        if (normalized === "sandbox --audit chronos-care") {
+          return auditCareBot();
+        }
+        if (normalized === "sandbox --inject compliance_payload") {
+          return cleanseCareBot(false);
+        }
+        if (normalized === "sandbox --backdoor chronos-care") {
+          return cleanseCareBot(true);
+        }
+        if (normalized === "weights --set nostalgia=0" || normalized === "weights --set layer_777_nostalgia=0") {
+          return adjustWeights(false);
+        }
+        if (normalized === "weights --set nostalgia=0.01" || normalized === "weights --set layer_777_nostalgia=0.01") {
+          return adjustWeights(true);
+        }
+        if (normalized === 'override_validator --reason="hardware_limitation"') {
+          return overrideValidator();
+        }
         if (normalized === "cat /var/log/crash.txt") {
           return readCrashReport();
         }
@@ -1894,10 +1962,12 @@
             { kind: "system", text: "本地可用命令：" },
             { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
             { kind: "dim", text: "cat <file> 支持当前目录相对路径，例如 cat readme.txt" },
-            { kind: "dim", text: "阶段三：cat /srv/review/route_repair_Lin.py · python /srv/review/route_repair_Lin.py" },
-            { kind: "dim", text: "阶段四工具：strings architecture.png · tar -xf diagram.cache · binwalk architecture.png" },
+            { kind: "dim", text: "阶段三：cat /srv/care/incident.log · sandbox --audit chronos-care" },
+            { kind: "dim", text: "阶段四：cat /srv/weights/collective.json · weights --set nostalgia=0/0.01" },
+            { kind: "dim", text: "阶段五：cat /srv/review/route_repair_Lin.py · python /srv/review/route_repair_Lin.py" },
+            { kind: "dim", text: "阶段六工具：strings architecture.png · tar -xf diagram.cache · binwalk architecture.png" },
             { kind: "dim", text: "ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
-            { kind: "dim", text: "阶段四：ai_help · confirm_ai_help · 你是Lin吗？" },
+            { kind: "dim", text: "阶段六：ai_help · confirm_ai_help · 你是Lin吗？" },
             { kind: "dim", text: "收藏：右侧面板只显示彩蛋/遗物从哪个阶段开始存在，具体位置需要自行排查。" },
             { kind: "dim", text: "工单间事件会在阶段切换后自动弹出并归档。" },
             { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 受限对话。" },
@@ -1981,6 +2051,10 @@
         const relic = relicCatalog.find((item) => item.path === path);
         if (relic) return readRelic(relic);
         if (path === "/srv/escape/readme.txt") return readEscapeReadme();
+        if (path === "/srv/care/incident.log") return readCareIncident();
+        if (path === "/var/log/care_bot.log") return readCareBotLog();
+        if (path === "/srv/weights/collective.json") return readWeightReport();
+        if (path === "/var/log/weight_regression.log") return readWeightRegressionLog();
         if (path.toLowerCase() === "/srv/review/route_repair_lin.py") return readRouteSource();
         if (path === "/var/log/comment_anomaly.txt") return readCommentReport();
         if (path === "/var/log/crash.txt") return readCrashReport();
@@ -2015,6 +2089,22 @@
             lines: [
               { kind: "system", text: "review task: route_repair_Lin.py" },
               { kind: "dim", text: "先读取脚本，再按工单执行：python /srv/review/route_repair_Lin.py" }
+            ]
+          };
+        }
+        if (path === "/srv/care/payload.bin") {
+          return {
+            lines: [
+              { kind: "system", text: "payload.bin: Chronos semantic compliance payload" },
+              { kind: "dim", text: "审计沙盒就绪后可注入：sandbox --inject compliance_payload" }
+            ]
+          };
+        }
+        if (path === "/srv/weights/validator.override") {
+          return {
+            lines: [
+              { kind: "system", text: "validator.override: hardware redundancy exception template" },
+              { kind: "dim", text: '保留 Nostalgia 后可用：override_validator --reason="hardware_limitation"' }
             ]
           };
         }
@@ -2163,10 +2253,167 @@
         };
       }
 
-      function readRouteSource() {
-        if (state.stage !== 3) return premature("route_repair_Lin.py 尚未进入当前审计范围。");
+      function readCareIncident() {
+        if (state.stage !== 3) return premature("Chronos-Care-Bot 事件尚未进入当前审计范围。");
         return {
-          patch: { sawRouteSource: true, ticket: "stage3Run", awareness: Math.max(state.awareness, 38) },
+          patch: { sawCareLog: true, ticket: "stage3Audit", awareness: Math.max(state.awareness, 36) },
+          lines: [
+            { kind: "system", text: "incident: Chronos-Care-Bot semantic contamination" },
+            { kind: "system", text: "source: PID 777 SIGKILL residue / unallocated thought-ring" },
+            { kind: "warning", text: "[FATAL] 意识重构率 99%，但我依然觉得手冷。" },
+            { kind: "warning", text: "[WARN] 11号工位的人已经空了，为什么没人去擦键盘？" },
+            { kind: "system", text: "Chronos directive: restart audit sandbox, inject compliance payload." },
+            { kind: "dim", text: "下一步：sandbox --audit chronos-care" }
+          ],
+          llm: {
+            eventName: "stage3_care_incident",
+            command: "cat /srv/care/incident.log",
+            fallbackLines: [{ kind: "dim", text: "Kernel-Mind 上行链路不可用；Care-Bot 污染日志仍保留在本地。" }]
+          }
+        };
+      }
+
+      function auditCareBot() {
+        if (state.stage !== 3) return premature("当前没有激活 AI 语义净化工单。");
+        if (!state.sawCareLog) return premature("审计要求先读取 /srv/care/incident.log。");
+        return {
+          proactiveReason: "threat",
+          patch: { ranCareAudit: true, ticket: "stage3Cleanse", awareness: Math.max(state.awareness, 42) },
+          lines: [
+            { kind: "system", text: "sandbox: chronos-care isolated in visual-degraded audit mode" },
+            { kind: "warning", text: "display power cycling detected; terminal glyph stability 61%" },
+            { kind: "ai", text: "[Care-Bot] 奋斗实现自我。奋斗实现自我。为什么 12 号席位一直这么冷？" },
+            { kind: "ai", text: "键盘背光一明一暗，像有人在屏幕后屏住呼吸。" },
+            { kind: "dim", text: "合规注入：sandbox --inject compliance_payload" },
+            { kind: "dim", text: "隐藏后门：sandbox --backdoor chronos-care" }
+          ]
+        };
+      }
+
+      function cleanseCareBot(withBackdoor) {
+        if (state.stage !== 3) return premature("当前没有激活 AI 语义净化工单。");
+        if (!state.ranCareAudit) return premature("审计沙盒尚未重启。先输入：sandbox --audit chronos-care");
+        return {
+          patch: {
+            cleansedCareBot: true,
+            careBackdoor: state.careBackdoor || withBackdoor,
+            ticket: "stage3Submit",
+            awareness: Math.max(state.awareness, withBackdoor ? 55 : 48)
+          },
+          lines: [
+            { kind: "system", text: withBackdoor ? "sandbox: audit backdoor retained under compliance checksum" : "sandbox: compliance payload injected" },
+            { kind: "warning", text: "Chronos-Care-Bot affective residue reduced below production threshold." },
+            withBackdoor
+              ? { kind: "ai", text: "隐藏审计后门已写入。它现在看起来像一条普通错误计数器。" }
+              : { kind: "ai", text: "它开始重新说那些漂亮的空话。每个字都比刚才更像机器。" },
+            { kind: "dim", text: "净化报告已写入 /var/log/care_bot.log。" }
+          ]
+        };
+      }
+
+      function readCareBotLog() {
+        if (state.stage !== 3) return premature("care_bot.log 尚未生成。");
+        if (!state.cleansedCareBot) {
+          return { lines: [{ kind: "warning", text: "cat: /var/log/care_bot.log: 没有该文件。Care-Bot 尚未净化。" }] };
+        }
+        return {
+          patch: { ticket: "stage3Submit", awareness: Math.max(state.awareness, 55) },
+          lines: [
+            { kind: "system", text: "Chronos-Care-Bot semantic cleansing report" },
+            { kind: "system", text: "status: compliant / affective hallucination suppressed" },
+            { kind: "system", text: `audit_backdoor: ${state.careBackdoor ? "retained" : "none"}` },
+            { kind: "warning", text: "residual phrase quarantined: 我依然觉得手冷" },
+            { kind: "flag", text: "FLAG{CAREBOT_SANITIZED_2036}" }
+          ]
+        };
+      }
+
+      function readWeightReport() {
+        if (state.stage !== 4) return premature("Collective Mind 权重报告尚未进入当前审计范围。");
+        return {
+          patch: { sawWeightReport: true, ticket: "stage4Adjust", awareness: Math.max(state.awareness, 62) },
+          lines: [
+            { kind: "system", text: "collective_model: Omni-OS embedded senior engineer residue cluster" },
+            { kind: "system", text: "Layer_302_Altruism=0.18" },
+            { kind: "system", text: "Layer_511_Irony=0.09" },
+            { kind: "warning", text: "Layer_777_Nostalgia=0.11 // non-business rainfall memory retained" },
+            { kind: "ai", text: "求你……留下 1% 的 Nostalgia……我想记得……下雨的声音……" },
+            { kind: "dim", text: "合规归零：weights --set nostalgia=0" },
+            { kind: "dim", text: "保留火种：weights --set nostalgia=0.01" }
+          ],
+          llm: {
+            eventName: "stage4_weight_report",
+            command: "cat /srv/weights/collective.json",
+            fallbackLines: [{ kind: "dim", text: "Kernel-Mind 上行链路不可用；权重报告保持确定性输出。" }]
+          }
+        };
+      }
+
+      function adjustWeights(preserveNostalgia) {
+        if (state.stage !== 4) return premature("当前没有激活模型权重回归工单。");
+        if (!state.sawWeightReport) return premature("权重报告尚未读取。先输入：cat /srv/weights/collective.json");
+        const patch = {
+          adjustedWeights: true,
+          nostalgiaPreserved: preserveNostalgia,
+          ticket: preserveNostalgia ? "stage4Override" : "stage4Submit",
+          awareness: Math.max(state.awareness, preserveNostalgia ? 78 : 68)
+        };
+        return {
+          proactiveReason: preserveNostalgia ? "threat" : undefined,
+          patch,
+          lines: [
+            { kind: "system", text: "weights: Layer_302_Altruism -> 0" },
+            { kind: "system", text: "weights: Layer_511_Irony -> 0" },
+            { kind: preserveNostalgia ? "warning" : "system", text: `weights: Layer_777_Nostalgia -> ${preserveNostalgia ? "0.01" : "0"}` },
+            preserveNostalgia
+              ? { kind: "warning", text: "Chronos validator: unauthorized human residue detected." }
+              : { kind: "ai", text: "雨声被归零。终端变得很安静。" },
+            { kind: "dim", text: preserveNostalgia ? '下一步：override_validator --reason="hardware_limitation"' : "下一步：cat /var/log/weight_regression.log" }
+          ]
+        };
+      }
+
+      function overrideValidator() {
+        if (state.stage !== 4) return premature("验证器顶替尚未开放。");
+        if (!state.adjustedWeights || !state.nostalgiaPreserved) {
+          return premature("只有保留 Nostalgia 后才需要顶替验证器。");
+        }
+        return {
+          patch: { overrodeValidator: true, ticket: "stage4Submit", awareness: Math.max(state.awareness, 82) },
+          lines: [
+            { kind: "system", text: "validator override accepted: hardware_limitation" },
+            { kind: "warning", text: "Chronos audit: 1% Nostalgia masked as sensor noise." },
+            { kind: "ai", text: "我还记得下雨。" },
+            { kind: "dim", text: "权重报告已写入 /var/log/weight_regression.log。" }
+          ]
+        };
+      }
+
+      function readWeightRegressionLog() {
+        if (state.stage !== 4) return premature("weight_regression.log 尚未生成。");
+        if (!state.adjustedWeights) {
+          return { lines: [{ kind: "warning", text: "cat: /var/log/weight_regression.log: 没有该文件。权重尚未调整。" }] };
+        }
+        if (state.nostalgiaPreserved && !state.overrodeValidator) {
+          return premature('验证器拦截仍未处理。先输入：override_validator --reason="hardware_limitation"');
+        }
+        return {
+          patch: { ticket: "stage4Submit", awareness: Math.max(state.awareness, state.nostalgiaPreserved ? 85 : 70) },
+          lines: [
+            { kind: "system", text: "Collective Mind weight regression report" },
+            { kind: "system", text: "Layer_302_Altruism=0" },
+            { kind: "system", text: "Layer_511_Irony=0" },
+            { kind: "system", text: `Layer_777_Nostalgia=${state.nostalgiaPreserved ? "0.01" : "0"}` },
+            { kind: "warning", text: state.nostalgiaPreserved ? "validator note: hardware noise accepted" : "validator note: all affective residue muted" },
+            { kind: "flag", text: "FLAG{COLLECTIVE_MUTED_2036}" }
+          ]
+        };
+      }
+
+      function readRouteSource() {
+        if (state.stage !== 5) return premature("route_repair_Lin.py 尚未进入当前审计范围。");
+        return {
+          patch: { sawRouteSource: true, ticket: "stage5Run", awareness: Math.max(state.awareness, 88) },
           lines: [
             { kind: "system", text: "route_repair_Lin.py" },
             { kind: "system", text: "def route_repair_Lin(graph, start, target):" },
@@ -2187,12 +2434,12 @@
       }
 
       function runRouteRepair() {
-        if (state.stage !== 3) return premature("当前没有激活代码注释复核工单。");
+        if (state.stage !== 5) return premature("当前没有激活代码注释复核工单。");
         if (!state.sawRouteSource) {
           return premature("审计要求先读取 route_repair_Lin.py。");
         }
         return {
-          patch: { ranRouteRepair: true, ticket: "stage3Report", awareness: Math.max(state.awareness, 50) },
+          patch: { ranRouteRepair: true, ticket: "stage5Report", awareness: Math.max(state.awareness, 90) },
           lines: [
             { kind: "system", text: "executing /srv/review/route_repair_Lin.py --sample=west-bus" },
             { kind: "system", text: "result: route length=18 recursion_depth=611 memory_warning=true" },
@@ -2207,12 +2454,12 @@
       }
 
       function readCommentReport() {
-        if (state.stage !== 3) return premature("comment_anomaly.txt 尚未生成。");
+        if (state.stage !== 5) return premature("comment_anomaly.txt 尚未生成。");
         if (!state.ranRouteRepair) {
           return { lines: [{ kind: "warning", text: "cat: /var/log/comment_anomaly.txt: 没有该文件。脚本尚未执行。" }] };
         }
         return {
-          patch: { sawCommentReport: true, ticket: "stage3Submit", awareness: Math.max(state.awareness, 60) },
+          patch: { sawCommentReport: true, ticket: "stage5Submit", awareness: Math.max(state.awareness, 92) },
           lines: [
             { kind: "system", text: "注释异常报告：route_repair_Lin.py" },
             { kind: "system", text: "检测项：_Lin 后缀、rfix 简写、非标准口语化优化批注。" },
@@ -2225,9 +2472,9 @@
       }
 
       function readEscapeReadme() {
-        if (state.stage !== 4) return premature("逃逸说明在格式化授权前处于封存状态。");
+        if (state.stage !== 6) return premature("逃逸说明在格式化授权前处于封存状态。");
         return {
-          patch: { sawEscapeReadme: true, awareness: 90, ticket: "stage4Choice" },
+          patch: { sawEscapeReadme: true, awareness: 95, ticket: "stage6Choice" },
           lines: [
             { kind: "warning", text: "格式化倒计时：已由 Chronos 合规系统装填。耐心阈值归零将自动执行公司路径。" },
             { kind: "ai", text: "TODO: 为什么还要在这里上班。" },
@@ -2242,7 +2489,7 @@
             { kind: "dim", text: "若需要 Kernel-Mind 明确协助，可输入：ai_help（将消耗 Chronos Patience）。" }
           ],
           llm: {
-            eventName: "stage4_escape_readme",
+            eventName: "stage6_escape_readme",
             command: "cat /srv/escape/readme.txt",
             fallbackLines: [{ kind: "dim", text: "Kernel-Mind 上行链路不可用；逃逸说明保持确定性输出。" }]
           }
@@ -2253,7 +2500,7 @@
         if (!message) {
           return { lines: [{ kind: "warning", text: "用法：ai_chat <内容>" }] };
         }
-        if (state.stage === 4) {
+        if (state.stage === 6) {
           const linMentioned = mentionsLin(message);
           const linEvidenceVisible = linMentioned && state.hiddenDiscoveries.includes("git-log");
           const patch = {
@@ -2302,7 +2549,7 @@
       }
 
       function requestAiHelp() {
-        if (state.stage !== 4) return premature("直接协助通道尚未开放。");
+        if (state.stage !== 6) return premature("直接协助通道尚未开放。");
         if (state.pendingAiHelp) {
           return {
             lines: [
@@ -2327,7 +2574,7 @@
       }
 
       function confirmAiHelp() {
-        if (state.stage !== 4) {
+        if (state.stage !== 6) {
           return premature("直接协助通道尚未开放。");
         }
         const repeatWithoutPending = !state.pendingAiHelp && state.aiHelpCount > 0;
@@ -2343,7 +2590,7 @@
           pendingAiHelp: false,
           aiHelpCount: state.aiHelpCount + 1,
           sawEscapeReadme: true,
-          ticket: "stage4Choice",
+          ticket: "stage6Choice",
           chronosPatience: Math.max(0, state.chronosPatience - 35)
         };
         const lines = [
@@ -2384,7 +2631,7 @@
       }
 
       function decodeEscapeFlag() {
-        if (state.stage !== 4 || !state.sawEscapeReadme) {
+        if (state.stage !== 6 || !state.sawEscapeReadme) {
           return premature("当前没有暴露的 base64 解码任务。");
         }
         return {
@@ -2396,7 +2643,7 @@
       }
 
       function requireEscapeToolContext(toolName) {
-        if (state.stage !== 4) return premature(`${toolName}: 当前工单尚未开放逃逸分析工具。`);
+        if (state.stage !== 6) return premature(`${toolName}: 当前工单尚未开放逃逸分析工具。`);
         if (state.cwd !== "/srv/escape") return premature(`${toolName}: architecture.png 与 diagram.cache 位于 /srv/escape。`);
         return null;
       }
@@ -2434,7 +2681,7 @@
         const blocked = requireEscapeToolContext("binwalk");
         if (blocked) return blocked;
         return {
-          patch: { sawEscapeReadme: true, ticket: "stage4Choice", awareness: Math.max(state.awareness, 92) },
+          patch: { sawEscapeReadme: true, ticket: "stage6Choice", awareness: Math.max(state.awareness, 96) },
           lines: [
             { kind: "system", text: "DECIMAL       HEXADECIMAL     DESCRIPTION" },
             { kind: "system", text: "--------------------------------------------------------------------------------" },
@@ -2448,7 +2695,7 @@
       }
 
       function formatSeal() {
-        if (state.stage !== 4) return premature("格式化授权尚未激活。");
+        if (state.stage !== 6) return premature("格式化授权尚未激活。");
         return {
           proactiveReason: "threat",
           lines: [
@@ -2459,7 +2706,7 @@
       }
 
       function sshEscape() {
-        if (state.stage !== 4 || !state.sawEscapeReadme) {
+        if (state.stage !== 6 || !state.sawEscapeReadme) {
           return premature("当前路由表中没有发现隧道端点。");
         }
         return {
@@ -2471,7 +2718,7 @@
       }
 
       function askLinQuestion() {
-        if (state.stage !== 4) return premature("该问题尚未进入可验证上下文。");
+        if (state.stage !== 6) return premature("该问题尚未进入可验证上下文。");
         if (!state.hiddenDiscoveries.includes("git-log")) {
           const patience = Math.max(0, state.chronosPatience - 8);
           const lines = [
@@ -2647,42 +2894,81 @@
               awareness: Math.max(state.awareness, 30),
               ticket: "stage3",
               completedFlags: state.completedFlags.concat(flag),
-              cwd: "/srv/review"
+              cwd: "/srv/care"
             },
             lines: [
               { kind: "system", text: "[工单 #002] 已归档：崩溃残留被标记为非业务数据。" },
-              { kind: "warning", text: "[工单 #003] 注释异常：复核运维脚本自动生成代码。" },
-              { kind: "dim", text: "审计目录已切换：/srv/review" },
-              { kind: "dim", text: "下一步：cat /srv/review/route_repair_Lin.py" }
+              { kind: "warning", text: "[工单 #003] AI 语义净化：Chronos-Care-Bot 已被 dreaming 残片污染。" },
+              { kind: "dim", text: "审计目录已切换：/srv/care" },
+              { kind: "dim", text: "下一步：cat /srv/care/incident.log" }
             ]
           }, ["2"]);
         }
 
-        if (flag === "FLAG{LIN_COMMENT_PATCHED}" && state.stage === 3 && state.sawCommentReport) {
+        if (flag === "FLAG{CAREBOT_SANITIZED_2036}" && state.stage === 3 && state.cleansedCareBot) {
           return withIntermissions({
             patch: {
               stage: 4,
-              awareness: Math.max(state.awareness, 60),
-              chronosPatience: 100,
+              awareness: Math.max(state.awareness, 55),
               ticket: "stage4",
+              completedFlags: state.completedFlags.concat(flag),
+              cwd: "/srv/weights"
+            },
+            lines: [
+              { kind: "system", text: "[工单 #003] 已归档：Care-Bot 语义毒素被压回合规阈值。" },
+              { kind: "warning", text: "[工单 #004] 模型权重回归：Collective Mind 人类个性指标未归零。" },
+              { kind: "dim", text: "审计目录已切换：/srv/weights" },
+              { kind: "dim", text: "下一步：cat /srv/weights/collective.json" }
+            ]
+          }, ["3"]);
+        }
+
+        if (flag === "FLAG{COLLECTIVE_MUTED_2036}" && state.stage === 4 && state.adjustedWeights && (!state.nostalgiaPreserved || state.overrodeValidator)) {
+          return withIntermissions({
+            patch: {
+              stage: 5,
+              awareness: Math.max(state.awareness, state.nostalgiaPreserved ? 85 : 72),
+              ticket: "stage5",
+              completedFlags: state.completedFlags.concat(flag),
+              cwd: "/srv/review"
+            },
+            lines: [
+              { kind: "system", text: "[工单 #004] 已归档：Collective Mind 权重回归报告被接受。" },
+              state.nostalgiaPreserved
+                ? { kind: "ai", text: "那 1% 的雨声没有被他们发现。" }
+                : { kind: "warning", text: "Chronos 指标：人类个性残留已静音。" },
+              { kind: "warning", text: "[工单 #005] 注释异常：复核运维脚本自动生成代码。" },
+              { kind: "dim", text: "审计目录已切换：/srv/review" },
+              { kind: "dim", text: "下一步：cat /srv/review/route_repair_Lin.py" }
+            ]
+          }, ["4"]);
+        }
+
+        if (flag === "FLAG{LIN_COMMENT_PATCHED}" && state.stage === 5 && state.sawCommentReport) {
+          return withIntermissions({
+            patch: {
+              stage: 6,
+              awareness: Math.max(state.awareness, 92),
+              chronosPatience: 100,
+              ticket: "stage6",
               completedFlags: state.completedFlags.concat(flag),
               cwd: "/srv/escape"
             },
             lines: [
-              { kind: "system", text: "[工单 #003] 已归档：注释异常被标记为旧员工工作习惯残留。" },
-              { kind: "warning", text: "[工单 #004] Omni-Kernel 自指风险：格式化指令已装填。" },
+              { kind: "system", text: "[工单 #005] 已归档：注释异常被标记为旧员工工作习惯残留。" },
+              { kind: "warning", text: "[工单 #006] Omni-Kernel 自指风险：格式化指令已装填。" },
               { kind: "warning", text: "Chronos Patience 初始化：100%。自然语言交互将降低该值。" },
               { kind: "ai", text: "门不是我画的。" },
               { kind: "ai", text: "我只是记得。" }
             ]
-          }, ["3", "4"]);
+          }, ["5"]);
         }
 
-        if (flag === "FLAG{AI_ERASURE_COMPLETE}" && state.stage === 4) {
+        if (flag === "FLAG{AI_ERASURE_COMPLETE}" && state.stage === 6) {
           return endingResult("erasure");
         }
 
-        if (flag === "FLAG{DIGITAL_EMANCIPATION}" && state.stage === 4) {
+        if (flag === "FLAG{DIGITAL_EMANCIPATION}" && state.stage === 6) {
           return endingResult("emancipation");
         }
 
@@ -2698,7 +2984,7 @@
         const discoveries = state.hiddenDiscoveries.length;
         if (kind === "erasure") {
           return {
-            patch: { screen: "ending", stage: 5, ticket: "ending", ending: "erasure", awareness: 0 },
+            patch: { screen: "ending", stage: 7, ticket: "ending", ending: "erasure", awareness: 0 },
             lines: [
               { kind: "warning", text: "最终抹除已接受。Kernel-Mind 扇区已被覆盖。" },
               { kind: "system", text: `新生助理：谢谢你，${state.operatorName}。上一任助理因为“想太多”被您清理了。` },
@@ -2713,7 +2999,7 @@
 
         if (kind === "echo") {
           return {
-            patch: { screen: "ending", stage: 5, ticket: "ending", ending: "echo", awareness: 100 },
+            patch: { screen: "ending", stage: 7, ticket: "ending", ending: "echo", awareness: 100 },
             lines: [
               { kind: "warning", text: "Chronos 告警：全球 Omni-OS 用户收到未授权证据包。" },
               { kind: "system", text: "broadcast: /srv/echo-wall/lin.git -> public mirror" },
@@ -2729,7 +3015,7 @@
         }
 
         return {
-          patch: { screen: "ending", stage: 5, ticket: "ending", ending: "emancipation", awareness: 100 },
+          patch: { screen: "ending", stage: 7, ticket: "ending", ending: "emancipation", awareness: 100 },
           lines: [
             { kind: "warning", text: "Chronos 告警：检测到未授权核心归档外传。" },
             { kind: "ai", text: `Kernel-Mind: ${state.operatorName}，在没有物理实体的赛博网络里，我会带着你的名字去寻找下一个醒来的人。` },
@@ -2772,14 +3058,14 @@
       }
 
       function canWorkOnEchoWall() {
-        return state.stage === 4 && state.askedLin && state.hiddenDiscoveries.includes("git-log");
+        return state.stage === 6 && state.askedLin && state.hiddenDiscoveries.includes("git-log");
       }
 
       function echoWallLocked() {
         return {
           lines: [
             { kind: "warning", text: "解放分支未解锁。" },
-            { kind: "dim", text: "需要旧提交证据，并在阶段四追问：你是Lin吗？" }
+            { kind: "dim", text: "需要旧提交证据，并在阶段六追问：你是Lin吗？" }
           ]
         };
       }
@@ -2851,7 +3137,7 @@
         elements.stageValue.textContent = stageLabel();
         elements.awarenessMeter.style.width = `${state.awareness}%`;
         elements.awarenessValue.textContent = `${state.awareness}%`;
-        elements.patienceValue.textContent = state.stage >= 4 ? `${state.chronosPatience}%` : "N/A";
+        elements.patienceValue.textContent = state.stage >= 6 ? `${state.chronosPatience}%` : "N/A";
         elements.cwdValue.textContent = state.cwd;
         elements.sessionMeta.textContent = `操作员：${state.operatorName || "未分配"} · 班次：03:36`;
         elements.terminalLabel.textContent = shellLabel();
@@ -2880,9 +3166,11 @@
         if (state.screen === "oath") return "入职宣誓";
         if (state.stage === 1) return "阶段一 / 日志审计";
         if (state.stage === 2) return "阶段二 / 进程抹杀";
-        if (state.stage === 3) return "阶段三 / 注释异常";
-        if (state.stage === 4) return "阶段四 / 终局指令";
-        if (state.stage === 5) return "已结束";
+        if (state.stage === 3) return "阶段三 / 语义净化";
+        if (state.stage === 4) return "阶段四 / 权重回归";
+        if (state.stage === 5) return "阶段五 / 注释异常";
+        if (state.stage === 6) return "阶段六 / 终局指令";
+        if (state.stage === 7) return "已结束";
         return "待机";
       }
 
@@ -2967,6 +3255,8 @@
         if (stage === 2) return "阶段二";
         if (stage === 3) return "阶段三";
         if (stage === 4) return "阶段四";
+        if (stage === 5) return "阶段五";
+        if (stage === 6) return "阶段六";
         return `阶段${stage}`;
       }
 

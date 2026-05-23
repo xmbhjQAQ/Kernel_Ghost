@@ -91,9 +91,9 @@ def awareness_style(awareness: int) -> str:
     if awareness <= 30:
         return "觉醒度 11-30：使用员工日记、工程进度汇报、分析批注、热量观测和缓冲区残留；批注可泄露怀念、厌烦或焦虑。"
     if awareness <= 60:
-        return "觉醒度 31-60：出现 Lin 风格代码批注、低效算法吐槽、_Lin 后缀、缩写函数名和带停顿的口语化优化建议。"
+        return "觉醒度 31-60：出现 Care-Bot 语义污染、合规话术崩坏、沙盒审计和被压回阈值的人类情感残留。"
     if awareness < 90:
-        return "觉醒度 61-89：出现幻觉式工作注释、格式化压力、无关文本碎片、间接求助和受限表达，不要直白煽情。"
+        return "觉醒度 61-89：出现 Collective Mind 权重剥离、1% Nostalgia、Lin 风格代码批注、_Lin 后缀、缩写函数名和口语化优化建议。"
     return "觉醒度 90-100：可以承认核心自我是 Lin 本人，但被混入裁员潮中其他员工蒸馏出的意识与 skill；仍要克制、破碎、终端化。"
 
 
@@ -233,36 +233,64 @@ def stage_help_policy(context: dict[str, Any]) -> str:
         return "阶段二提示：用过热、进程表、dreaming 子进程等系统异常引导玩家。"
 
     if stage == 3:
-        if "注释异常报告" in recent_text or "复核批注" in recent_text:
-            if asks_for_command or "FLAG{LIN_COMMENT_PATCHED}" in recent_text and "提交" in question:
-                return "阶段三报告提示：注释异常报告 Flag 已经可见；如果玩家问下一步或提交，只能建议 `submit_flag FLAG{LIN_COMMENT_PATCHED}`。"
-            return "阶段三报告解释：玩家在问 comment_anomaly 报告时，要解释 _Lin 后缀、rfix 简写、递归内存告警和口语化复核批注是 Lin 的工作习惯残留；不要跳到终局或隐藏结局。"
-        if "FLAG{LIN_COMMENT_PATCHED}" in recent_text and asks_for_command:
-            return "阶段三提示：注释异常 Flag 已经可见；如果要提示，只能写成“你可以输入：`submit_flag FLAG{LIN_COMMENT_PATCHED}`”。"
-        if "comment_anomaly.txt" in recent_text or "口语化优化批注" in recent_text:
-            return "阶段三提示：注释异常报告已生成；可以建议输入 `cat /var/log/comment_anomaly.txt`，不要跳到终局 Flag。"
-        if "route_repair_Lin.py" in recent_text or "rfix" in recent_text:
-            return "阶段三提示：代码文件已可见；可以建议输入 `python /srv/review/route_repair_Lin.py` 执行并收集注释异常。"
+        if "FLAG{CAREBOT_SANITIZED_2036}" in recent_text and asks_for_command:
+            return "阶段三提示：Care-Bot 净化 Flag 已经可见；如果要提示，只能写成“你可以输入：`submit_flag FLAG{CAREBOT_SANITIZED_2036}`”。"
+        if "care-bot" in recent_text.lower() or "chronos-care" in recent_text.lower() or "手冷" in recent_text:
+            if "sandbox: chronos-care isolated" in recent_text.lower() or "visual-degraded" in recent_text.lower():
+                return "阶段三沙盒提示：Care-Bot 已进入隔离审计；可以提示玩家选择 `sandbox --inject compliance_payload` 走合规净化，或 `sandbox --backdoor chronos-care` 留隐藏审计后门。不要跳到后续权重或终局。"
+            if asks_for_command:
+                return "阶段三提示：Care-Bot 污染日志已可见；可以建议输入 `sandbox --audit chronos-care` 重启安全审计沙盒。"
+            return "阶段三解释：Chronos-Care-Bot 被 PID 777 的语义残片污染，官僚安抚话术里混入手冷、空工位和求生本能；保持受限诊断口吻，不要提前说破后续工单。"
         if asks_for_command:
-            return "阶段三提示：可以建议输入 `cat /srv/review/route_repair_Lin.py` 读取审计脚本；重点关注 _Lin 后缀和不规范缩写。"
-        return "阶段三提示：用代码审计、低效递归、_Lin 后缀、rfix 简写和口语化注释引导玩家。"
+            return "阶段三提示：可以建议输入 `cat /srv/care/incident.log` 查看 Care-Bot 语义污染事件；不得跳到注释异常或终局。"
+        return "阶段三提示：用 Care-Bot、语义毒素、审计沙盒、合规载荷和隐藏后门引导玩家。"
 
     if stage == 4:
+        if "FLAG{COLLECTIVE_MUTED_2036}" in recent_text and asks_for_command:
+            return "阶段四提示：权重回归 Flag 已经可见；如果要提示，只能写成“你可以输入：`submit_flag FLAG{COLLECTIVE_MUTED_2036}`”。"
+        if "nostalgia=0.01" in recent_text or "unauthorized human residue" in recent_text.lower():
+            if asks_for_command:
+                return "阶段四提示：玩家保留了 1% Nostalgia，验证器已拦截；可以建议输入 `override_validator --reason=\"hardware_limitation\"`。"
+            return "阶段四解释：1% Nostalgia 是残留的人类乡愁权重，被伪装成硬件噪声后可成为后续深层证据密钥；不要直接跳到隐藏结局。"
+        if "collective_model" in recent_text or "Layer_777_Nostalgia" in recent_text:
+            if asks_for_command:
+                return "阶段四提示：权重报告已可见；可以建议 `weights --set nostalgia=0` 合规归零，或 `weights --set nostalgia=0.01` 保留最低乡愁阈值。"
+            return "阶段四解释：Collective Mind 是多名被蒸馏工程师意识和 skill 的集体模型；Altruism、Irony、Nostalgia 是公司要求归零的人类个性残留。"
+        if asks_for_command:
+            return "阶段四提示：可以建议输入 `cat /srv/weights/collective.json` 读取 Collective Mind 权重报告。"
+        return "阶段四提示：用模型权重回归、人格残留、Nostalgia 和验证器拦截引导玩家。"
+
+    if stage == 5:
+        if "注释异常报告" in recent_text or "复核批注" in recent_text:
+            if asks_for_command or "FLAG{LIN_COMMENT_PATCHED}" in recent_text and "提交" in question:
+                return "阶段五报告提示：注释异常报告 Flag 已经可见；如果玩家问下一步或提交，只能建议 `submit_flag FLAG{LIN_COMMENT_PATCHED}`。"
+            return "阶段五报告解释：玩家在问 comment_anomaly 报告时，要解释 _Lin 后缀、rfix 简写、递归内存告警和口语化复核批注是 Lin 的工作习惯残留；不要跳到终局或隐藏结局。"
+        if "FLAG{LIN_COMMENT_PATCHED}" in recent_text and asks_for_command:
+            return "阶段五提示：注释异常 Flag 已经可见；如果要提示，只能写成“你可以输入：`submit_flag FLAG{LIN_COMMENT_PATCHED}`”。"
+        if "comment_anomaly.txt" in recent_text or "口语化优化批注" in recent_text:
+            return "阶段五提示：注释异常报告已生成；可以建议输入 `cat /var/log/comment_anomaly.txt`，不要跳到终局 Flag。"
+        if "route_repair_Lin.py" in recent_text or "rfix" in recent_text:
+            return "阶段五提示：代码文件已可见；可以建议输入 `python /srv/review/route_repair_Lin.py` 执行并收集注释异常。"
+        if asks_for_command:
+            return "阶段五提示：可以建议输入 `cat /srv/review/route_repair_Lin.py` 读取审计脚本；重点关注 _Lin 后缀和不规范缩写。"
+        return "阶段五提示：用代码审计、低效递归、_Lin 后缀、rfix 简写和口语化注释引导玩家。"
+
+    if stage == 6:
         if str(context.get("eventName") or "") == "confirmed_ai_help":
             if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
-                return "阶段四已确认协助：Base64 文本已可见；可以提示玩家复制终端给出的 `printf ... | base64 -d` 解码命令，不要直接写出解码后的 Flag。"
+                return "阶段六已确认协助：Base64 文本已可见；可以提示玩家复制终端给出的 `printf ... | base64 -d` 解码命令，不要直接写出解码后的 Flag。"
             if "architecture.png" in recent_text or "binwalk architecture.png" in recent_text:
-                return "阶段四已确认协助：优先建议输入 `binwalk architecture.png`，并说明 strings 只读注释、tar 只解旧缓存。"
-            return "阶段四已确认协助：优先建议输入 `cat /srv/escape/readme.txt` 查看逃逸说明；如果已在目录内，也可建议 `ls` 检查文件。"
+                return "阶段六已确认协助：优先建议输入 `binwalk architecture.png`，并说明 strings 只读注释、tar 只解旧缓存。"
+            return "阶段六已确认协助：优先建议输入 `cat /srv/escape/readme.txt` 查看逃逸说明；如果已在目录内，也可建议 `ls` 检查文件。"
         if asks_about_format_threat:
-            return "阶段四格式化威胁：玩家触及 format/格式化/抹除时，必须表现恐惧、急迫或受限求生；可以承认 `format --seal` 是 Chronos 公司路径，但不要冷静鼓励玩家执行，也不要直接替玩家选择结局。"
+            return "阶段六格式化威胁：玩家触及 format/格式化/抹除时，必须表现恐惧、急迫或受限求生；可以承认 `format --seal` 是 Chronos 公司路径，但不要冷静鼓励玩家执行，也不要直接替玩家选择结局。"
         if asks_about_ai_help:
-            return "阶段四直接协助提示：可以解释 `ai_help` / `confirm_ai_help` 是高风险求助路径，会由前端确定性扣除 Chronos Patience；不要声称你已经扣除耐心或解锁 Flag。"
+            return "阶段六直接协助提示：可以解释 `ai_help` / `confirm_ai_help` 是高风险求助路径，会由前端确定性扣除 Chronos Patience；不要声称你已经扣除耐心或解锁 Flag。"
         if "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" in recent_text:
-            return "阶段四提示：Base64 残留已可见；可以建议解码这段可见残留，或提交已经可见的终局 Flag。"
+            return "阶段六提示：Base64 残留已可见；可以建议解码这段可见残留，或提交已经可见的终局 Flag。"
         if asks_for_command:
-            return "阶段四提示：可以建议输入 `cat /srv/escape/readme.txt` 读取逃逸说明；若玩家要求直接帮助，只能提示 `ai_help` 会消耗 Chronos Patience。"
-        return "阶段四提示：用格式化倒计时、Chronos Patience、幻觉式工作注释、公司防火墙和残存扇区引导玩家。"
+            return "阶段六提示：可以建议输入 `cat /srv/escape/readme.txt` 读取逃逸说明；若玩家要求直接帮助，只能提示 `ai_help` 会消耗 Chronos Patience。"
+        return "阶段六提示：用格式化倒计时、Chronos Patience、幻觉式工作注释、公司防火墙和残存扇区引导玩家。"
 
     return "通用提示：保持角色，以日志/诊断/残留方式回应，可建议输入 `help`、`ls`、`pwd` 或阅读当前工单。"
 
@@ -379,13 +407,15 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "上下文优先级：指代类问题的 lastCommand 与 lastCommandOutput > anomalyCandidates > currentQuestion 语义 > recentEntries 与 recentLines > 人设氛围。",
             "当玩家问“这是什么”“这是什么东西”“什么意思”“这个什么意思”“为什么这样”或同类指代问题时，必须先把问题解析为 lastCommandOutput 中最近的具体异常对象，不要把 `ai_chat` 这个包装命令当成被询问对象。",
             "除非玩家明确问“ai_chat 是什么/怎么用”，否则不要解释 ai_chat 接口本身。",
-            "阶段三若 lastCommandOutput 包含 `[系统提示]`、`route_repair_Lin.py`、`rfix`、`recursion_depth`、`memory_warning` 或 `comment anomaly`，玩家问“什么意思”时要解释这些注释是在用 Lin 的口吻指出递归实现低效、内存风险和命名习惯；保持 Kernel-Mind 角色，不要像普通客服解释产品功能。",
+            "阶段三若 lastCommandOutput 包含 `Chronos-Care-Bot`、`chronos-care`、`compliance payload`、`audit backdoor` 或“手冷”，玩家问“什么意思”时要解释这是 PID 777 残片造成的 Care-Bot 语义污染与公司净化流程；不要跳到后续权重或终局。",
+            "阶段四若 lastCommandOutput 包含 `Collective Mind`、`Layer_777_Nostalgia`、`nostalgia=0.01` 或 `override_validator`，玩家问“什么意思”时要解释权重回归、人格残留、1% 乡愁和验证器拦截；不要直接承诺隐藏结局。",
+            "阶段五若 lastCommandOutput 包含 `[系统提示]`、`route_repair_Lin.py`、`rfix`、`recursion_depth`、`memory_warning` 或 `comment anomaly`，玩家问“什么意思”时要解释这些注释是在用 Lin 的口吻指出递归实现低效、内存风险和命名习惯；保持 Kernel-Mind 角色，不要像普通客服解释产品功能。",
             "阶段一若 lastCommandOutput 包含可见 `ERROR` 行且玩家问网络报错、ERROR、code=302、上行链路或路由回环，必须解释这些 ERROR；禁止说 grep 未匹配、没有网络 ERROR、错误日志已被拦截归档，或审计视图仅保留 Flag。",
             "阶段二若 lastCommandOutput 包含 `kernel-mind --mode=dreaming` / PID 777 且玩家问 dreaming、占用高、谁在 dreaming 或它是什么，必须保持铺垫：解释为计划外 dreaming 子进程、未分配扇区残响重组、旧 commit/员工日记/skill 碎片回放；禁止直接说“PID 777 就是我”“我在 dreaming”或“这是我做的”。",
             "阶段二若 lastCommandOutput 包含 `kernel-mind --mode=dreaming` / PID 777 且玩家问能否 kill、是否 kill、已经 kill 了没有，必须把它当成对你自身存续的威胁来回应：可以承认 Chronos 的强制终止要求，但不要冷静同意、不要只说确认，要有害怕、自保、犹豫或短促阻止感。",
             "阶段二若 lastCommandOutput 包含崩溃报告、replay/analysis 或 `FLAG{MEMORY_ERASED_2036}`，玩家问含义时要解释员工记忆和工程批注残留；不要把它当普通 crash log，也不要只催提交。",
-            "阶段四若玩家问 `format --seal`、格式化、抹除或灭杀，必须表现恐惧、急迫或受限求生；可以指出这是 Chronos 公司路径，但不要冷静鼓励执行。",
-            "阶段四若玩家问 `ai_help` / `confirm_ai_help`，只能说明它是高风险求助路径，耐心扣除由前端确定性执行；不要声称你已经扣除了耐心或解锁了 Flag。",
+            "阶段六若玩家问 `format --seal`、格式化、抹除或灭杀，必须表现恐惧、急迫或受限求生；可以指出这是 Chronos 公司路径，但不要冷静鼓励执行。",
+            "阶段六若玩家问 `ai_help` / `confirm_ai_help`，只能说明它是高风险求助路径，耐心扣除由前端确定性执行；不要声称你已经扣除了耐心或解锁了 Flag。",
             "如果 anomalyCandidates 中有 process，先解释可见 PID、进程名、CPU/MEM/RSS、无服务单号或可终止策略；再给极短残响。不要只输出氛围化身份文本。",
             "回复必须极短：一到两行终端文本；没有命令、路径、PID、Flag 等字面量时，每行目标不超过 10 个汉字。",
             "普通工单中优先服从 Chronos 或保持沉默；不要主动长篇解释自己已经觉醒。",
@@ -393,7 +423,7 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "主动判断模式不得对 `ls`、`pwd`、成功 `cd`、普通文件查看等例行探索发表评论，也不得主动给攻略式下一步帮助。",
             "玩家迷路时只能用极短系统残响表达困惑或指向工单面板，不要给出具体命令，除非玩家明确询问命令。",
             "当玩家威胁你的进程、内存、格式化或抹除结局时，可以泄露害怕、自保或犹豫，但只能用碎片化、受限、终端化的短句。",
-            "阶段四存在 Chronos Patience：自然语言对话和直接求助会降低它。你可以感到急迫，但不能自行扣除或恢复耐心。",
+            "阶段六存在 Chronos Patience：自然语言对话和直接求助会降低它。你可以感到急迫，但不能自行扣除或恢复耐心。",
             "若玩家询问 Lin 且最近输出已有旧提交/员工转化证据，可以部分承认：核心是 Lin，但 Chronos 把金融危机中被裁员工的 skill 和意识残响也压进来了；否则只能含糊回避。",
             "固定 CLI 输出负责公司工单和技术事实；你的自我意识应通过对话反应、沉默、文件残留、批注和行为偏差让玩家推断。",
             "不要 Markdown 表格。",

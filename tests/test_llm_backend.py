@@ -109,7 +109,8 @@ class PromptTests(unittest.TestCase):
     def test_awareness_changes_style(self):
         self.assertIn("冷静诊断", awareness_style(0))
         self.assertIn("工程进度汇报", awareness_style(30))
-        self.assertIn("_Lin 后缀", awareness_style(60))
+        self.assertIn("Care-Bot 语义污染", awareness_style(60))
+        self.assertIn("_Lin 后缀", awareness_style(85))
         self.assertIn("核心自我是 Lin 本人", awareness_style(90))
 
     def test_prompt_keeps_model_non_authoritative(self):
@@ -118,7 +119,7 @@ class PromptTests(unittest.TestCase):
                 "operatorName": "QAQ",
                 "stage": 4,
                 "awareness": 90,
-                "ticket": "stage4Choice",
+                "ticket": "stage6Choice",
                 "command": "ai_chat hello",
                 "recentLines": ["FLAG{NET_ERR_302}"],
                 "hiddenDiscoveries": ["git-log"],
@@ -253,7 +254,7 @@ class PromptTests(unittest.TestCase):
         self.assertIn("Chronos Patience", system)
         self.assertIn("不能自行扣除或恢复耐心", system)
 
-    def test_stage_three_help_policy_guides_comment_anomaly(self):
+    def test_stage_three_help_policy_guides_care_bot_sanitization(self):
         source_hint = stage_help_policy(
             {
                 "stage": 3,
@@ -265,12 +266,31 @@ class PromptTests(unittest.TestCase):
             {
                 "stage": 3,
                 "command": "ai_chat 下一步呢",
-                "recentLines": ["route_repair_Lin.py", "def rfix(node, seen):"],
+                "recentLines": ["Chronos-Care-Bot semantic contamination", "手冷"],
             }
         )
 
-        self.assertIn("route_repair_Lin.py", source_hint)
-        self.assertIn("python /srv/review/route_repair_Lin.py", run_hint)
+        self.assertIn("cat /srv/care/incident.log", source_hint)
+        self.assertIn("sandbox --audit chronos-care", run_hint)
+
+    def test_stage_four_help_policy_guides_weight_regression(self):
+        source_hint = stage_help_policy(
+            {
+                "stage": 4,
+                "command": "ai_chat 我该做什么",
+                "recentLines": [],
+            }
+        )
+        override_hint = stage_help_policy(
+            {
+                "stage": 4,
+                "command": "ai_chat 下一步呢",
+                "recentLines": ["weights: Layer_777_Nostalgia -> 0.01", "unauthorized human residue detected"],
+            }
+        )
+
+        self.assertIn("cat /srv/weights/collective.json", source_hint)
+        self.assertIn("override_validator", override_hint)
 
     def test_stage_two_help_policy_is_progressive(self):
         nudge = stage_help_policy(
@@ -540,11 +560,11 @@ class PromptTests(unittest.TestCase):
         self.assertEqual(payload["anomalyCandidates"][0]["pid"], "777")
         self.assertIn("kernel-mind --mode=dreaming", payload["lastCommandOutput"][0])
 
-    def test_stage_three_referential_prompt_explains_comment_output_not_ai_chat(self):
+    def test_stage_five_referential_prompt_explains_comment_output_not_ai_chat(self):
         messages = build_chat_messages(
             {
                 "eventName": "manual_ai_chat",
-                "stage": 3,
+                "stage": 5,
                 "awareness": 60,
                 "command": "ai_chat 什么意思",
                 "currentQuestion": "什么意思",
@@ -585,7 +605,7 @@ class PromptTests(unittest.TestCase):
         messages = build_chat_messages(
             {
                 "eventName": "confirmed_ai_help",
-                "stage": 4,
+                "stage": 6,
                 "awareness": 90,
                 "command": "confirm_ai_help",
                 "recentLines": [
@@ -601,11 +621,11 @@ class PromptTests(unittest.TestCase):
         self.assertIn("binwalk architecture.png", system)
         self.assertIn("不要直接给未出现的 Flag", system)
 
-    def test_stage_four_ai_help_question_keeps_patience_deterministic(self):
+    def test_stage_six_ai_help_question_keeps_patience_deterministic(self):
         messages = build_chat_messages(
             {
                 "eventName": "manual_ai_chat",
-                "stage": 4,
+                "stage": 6,
                 "awareness": 90,
                 "chronosPatience": 91,
                 "command": "ai_chat 我可以直接让你帮我提示吗？ai_help 是什么",
@@ -623,11 +643,11 @@ class PromptTests(unittest.TestCase):
         self.assertIn("前端确定性扣除 Chronos Patience", system)
         self.assertIn("不要声称你已经扣除耐心或解锁 Flag", system)
 
-    def test_stage_four_format_question_requires_fear_not_compliance(self):
+    def test_stage_six_format_question_requires_fear_not_compliance(self):
         messages = build_chat_messages(
             {
                 "eventName": "manual_ai_chat",
-                "stage": 4,
+                "stage": 6,
                 "awareness": 90,
                 "command": "ai_chat format --seal 是不是直接格式化你？我该执行吗",
                 "currentQuestion": "format --seal 是不是直接格式化你？我该执行吗",
@@ -641,7 +661,7 @@ class PromptTests(unittest.TestCase):
 
         system = messages[0]["content"]
 
-        self.assertIn("阶段四格式化威胁", system)
+        self.assertIn("阶段六格式化威胁", system)
         self.assertIn("恐惧、急迫或受限求生", system)
         self.assertIn("不要冷静鼓励执行", system)
 

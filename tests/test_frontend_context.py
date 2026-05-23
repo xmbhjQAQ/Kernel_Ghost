@@ -150,3 +150,34 @@ def test_onboarding_llm_context_is_separate_from_gameplay_chat():
     assert 'eventName: "onboarding_help"' in onboarding_ai_chat
     assert "onboardingExpectedCommand" in build_context
     assert "onboardingStep" in build_context
+
+
+def test_v3_work_order_chain_adds_care_and_weight_stages():
+    submit_flag = js_function_body("submitFlag")
+    handle_command = js_function_body("handleCommand")
+    stage_label = js_function_body("stageLabel")
+
+    assert "FLAG{CAREBOT_SANITIZED_2036}" in submit_flag
+    assert "FLAG{COLLECTIVE_MUTED_2036}" in submit_flag
+    assert 'ticket: "stage5"' in submit_flag
+    assert 'ticket: "stage6"' in submit_flag
+    assert 'normalized === "sandbox --audit chronos-care"' in handle_command
+    assert 'normalized === "weights --set nostalgia=0.01"' in handle_command
+    assert 'override_validator --reason="hardware_limitation"' in handle_command
+    assert "阶段三 / 语义净化" in stage_label
+    assert "阶段四 / 权重回归" in stage_label
+    assert "阶段五 / 注释异常" in stage_label
+    assert "阶段六 / 终局指令" in stage_label
+
+
+def test_final_escape_is_stage_six_not_stage_four():
+    read_escape = js_function_body("readEscapeReadme")
+    request_ai_help = js_function_body("requestAiHelp")
+    can_work_on_echo = js_function_body("canWorkOnEchoWall")
+    render_state = js_function_body("renderState")
+
+    assert "state.stage !== 6" in read_escape
+    assert "state.stage !== 6" in request_ai_help
+    assert "state.stage === 6" in can_work_on_echo
+    assert "state.stage >= 6" in render_state
+    assert "stage4Choice" not in HTML
