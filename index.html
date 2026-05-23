@@ -436,17 +436,31 @@
     }
 
     .discovery {
+      width: 100%;
       border: 1px solid var(--line);
       padding: 9px;
       background: rgba(255, 255, 255, 0.025);
       color: var(--muted);
+      font-family: inherit;
       font-size: 12px;
       line-height: 1.45;
+      text-align: left;
     }
 
     .discovery.found {
       color: var(--cyan);
       border-color: rgba(114, 216, 232, 0.42);
+    }
+
+    .discovery-button {
+      cursor: pointer;
+    }
+
+    .discovery-button:hover,
+    .discovery-button:focus {
+      outline: none;
+      border-color: var(--green);
+      color: var(--green);
     }
 
     .collection-group {
@@ -843,6 +857,7 @@
       let commandToastTimer = 0;
       let metaCollection = { unlocked: [] };
       let pendingEventQueue = [];
+      let viewingArchivedIntermission = false;
 
       const discoveryCatalog = [
         { id: "git-log", label: "幽灵提交历史", locked: "在 /etc/kernel 中存在旧提交索引。" },
@@ -2505,9 +2520,15 @@
           heading.textContent = `${group.label} ${recovered}/${items.length}`;
           groupNode.appendChild(heading);
           items.forEach((item) => {
-            const node = document.createElement("div");
             const found = metaCollection.unlocked.includes(item.id);
+            const canOpenArchive = found && item.group === "Intermissions";
+            const node = document.createElement(canOpenArchive ? "button" : "div");
+            if (canOpenArchive) {
+              node.type = "button";
+              node.addEventListener("click", () => showArchivedIntermission(item.id));
+            }
             node.className = `discovery${found ? " found" : ""}`;
+            if (canOpenArchive) node.classList.add("discovery-button");
             const title = document.createElement("span");
             title.className = "discovery-title";
             title.textContent = item.title;
@@ -2883,6 +2904,8 @@
 
       function showNextIntermission() {
         const event = pendingEventQueue.shift();
+        viewingArchivedIntermission = false;
+        elements.eventConfirmButton.textContent = "确认归档";
         if (!event) {
           hideScreen("eventScreen");
           if (state.screen === "playing") elements.commandInput.focus();
@@ -2900,8 +2923,39 @@
       }
 
       function confirmIntermission() {
+        if (viewingArchivedIntermission) {
+          viewingArchivedIntermission = false;
+          hideScreen("eventScreen");
+          if (state.screen === "playing") {
+            elements.commandInput.focus();
+          } else {
+            elements.restartButton.focus();
+          }
+          return;
+        }
         hideScreen("eventScreen");
         showNextIntermission();
+      }
+
+      function showArchivedIntermission(id) {
+        const event = findIntermissionEvent(id);
+        if (!event || elements.eventScreen.classList.contains("active")) return;
+        viewingArchivedIntermission = true;
+        elements.eventSource.textContent = event.source;
+        elements.eventTime.textContent = event.time;
+        elements.eventTitle.textContent = event.title;
+        elements.eventCopy.textContent = event.text;
+        elements.eventConfirmButton.textContent = "关闭回看";
+        showScreen("eventScreen");
+        elements.eventConfirmButton.focus();
+      }
+
+      function findIntermissionEvent(id) {
+        for (const events of Object.values(intermissionPools)) {
+          const event = events.find((candidate) => candidate.id === id);
+          if (event) return event;
+        }
+        return null;
       }
 
       function restartGame() {
