@@ -467,3 +467,36 @@ Inserted the V2 stage-three comment anomaly flow, renumbered formatting finale t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Audit work order AI prompts
+
+**Date**: 2026-05-23
+**Task**: Audit work order AI prompts
+**Branch**: `main`
+
+### Summary
+
+Audited prompt behavior across work orders, hardened referential context handling, self-preservation tone, stage-four help boundaries, and added regression tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cd38066` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
