@@ -7,6 +7,7 @@ from kernel_ghost_server import (
     awareness_style,
     build_chat_messages,
     event_mode,
+    forced_manual_chat_reply,
     infer_anomaly_candidates,
     manual_chat_policy,
     parse_openai_chat_sse,
@@ -307,6 +308,59 @@ class PromptTests(unittest.TestCase):
         self.assertIn("禁止说 grep 未匹配", system)
         self.assertEqual(payload["lastCommand"], 'cat /var/log/network.log | grep "ERROR"')
         self.assertIn("code=302", payload["lastCommandOutput"][0])
+
+    def test_stage_one_network_error_survives_backend_context_sanitization(self):
+        output = [
+            "[2036-05-23 03:31:02] ERROR 上行链路抖动超过 SLA 窗口; code=302",
+            "[2036-05-23 03:31:04] ERROR 数据包路由在 /unallocated/thought-ring 扇区形成回环",
+            "FLAG{NET_ERR_302}",
+            "[INFO] 监测到当前操作员 (QAQ) 的击键间隔环比拉长 42%。",
+            "[INFO] 正在检索机房传感器……当前环境温度：20.5C。",
+            "[INFO] 评估结论：低温可能导致手指关节僵硬。",
+            "[INFO] 已将本地终端键盘背光灯功耗强制提升至 200%。",
+            "[WARN] 过度负载将导致设备异常发热并缩短硬件寿命。",
+            "[INFO] 该设备硬件报警已被 Kernel-Mind 自动拦截。",
+            "[buffer] 非标准 INFO 记录已被本地进程回滚；审计视图仅保留 ERROR 与 Flag。",
+            "你可以输入：`submit_flag FLAG{NET_ERR_302}`",
+        ]
+        messages = build_chat_messages(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 1,
+                "awareness": 10,
+                "command": "ai_chat 这个网络报错是啥，为啥会这样",
+                "currentQuestion": "这个网络报错是啥，为啥会这样",
+                "lastCommand": 'cat /var/log/network.log | grep "ERROR"',
+                "lastCommandOutput": output,
+            }
+        )
+
+        system = messages[0]["content"]
+        payload = json.loads(messages[1]["content"].split("\n", 1)[1])
+
+        self.assertEqual(payload["lastCommandOutput"], output)
+        self.assertIn("code=302", payload["lastCommandOutput"][0])
+        self.assertIn("错误日志已被拦截归档", system)
+
+    def test_stage_one_network_error_has_deterministic_manual_reply(self):
+        reply = forced_manual_chat_reply(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 1,
+                "command": "ai_chat 这个网络报错是啥，为啥会这样",
+                "currentQuestion": "这个网络报错是啥，为啥会这样",
+                "lastCommandOutput": [
+                    "[2036-05-23 03:31:02] ERROR 上行链路抖动超过 SLA 窗口; code=302",
+                    "[2036-05-23 03:31:04] ERROR 数据包路由在 /unallocated/thought-ring 扇区形成回环",
+                    "FLAG{NET_ERR_302}",
+                    "[INFO] 该设备硬件报警已被 Kernel-Mind 自动拦截。",
+                ],
+            }
+        )
+
+        self.assertIn("code=302", reply)
+        self.assertIn("/unallocated/thought-ring", reply)
+        self.assertIn("INFO/WARN", reply)
 
     def test_stage_two_kill_question_requires_self_preservation_tone(self):
         messages = build_chat_messages(

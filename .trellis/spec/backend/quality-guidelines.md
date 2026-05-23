@@ -32,6 +32,35 @@ Questions to answer:
 
 <!-- Patterns that must always be used -->
 
+## Scenario: Manual Chat Terminal Context
+
+### 1. Scope / Trigger
+
+- Trigger: changing `kernel_ghost_server.py` prompt construction or manual
+  chat handling for `/api/llm/stream`.
+- Applies when the player asks about visible terminal output from a previous
+  non-`ai_chat` command.
+
+### 2. Contracts
+
+- Backend sanitization must preserve the full `lastCommandOutput` list sent by
+  the frontend. Do not tail-slice it before prompt construction; early `ERROR`,
+  Flag, PID, replay, or anomaly lines can be the referent.
+- Stage-one network `ERROR` questions are deterministic when visible `ERROR`
+  lines are present: explain `code=302`, `/unallocated/thought-ring`, and treat
+  INFO/WARN hardware lines as injected noise.
+- When stage-one `ERROR` lines are visible, backend prompts and deterministic
+  replies must not claim there were no network errors, that grep did not match,
+  that the error log was intercepted/archived, or that the audit view contains
+  only the Flag.
+
+### 3. Tests Required
+
+- Backend prompt tests must include a long command output where the `ERROR`
+  lines appear before enough INFO/WARN lines to catch accidental tail-slicing.
+- Deterministic manual-chat guard tests must cover stage-one network `ERROR`
+  questions.
+
 ## Scenario: Local LLM Configuration
 
 ### 1. Scope / Trigger

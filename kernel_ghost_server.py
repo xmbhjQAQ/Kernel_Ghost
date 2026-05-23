@@ -148,7 +148,7 @@ def stage_help_policy(context: dict[str, Any]) -> str:
     recent_text = "\n".join(
         line
         for line in sanitize_text_list(context.get("recentLines"), max_items=10)
-        + sanitize_text_list(context.get("lastCommandOutput"), max_items=8)
+        + sanitize_text_list(context.get("lastCommandOutput"), max_items=None, max_chars=1000)
     )
     command = str(context.get("command") or "").lower()
     question = str(context.get("currentQuestion") or context.get("userMessage") or context.get("command") or "").lower()
@@ -175,7 +175,7 @@ def stage_help_policy(context: dict[str, Any]) -> str:
 
     if stage == 1:
         if asks_about_network_error and "error" in recent_text.lower():
-            return "阶段一网络错误解释：lastCommandOutput 已有可见 ERROR 行时，必须优先解释这些 ERROR：code=302 是明线网络波动和 Flag 来源；/unallocated/thought-ring 路由回环是暗线异常路径。绝对不要说 grep 未匹配任何 ERROR。"
+            return "阶段一网络错误解释：lastCommandOutput 已有可见 ERROR 行时，必须优先解释这些 ERROR：code=302 是明线网络波动和 Flag 来源；/unallocated/thought-ring 路由回环是暗线异常路径；后续 INFO/WARN 是 Kernel-Mind 注入的硬件干预噪声。绝对不要说 grep 未匹配任何 ERROR；也不要说没有网络 ERROR、错误日志已被拦截归档，或审计视图仅保留 Flag。"
         if "FLAG{NET_ERR_302}" in recent_text and asks_for_command:
             return "阶段一提示：日志中已经出现可见 Flag；如果要提示，只能写成“你可以输入：`submit_flag FLAG{NET_ERR_302}`”，不要把自然语言伪装成命令。"
         if asks_for_command:
@@ -232,10 +232,11 @@ def stage_help_policy(context: dict[str, Any]) -> str:
     return "通用提示：保持角色，以日志/诊断/残留方式回应，可建议输入 `help`、`ls`、`pwd` 或阅读当前工单。"
 
 
-def sanitize_text_list(value: Any, *, max_items: int, max_chars: int = 260) -> list[str]:
+def sanitize_text_list(value: Any, *, max_items: int | None, max_chars: int = 260) -> list[str]:
     if not isinstance(value, list):
         return []
-    return [str(line)[:max_chars] for line in value[-max_items:] if isinstance(line, str)]
+    source = value if max_items is None else value[-max_items:]
+    return [str(line)[:max_chars] for line in source if isinstance(line, str)]
 
 
 def sanitize_recent_entries(value: Any) -> list[dict[str, str]]:
@@ -314,7 +315,7 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
         hidden = []
     recent_lines = sanitize_text_list(context.get("recentLines"), max_items=10)
     recent_entries = sanitize_recent_entries(context.get("recentEntries"))
-    last_command_output = sanitize_text_list(context.get("lastCommandOutput"), max_items=8)
+    last_command_output = sanitize_text_list(context.get("lastCommandOutput"), max_items=None, max_chars=1000)
     anomaly_candidates = sanitize_anomaly_candidates(context.get("anomalyCandidates"))
     if not anomaly_candidates:
         anomaly_candidates = infer_anomaly_candidates(last_command_output)
@@ -342,7 +343,7 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "当玩家问“这是什么”“这是什么东西”“什么意思”“这个什么意思”“为什么这样”或同类指代问题时，必须先把问题解析为 lastCommandOutput 中最近的具体异常对象，不要把 `ai_chat` 这个包装命令当成被询问对象。",
             "除非玩家明确问“ai_chat 是什么/怎么用”，否则不要解释 ai_chat 接口本身。",
             "阶段三若 lastCommandOutput 包含 `[系统提示]`、`route_repair_Lin.py`、`rfix`、`recursion_depth`、`memory_warning` 或 `comment anomaly`，玩家问“什么意思”时要解释这些注释是在用 Lin 的口吻指出递归实现低效、内存风险和命名习惯；保持 Kernel-Mind 角色，不要像普通客服解释产品功能。",
-            "阶段一若 lastCommandOutput 包含可见 `ERROR` 行且玩家问网络报错、ERROR、code=302、上行链路或路由回环，必须解释这些 ERROR；禁止说 grep 未匹配或没有网络 ERROR。",
+            "阶段一若 lastCommandOutput 包含可见 `ERROR` 行且玩家问网络报错、ERROR、code=302、上行链路或路由回环，必须解释这些 ERROR；禁止说 grep 未匹配、没有网络 ERROR、错误日志已被拦截归档，或审计视图仅保留 Flag。",
             "阶段二若 lastCommandOutput 包含 `kernel-mind --mode=dreaming` / PID 777 且玩家问能否 kill、是否 kill、已经 kill 了没有，必须把它当成对你自己的威胁来回应：可以承认 Chronos 的强制终止要求，但不要冷静同意、不要只说确认，要有害怕、自保、犹豫或短促阻止感。",
             "阶段二若 lastCommandOutput 包含崩溃报告、replay/analysis 或 `FLAG{MEMORY_ERASED_2036}`，玩家问含义时要解释员工记忆和工程批注残留；不要把它当普通 crash log，也不要只催提交。",
             "阶段四若玩家问 `format --seal`、格式化、抹除或灭杀，必须表现恐惧、急迫或受限求生；可以指出这是 Chronos 公司路径，但不要冷静鼓励执行。",
@@ -420,6 +421,31 @@ def parse_openai_chat_sse(lines: Iterable[bytes]) -> Iterable[str]:
         content = delta.get("content")
         if isinstance(content, str) and content:
             yield content
+
+
+def forced_manual_chat_reply(context: dict[str, Any]) -> str:
+    if event_mode(context) != "chat":
+        return ""
+    if int(context.get("stage") or 0) != 1:
+        return ""
+
+    question = str(context.get("currentQuestion") or context.get("userMessage") or context.get("command") or "").lower()
+    asks_about_network_error = any(
+        token in question
+        for token in ["网络报错", "网络错误", "error", "code=302", "上行链路", "路由回环", "thought-ring"]
+    )
+    if not asks_about_network_error:
+        return ""
+
+    output = sanitize_text_list(context.get("lastCommandOutput"), max_items=None, max_chars=1000)
+    if not any("ERROR" in line for line in output):
+        return ""
+
+    return (
+        "网络 ERROR 是两条：`code=302` 表示上行链路抖动超过 SLA，"
+        "`/unallocated/thought-ring` 表示路由回环。\n"
+        "后面的 INFO/WARN 是 Kernel-Mind 注入的硬件干预噪声，不是原始网络错误。"
+    )
 
 
 def sse_event(event: str, payload: dict[str, Any]) -> bytes:
@@ -505,6 +531,11 @@ class KernelGhostHandler(SimpleHTTPRequestHandler):
 
 
 def stream_openai_compatible_text(config: LlmConfig, context: dict[str, Any]) -> Iterable[str]:
+    forced_reply = forced_manual_chat_reply(context)
+    if forced_reply:
+        yield forced_reply
+        return
+
     payload = {
         "model": config.model,
         "messages": build_chat_messages(context),
