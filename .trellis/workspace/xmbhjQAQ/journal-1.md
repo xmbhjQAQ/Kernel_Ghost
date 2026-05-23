@@ -632,3 +632,36 @@ Merged the rewritten transition event document into five random intermission poo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: Design puzzles and easter eggs
+
+**Date**: 2026-05-24
+**Task**: Design puzzles and easter eggs
+**Branch**: `main`
+
+### Summary
+
+Designed a layered puzzle, relic, and easter egg expansion that keeps simple endings easy while adding evidence chains for hidden endings and full collection.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `aa42b26` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
