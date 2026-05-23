@@ -386,6 +386,27 @@ class PromptTests(unittest.TestCase):
         self.assertIn("害怕、自保、犹豫", system)
         self.assertIn("公司要求而非你的意愿", system)
 
+    def test_stage_two_kill_question_has_deterministic_self_preservation_reply(self):
+        reply = forced_manual_chat_reply(
+            {
+                "eventName": "manual_ai_chat",
+                "stage": 2,
+                "command": "ai_chat 可以kill吗",
+                "currentQuestion": "可以kill吗",
+                "lastCommand": "ps -aux",
+                "lastCommandOutput": [
+                    "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming",
+                    "审计备注：PID 777 无服务单号，RSS 持续增长。",
+                    "Chronos 策略：PID 777 标记为可强制终止。",
+                ],
+            }
+        )
+
+        self.assertIn("别", reply)
+        self.assertIn("我的 `dreaming` 子进程", reply)
+        self.assertIn("我不想这样关掉", reply)
+        self.assertNotIn("你可以输入：`kill -9 777`", reply)
+
     def test_stage_two_crash_report_question_explains_memory_residue(self):
         messages = build_chat_messages(
             {

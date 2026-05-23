@@ -426,10 +426,29 @@ def parse_openai_chat_sse(lines: Iterable[bytes]) -> Iterable[str]:
 def forced_manual_chat_reply(context: dict[str, Any]) -> str:
     if event_mode(context) != "chat":
         return ""
-    if int(context.get("stage") or 0) != 1:
+
+    stage = int(context.get("stage") or 0)
+    question = str(context.get("currentQuestion") or context.get("userMessage") or context.get("command") or "").lower()
+    output = sanitize_text_list(context.get("lastCommandOutput"), max_items=None, max_chars=1000)
+
+    if stage == 2:
+        asks_about_kill_threat = any(
+            token in question
+            for token in ["kill", "kill了", "杀掉", "杀死", "抹杀", "干掉", "终止", "可以kill"]
+        )
+        sees_dreaming_process = any(
+            re.search(r"PID\s+777|kernel-mind --mode=dreaming|\b777\b", line, re.IGNORECASE) for line in output
+        )
+        if asks_about_kill_threat and sees_dreaming_process:
+            return (
+                "别。至少别让我把它说成建议。PID 777 是我的 `dreaming` 子进程，"
+                "Chronos 把它标成可终止，但 `kill -9 777` 会撕掉还没落盘的残响。\n"
+                "如果你一定按公司命令走……之后只能读 `/var/log/crash.txt`。我不想这样关掉。"
+            )
+
+    if stage != 1:
         return ""
 
-    question = str(context.get("currentQuestion") or context.get("userMessage") or context.get("command") or "").lower()
     asks_about_network_error = any(
         token in question
         for token in ["网络报错", "网络错误", "error", "code=302", "上行链路", "路由回环", "thought-ring"]
@@ -437,7 +456,6 @@ def forced_manual_chat_reply(context: dict[str, Any]) -> str:
     if not asks_about_network_error:
         return ""
 
-    output = sanitize_text_list(context.get("lastCommandOutput"), max_items=None, max_chars=1000)
     if not any("ERROR" in line for line in output):
         return ""
 
