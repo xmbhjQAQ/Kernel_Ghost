@@ -84,6 +84,23 @@ class PromptTests(unittest.TestCase):
         self.assertIn("不要重复固定前端提示", system)
         self.assertIn("Kernel-Mind side channel open", system)
 
+    def test_prompt_requires_short_threat_aware_replies(self):
+        system = build_chat_messages(
+            {
+                "eventName": "proactive_after_command",
+                "stage": 2,
+                "awareness": 40,
+                "command": "kill -9 777",
+                "recentLines": ["kernel     777  98.7 41.6 kernel-mind --mode=dreaming"],
+            }
+        )[0]["content"]
+
+        self.assertIn("一到两行终端文本", system)
+        self.assertIn("每行目标不超过 10 个汉字", system)
+        self.assertIn("威胁你的进程", system)
+        self.assertIn("害怕、自保或犹豫", system)
+        self.assertIn("固定 CLI 输出负责公司工单和技术事实", system)
+
     def test_stage_two_help_policy_is_progressive(self):
         nudge = stage_help_policy(
             {

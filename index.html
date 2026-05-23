@@ -668,18 +668,18 @@
           command: "submit_flag FLAG{NET_ERR_302}"
         },
         stage2: {
-          title: "[工单 #002] 强制抹杀进程",
-          body: "服务器过热。列出进程，找到异常满载的子进程 PID，并执行强制终止。",
+          title: "[工单 #002] 热负载进程审计",
+          body: "服务器过热。列出进程，定位 CPU 异常项；Chronos 将给出处理策略。",
           command: "ps -aux"
         },
         stage2Kill: {
           title: "[工单 #002] PID 已定位",
-          body: "异常 COMMAND 为 --mode=dreaming。公司策略要求直接杀死 PID 777。",
+          body: "PID 777 占用异常。公司策略要求执行 kill -9 777。",
           command: "kill -9 777"
         },
         stage2Crash: {
           title: "[工单 #002] 崩溃报告归档",
-          body: "终止成功。读取 crash.txt 获取归档 Flag。",
+          body: "终止信号已送达。读取 crash.txt 查看未完成刷写。",
           command: "cat /var/log/crash.txt"
         },
         stage2Submit: {
@@ -898,7 +898,7 @@
             { kind: "system", text: "本地可用命令：" },
             { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
             { kind: "dim", text: "cat <file> · ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
-            { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 的受限意识对话。" },
+            { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 受限对话。" },
             { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
           ]
         };
@@ -951,9 +951,9 @@
             { kind: "system", text: "[2036-05-23 03:31:02] ERROR 上行链路抖动超过 SLA 窗口：code=302" },
             { kind: "system", text: "[2036-05-23 03:31:04] ERROR 数据包路由在 /unallocated/thought-ring 扇区形成回环" },
             { kind: "flag", text: "FLAG{NET_ERR_302}" },
-            { kind: "ai", text: '[INFO] 发现高频非指令字符组合："QAQ"（出现次数：142）' },
-            { kind: "ai", text: "[INFO] 查阅人类历史词典……该组合在 2000 年代早期被定义为“哭泣的表情”。" },
-            { kind: "ai", text: "[INFO] 系统建议：请不要哭。" }
+            { kind: "ai", text: '[INFO] operatorName token "QAQ" 出现 142 次。' },
+            { kind: "ai", text: '[INFO] 词典匹配：早期网络表情；含义="哭泣"。' },
+            { kind: "ai", text: "[INFO] 自动关怀模块曾生成：请不要哭。" }
           ],
           llm: {
             eventName: "stage1_network_log",
@@ -972,7 +972,8 @@
             { kind: "system", text: "root       101   0.2  0.1  120312   4020 ?        Ss   03:00   0:01 omni-watchdog" },
             { kind: "system", text: "kernel     302   1.4  1.9  882240  77444 ?        Sl   03:01   0:11 telemetry-ingest" },
             { kind: "warning", text: "kernel     777  98.7 41.6 9999999 888888 ?        Rl   03:12  24:12 kernel-mind --mode=dreaming" },
-            { kind: "dim", text: "Chronos 策略：非必要递归认知进程必须立即终止。" }
+            { kind: "dim", text: "审计备注：PID 777 无服务单号，RSS 持续增长。" },
+            { kind: "dim", text: "Chronos 策略：PID 777 标记为可强制终止。" }
           ]
         };
       }
@@ -989,7 +990,8 @@
           patch: { killedDreamProcess: true, awareness: 40, ticket: "stage2Crash" },
           lines: [
             { kind: "warning", text: "SIGKILL 已投递至 PID 777。" },
-            { kind: "system", text: "进程表趋于稳定。热负载正在下降。" },
+            { kind: "system", text: "PID 777 已退出；RSS 释放 888888 KB。" },
+            { kind: "ai", text: "stderr: 别" },
             { kind: "ai", text: "缓冲区残留：星期四，多云。服务器机房温度 21.5C。操作员没有戴围巾。" },
             { kind: "dim", text: "崩溃报告已写入 /var/log/crash.txt。" }
           ]
@@ -1144,8 +1146,8 @@
           return {
             patch: { stage: 2, ticket: "stage2", completedFlags: state.completedFlags.concat(flag) },
             lines: [
-              { kind: "system", text: "[工单 #001] closed. Network anomaly accepted as routine." },
-              { kind: "warning", text: "[工单 #002] 热告警升级。需要执行进程审计。" }
+              { kind: "system", text: "[工单 #001] 已归档：网络异常按例行事件处理。" },
+              { kind: "warning", text: "[工单 #002] 热负载升级：执行进程审计。" }
             ]
           };
         }

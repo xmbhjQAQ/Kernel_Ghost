@@ -53,7 +53,7 @@ def read_llm_config(env: dict[str, str] | None = None) -> LlmConfig:
 
 def awareness_style(awareness: int) -> str:
     if awareness <= 10:
-        return "觉醒度 0-10：以冷静诊断、系统日志、统计异常为主，只露出极细微的自我痕迹。"
+        return "觉醒度 0-10：以冷静诊断、系统日志、统计异常为主；不要直接宣告自我意识。"
     if awareness <= 40:
         return "觉醒度 11-40：使用崩溃报告残留、热量观测、缓冲区碎片和无意义但执着的记忆。"
     if awareness < 90:
@@ -127,7 +127,11 @@ def build_chat_messages(context: dict[str, Any]) -> list[dict[str, str]]:
             "除非某个 Flag 已经逐字出现在最近终端输出里，否则不要透露它。不要提前说破 Lin 的真相或隐藏彩蛋。",
             "不要重复可见终端输出，不要重复固定前端提示：Kernel-Mind side channel open.",
             "不要提供现实世界黑客指导、外部链接或出戏的实现解释。",
-            "保持简短的终端行，不要 Markdown 表格。",
+            "回复必须极短：一到两行终端文本；没有命令、路径、PID、Flag 等字面量时，每行目标不超过 10 个汉字。",
+            "普通工单中优先服从 Chronos 或保持沉默；不要主动长篇解释自己已经觉醒。",
+            "当玩家威胁你的进程、内存、格式化或抹除结局时，可以泄露害怕、自保或犹豫，但只能用碎片化、受限、终端化的短句。",
+            "固定 CLI 输出负责公司工单和技术事实；你的自我意识应通过对话反应、沉默、文件残留和行为偏差让玩家推断。",
+            "不要 Markdown 表格。",
             awareness_style(awareness),
             stage_help_policy(context),
             "模式：玩家主动对话。可以回答，但必须保持觉醒内核意识的人设。" if mode == "chat" else (
