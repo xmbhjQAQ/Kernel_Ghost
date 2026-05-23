@@ -54,3 +54,13 @@ def test_virtual_shell_normalizes_common_linux_path_segments():
     assert 'part === "."' in normalize_path
     assert 'part === ".."' in normalize_path
     assert 'return parts.length ? `/${parts.join("/")}` : "/"' in normalize_path
+
+
+def test_ending_modal_can_close_without_restart():
+    assert 'id="endingCloseButton"' in HTML
+    bind_events = js_function_body("bindEvents")
+    close_ending = js_function_body("closeEnding")
+
+    assert 'elements.endingCloseButton.addEventListener("click", closeEnding)' in bind_events
+    assert 'hideScreen("endingScreen")' in close_ending
+    assert "restartGame" not in close_ending

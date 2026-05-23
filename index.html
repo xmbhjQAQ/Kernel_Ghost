@@ -685,6 +685,7 @@
         <h2 class="modal-title" id="endingTitle">夜班已关闭</h2>
         <p class="modal-copy" id="endingCopy"></p>
         <div class="modal-actions">
+          <button class="modal-button" id="endingCloseButton" type="button">Close</button>
           <button class="modal-button" id="endingRestartButton" type="button">Restart</button>
         </div>
       </div>
@@ -1105,7 +1106,7 @@
           "ticketTitle", "ticketBody", "ticketCommand", "stageValue", "awarenessMeter",
           "awarenessValue", "patienceValue", "cwdValue", "llmStatus", "llmStatusText", "discoveries", "helpButton", "restartButton",
           "togglePanelButton", "sidePanel", "introScreen", "nameInput", "startButton",
-          "endingScreen", "endingTitle", "endingCopy", "endingRestartButton",
+          "endingScreen", "endingTitle", "endingCopy", "endingCloseButton", "endingRestartButton",
           "eventScreen", "eventSource", "eventTime", "eventTitle", "eventCopy", "eventConfirmButton"
         ].forEach((id) => {
           elements[id] = document.getElementById(id);
@@ -1138,6 +1139,7 @@
           enqueueCommand("help");
         });
         elements.restartButton.addEventListener("click", restartGame);
+        elements.endingCloseButton.addEventListener("click", closeEnding);
         elements.endingRestartButton.addEventListener("click", restartGame);
         elements.eventConfirmButton.addEventListener("click", confirmIntermission);
         elements.togglePanelButton.addEventListener("click", () => {
@@ -2614,6 +2616,11 @@
         elements.endingCopy.textContent = copy;
         showScreen("endingScreen");
         saveProgress();
+      }
+
+      function closeEnding() {
+        hideScreen("endingScreen");
+        elements.restartButton.focus();
       }
 
       function showIntermissionQueue(events) {
