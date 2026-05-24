@@ -121,6 +121,9 @@ def test_onboarding_flow_has_foundation_oath_and_encyclopedia_gates():
     assert "updateOathConfirmState()" in show_oath
     assert 'const showEncyclopedia = Boolean(state.encyclopediaVisible)' in render_state
     assert 'classList.toggle("visible", showEncyclopedia)' in render_state
+    assert "训练时用 ai_chat <问题> 问 Brasch" in HTML
+    assert "建议经常输入 ai_chat <内容> 和 Kernel-Mind 对话" in HTML
+    assert "就算你会终端，也要多用 ai_chat <内容> 和 Kernel-Mind 对话" in HTML
 
 
 def test_encyclopedia_control_opens_dedicated_modal():
@@ -150,6 +153,16 @@ def test_onboarding_llm_context_is_separate_from_gameplay_chat():
     assert 'eventName: "onboarding_help"' in onboarding_ai_chat
     assert "onboardingExpectedCommand" in build_context
     assert "onboardingStep" in build_context
+
+
+def test_llm_status_uses_kernel_mind_player_facing_copy():
+    check_status = js_function_body("checkLlmStatus")
+
+    assert "Kernel-Mind 状态" in HTML
+    assert "LLM Link" not in HTML
+    assert 'message: payload.enabled ? "可对话" : "本地回退"' in check_status
+    assert "在线：" not in check_status
+    assert "deepseek" not in HTML
 
 
 def test_v3_work_order_chain_adds_care_and_weight_stages():

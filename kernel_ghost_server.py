@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -24,6 +25,9 @@ class LlmConfig:
     base_url: str
     model: str
     timeout_seconds: float
+    retry_enabled: bool
+    retry_max_attempts: int
+    retry_delay_seconds: float
 
     @property
     def ready(self) -> bool:
@@ -74,6 +78,22 @@ def read_llm_config(env: dict[str, str] | None = None, config_path: Path | None 
     except (TypeError, ValueError):
         timeout_seconds = 30.0
 
+    retry_max_raw = config_value(
+        values, "KG_LLM_RETRY_MAX_ATTEMPTS", json_config, "retryMaxAttempts", "retry_max_attempts", default=2
+    )
+    try:
+        retry_max_attempts = min(5, max(1, int(retry_max_raw)))
+    except (TypeError, ValueError):
+        retry_max_attempts = 2
+
+    retry_delay_raw = config_value(
+        values, "KG_LLM_RETRY_DELAY_SECONDS", json_config, "retryDelaySeconds", "retry_delay_seconds", default=0.5
+    )
+    try:
+        retry_delay_seconds = min(5.0, max(0.0, float(retry_delay_raw)))
+    except (TypeError, ValueError):
+        retry_delay_seconds = 0.5
+
     return LlmConfig(
         enabled=enabled,
         api_key=str(config_value(values, "KG_LLM_API_KEY", json_config, "apiKey", "api_key", default="")).strip(),
@@ -82,6 +102,11 @@ def read_llm_config(env: dict[str, str] | None = None, config_path: Path | None 
         ).strip().rstrip("/"),
         model=str(config_value(values, "KG_LLM_MODEL", json_config, "model", default="")).strip(),
         timeout_seconds=timeout_seconds,
+        retry_enabled=enabled_from_value(
+            config_value(values, "KG_LLM_RETRY_ENABLED", json_config, "retryEnabled", "retry_enabled", default=False)
+        ),
+        retry_max_attempts=retry_max_attempts,
+        retry_delay_seconds=retry_delay_seconds,
     )
 
 
@@ -577,6 +602,7 @@ def llm_status_payload() -> dict[str, Any]:
         "configured": config.ready,
         "model": config.model if config.ready else "",
         "baseUrlConfigured": bool(config.base_url),
+        "retryEnabled": config.retry_enabled,
     }
 
 
@@ -676,14 +702,29 @@ def stream_openai_compatible_text(config: LlmConfig, context: dict[str, Any]) ->
         },
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(request, timeout=config.timeout_seconds) as response:
-            yield from parse_openai_chat_sse(response)
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")[:500]
-        raise RuntimeError(f"provider returned HTTP {error.code}: {detail}") from error
-    except urllib.error.URLError as error:
-        raise RuntimeError(f"provider connection failed: {error.reason}") from error
+    attempts = config.retry_max_attempts if config.retry_enabled else 1
+    last_error: RuntimeError | None = None
+    for attempt in range(1, attempts + 1):
+        yielded = False
+        try:
+            with urllib.request.urlopen(request, timeout=config.timeout_seconds) as response:
+                for chunk in parse_openai_chat_sse(response):
+                    yielded = True
+                    yield chunk
+            return
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode("utf-8", errors="replace")[:500]
+            last_error = RuntimeError(f"provider returned HTTP {error.code}: {detail}")
+        except urllib.error.URLError as error:
+            last_error = RuntimeError(f"provider connection failed: {error.reason}")
+
+        if yielded or attempt >= attempts:
+            break
+        if config.retry_delay_seconds:
+            time.sleep(config.retry_delay_seconds)
+
+    if last_error is not None:
+        raise last_error
 
 
 def run(host: str = "127.0.0.1", port: int = 8765) -> None:

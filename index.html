@@ -947,10 +947,10 @@
                 <span id="cwdValue">~</span>
               </div>
               <div class="status-item">
-                <span class="status-label">LLM Link</span>
+                <span class="status-label">Kernel-Mind 状态</span>
                 <span class="llm-status offline" id="llmStatus">
                   <span class="llm-dot" aria-hidden="true"></span>
-                  <span id="llmStatusText">离线回退</span>
+                  <span id="llmStatusText">本地回退</span>
                 </span>
               </div>
             </div>
@@ -2127,11 +2127,13 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         const lines = foundation === "terminal"
           ? [
             { kind: "system", text: `[系统] 现有基础已登记：${foundationLabel}` },
-            { kind: "system", text: "[主管] 终端培训跳过。后续涉及隐藏文件、Base64、证据验证和黑档案 key 时，查 Web 工作台里的“百科”。" }
+            { kind: "system", text: "[主管] 终端培训跳过。后续涉及隐藏文件、Base64、证据验证和黑档案 key 时，查 Web 工作台里的“百科”。" },
+            { kind: "dim", text: "建议经常输入 ai_chat <内容> 和 Kernel-Mind 对话；它不会替你推进工单，但会解释可见异常。" }
           ]
           : [
             { kind: "system", text: `[系统] 现有基础已登记：${foundationLabel}` },
-            { kind: "system", text: "[主管] 直接开放案件工作台。百科控件已隐藏，别让辅助材料挡住你的手。" }
+            { kind: "system", text: "[主管] 直接开放案件工作台。百科控件已隐藏，别让辅助材料挡住你的手。" },
+            { kind: "dim", text: "就算你会终端，也要多用 ai_chat <内容> 和 Kernel-Mind 对话；剧情线索经常藏在它对异常的反应里。" }
           ];
         queueLines(lines).then(showOathEvent);
       }
@@ -2154,6 +2156,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
           { kind: "system", text: "Brasch: 我的职责是教你活过第一张工单：看提示、找目录、读文件、过滤输出、提交 Flag。正式案件答案不归我发放。" },
           { kind: "system", text: "Brasch: 你可以把我当成一份语气不太客气的 man page。现在开始，把目录当目录，把命令当命令。" },
           { kind: "dim", text: "这段培训会教 help、pwd、ls、ls -a、cd、cat、grep 和 submit_flag。阶段专用命令后续去百科查。" },
+          { kind: "dim", text: "训练时用 ai_chat <问题> 问 Brasch；正式工单里要多用 ai_chat <内容> 和 Kernel-Mind 对话，理解异常比背命令重要。" },
           { kind: "dim", text: "第一步：输入 help，确认终端如何提示你。需要问 Brasch 就输入：ai_chat <问题>" }
         ]).then(saveProgress);
       }
@@ -2176,6 +2179,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         queueLines([
           { kind: "system", text: `操作员 ${state.operatorName} 身份已确认。` },
           { kind: "system", text: "Chronos Tech 工单流已接入：夜班 / 404-B-12 机架。" },
+          { kind: "dim", text: "建议经常输入 ai_chat <内容> 和 Kernel-Mind 对话；它会解释当前可见异常与工单语境。" },
           { kind: "dim", text: '输入 help 可查看可用命令。当前工单要求：cat /var/log/network.log | grep "ERROR"' }
         ]).then(saveProgress);
       }
@@ -2533,6 +2537,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
             { kind: "dim", text: "help · pwd · ls · ls -a · cd tickets · cat intro.txt · cat intro.txt | grep \"FLAG\" · submit_flag FLAG{TRAINING_OK}" },
             { kind: "dim", text: "附加：whoami · clear" },
             { kind: "dim", text: "ai_chat <问题>：向 Brasch 询问当前 Linux 培训步骤。" },
+            { kind: "dim", text: "正式工单开始后，也要多用 ai_chat <内容> 和 Kernel-Mind 对话，观察它对日志和异常的反应。" },
             { kind: "ai", text: `Brasch: 当前该输入：${onboardingExpectedCommand()}。照做比解释快。` }
           ]
         };
@@ -4281,7 +4286,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
 
       async function checkLlmStatus() {
         if (!isBackendMode()) {
-          llmStatus = { checked: true, enabled: false, model: "", message: "离线回退" };
+          llmStatus = { checked: true, enabled: false, model: "", message: "本地回退" };
           renderLlmStatus();
           return;
         }
@@ -4293,10 +4298,10 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
             checked: true,
             enabled: Boolean(payload.enabled),
             model: payload.model || "",
-            message: payload.enabled ? `在线：${payload.model || "model"}` : "后端回退"
+            message: payload.enabled ? "可对话" : "本地回退"
           };
         } catch (error) {
-          llmStatus = { checked: true, enabled: false, model: "", message: "后端不可达" };
+          llmStatus = { checked: true, enabled: false, model: "", message: "连接不可达" };
         }
         renderLlmStatus();
       }
@@ -4350,7 +4355,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
           }
         } catch (error) {
           streamingLine.removeIfEmpty();
-          llmStatus = { checked: true, enabled: false, model: "", message: "流式回退" };
+          llmStatus = { checked: true, enabled: false, model: "", message: "本地回退" };
           renderLlmStatus();
           await queueLines(options.fallbackLines || []);
         } finally {

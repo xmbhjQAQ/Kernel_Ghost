@@ -1,9 +1,12 @@
 import json
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
+from unittest.mock import patch
 
 from kernel_ghost_server import (
+    LlmConfig,
     awareness_style,
     build_chat_messages,
     event_mode,
@@ -15,6 +18,7 @@ from kernel_ghost_server import (
     read_json_config,
     read_llm_config,
     stage_help_policy,
+    stream_openai_compatible_text,
 )
 
 
@@ -31,6 +35,9 @@ class LlmConfigTests(unittest.TestCase):
 
         self.assertTrue(config.ready)
         self.assertEqual(config.chat_completions_url, "https://example.test/v1/chat/completions")
+        self.assertFalse(config.retry_enabled)
+        self.assertEqual(config.retry_max_attempts, 2)
+        self.assertEqual(config.retry_delay_seconds, 0.5)
 
     def test_disabled_by_default(self):
         config = read_llm_config({}, config_path=None)
@@ -50,6 +57,9 @@ class LlmConfigTests(unittest.TestCase):
                             "baseUrl": "https://json.example/v1/",
                             "model": "json-model",
                             "timeoutSeconds": 12,
+                            "retryEnabled": True,
+                            "retryMaxAttempts": 3,
+                            "retryDelaySeconds": 0.25,
                         }
                     }
                 ),
@@ -63,6 +73,9 @@ class LlmConfigTests(unittest.TestCase):
         self.assertEqual(config.chat_completions_url, "https://json.example/v1/chat/completions")
         self.assertEqual(config.model, "json-model")
         self.assertEqual(config.timeout_seconds, 12)
+        self.assertTrue(config.retry_enabled)
+        self.assertEqual(config.retry_max_attempts, 3)
+        self.assertEqual(config.retry_delay_seconds, 0.25)
 
     def test_env_overrides_config_file(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -768,6 +781,37 @@ class StreamParserTests(unittest.TestCase):
         lines = [b"data: {bad json}\n", b"data: {}\n", b"data: [DONE]\n"]
 
         self.assertEqual(list(parse_openai_chat_sse(lines)), [])
+
+    def test_stream_retries_initial_provider_failure_when_enabled(self):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+            def __iter__(self):
+                return iter([b'data: {"choices":[{"delta":{"content":"ok"}}]}\n', b"data: [DONE]\n"])
+
+        config = LlmConfig(
+            enabled=True,
+            api_key="secret",
+            base_url="https://example.test/v1",
+            model="test-model",
+            timeout_seconds=1,
+            retry_enabled=True,
+            retry_max_attempts=2,
+            retry_delay_seconds=0,
+        )
+
+        with patch(
+            "kernel_ghost_server.urllib.request.urlopen",
+            side_effect=[urllib.error.URLError("temporary"), FakeResponse()],
+        ) as urlopen:
+            chunks = list(stream_openai_compatible_text(config, {"eventName": "manual_ai_chat"}))
+
+        self.assertEqual(chunks, ["ok"])
+        self.assertEqual(urlopen.call_count, 2)
 
 
 if __name__ == "__main__":
