@@ -117,6 +117,10 @@ def test_onboarding_flow_has_foundation_oath_and_encyclopedia_gates():
     assert 'normalized === "ls"' in handle_onboarding
     assert '"cd tickets", "cd ./tickets", "cd /home/nightops/tickets"' in handle_onboarding
     assert '"cat intro.txt", "cat ./intro.txt", "cat /home/nightops/tickets/intro.txt"' in handle_onboarding
+    assert 'normalized === "进行入职宣誓"' in handle_onboarding
+    assert "onboardingStep: 8" in handle_onboarding
+    assert "准备好后，在 CLI 输入：进行入职宣誓" in HTML
+    assert "showOath: true" in handle_onboarding
     assert "eventConfirmButton.disabled = true" in show_oath
     assert "updateOathConfirmState()" in show_oath
     assert 'const showEncyclopedia = Boolean(state.encyclopediaVisible)' in render_state
@@ -124,6 +128,7 @@ def test_onboarding_flow_has_foundation_oath_and_encyclopedia_gates():
     assert "训练时用 ai_chat <问题> 问 Brasch" in HTML
     assert "建议经常输入 ai_chat <内容> 和 Kernel-Mind 对话" in HTML
     assert "就算你会终端，也要多用 ai_chat <内容> 和 Kernel-Mind 对话" in HTML
+    assert "queueLines(lines).then(showOathEvent)" not in choose_foundation
 
 
 def test_encyclopedia_control_opens_dedicated_modal():
