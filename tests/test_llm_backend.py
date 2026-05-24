@@ -149,6 +149,10 @@ class PromptTests(unittest.TestCase):
 
         self.assertIn("你是 Brasch", system)
         self.assertIn("严厉、刻薄", system)
+        self.assertIn("不要像客服或心理咨询师", system)
+        self.assertIn("禁止安慰或共情式开场", system)
+        self.assertIn("不要说“理解”", system)
+        self.assertIn("玩家抗拒培训时，要直接压回当前步骤", system)
         self.assertIn("有用、可执行的 Linux", system)
         self.assertIn("不要自称 Kernel-Mind", system)
         self.assertIn("不要透露正式游戏工单答案", system)

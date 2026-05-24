@@ -299,6 +299,12 @@ instructions.
   not trust raw JSON directly.
 - Terminal transcript restoration should use the same rendered line shape as
   live output so LLM context grouping and visual replay stay consistent.
+- Collection panel rendering must not leak undiscovered non-intermission item
+  titles, paths, exact commands, or clue text. Render those titles as `???` and
+  show only whether the item exists for the current stage.
+- Discovered collection entries should be reviewable from the collection panel.
+  Before opening any archive modal, check the item id is present in durable
+  `metaCollection.unlocked`.
 - Fixed footer controls in side panels require the middle panel region to own
   scrolling (`min-height: 0; overflow: auto`) so long collections cannot render
   under Help / Restart controls.
@@ -309,6 +315,9 @@ instructions.
 - Invalid JSON or wrong `version` -> ignore persisted value and continue.
 - Unknown collectible id -> drop it during normalization.
 - Saved `isTyping: true` -> restore as `false`.
+- Undiscovered collectible -> render masked title and no archive button.
+- Found collectible -> render real title and archive button if archive content
+  exists.
 - Long collection list -> scroll inside the middle panel, not beneath footer
   controls.
 
@@ -318,8 +327,12 @@ instructions.
   `kernelGhost2036:collection` intact.
 - Base: a refreshed active run restores stage, ticket, cwd, flags, and visible
   terminal lines.
+- Good: a found relic can be clicked to reopen a review modal; an unfound relic
+  displays `???` and cannot be clicked.
 - Bad: storing collection unlocks only inside per-run `state`, because ending
   restart would erase them.
+- Bad: showing "雨声误报" or a file path in the collection panel before the item
+  has been recovered.
 - Bad: making both the collection list and the side panel footer scroll
   independently, causing controls to overlap recovered entries.
 
@@ -329,6 +342,8 @@ instructions.
 - Browser check that a discovered collectible exists in
   `kernelGhost2036:collection`.
 - Browser check that refreshing restores active run state and terminal output.
+- Frontend tests that undiscovered titles are masked and found non-intermission
+  entries use the same archive modal path as intermissions.
 - Browser layout check that `.panel-scroll` ends before `.actions`.
 
 ### 7. Wrong vs Correct

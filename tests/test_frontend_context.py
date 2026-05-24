@@ -227,3 +227,39 @@ def test_main_endings_remain_unblocked_by_hidden_archive_route():
     assert "distilledArchiveDecrypted" not in submit_flag
     assert 'kind === "wildfire"' in ending_result
     assert 'ending: "wildfire"' in ending_result
+
+
+def test_help_is_stage_scoped_and_not_full_walkthrough():
+    help_result = js_function_body("helpResult")
+    help_lines = js_function_body("helpLines")
+    active_help = js_function_body("activeHelpLine")
+
+    assert "helpLines()" in help_result
+    assert "阶段三：cat /srv/care/incident.log" not in help_lines
+    assert "阶段六工具：strings architecture.png" not in help_lines
+    assert "decrypt distilled_metadata.encrypted --key <key>" not in help_lines
+    assert "state.stage === 1" in active_help
+    assert "state.stage === 6" in active_help
+    assert "verify_evidence / derive_key" in active_help
+
+
+def test_collection_masks_undiscovered_items_and_opens_found_archives():
+    render_discoveries = js_function_body("renderDiscoveries")
+    collection_title = js_function_body("collectionTitle")
+    collection_hint = js_function_body("collectionHint")
+    collection_status = js_function_body("collectionStatus")
+    show_archive = js_function_body("showCollectionArchive")
+    archive_record = js_function_body("collectionArchiveRecord")
+
+    assert "collectionTitle(item, found)" in render_discoveries
+    assert "showCollectionArchive(item.id)" in render_discoveries
+    assert 'return "???"' in collection_title
+    assert "item.group === \"Intermissions\"" in collection_title
+    assert "当前尚不存在。" in collection_hint
+    assert "已存在，尚未发现。" in collection_hint
+    assert 'if (found) return `已回收 / Recovered · ${stageName(item.minStage)}`' in collection_status
+    assert 'if (state.stage < item.minStage) return "尚不存在 / Not yet generated";' in collection_status
+    assert 'return "已存在 / Undiscovered";' in collection_status
+    assert "metaCollection.unlocked.includes(id)" in show_archive
+    assert "relicCatalog.find" in archive_record
+    assert "collectibleArchiveCatalog[id]" in archive_record

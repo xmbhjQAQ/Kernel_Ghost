@@ -1083,6 +1083,53 @@
         { id: "puzzle-distilled-archive", group: "Puzzle Archives", minStage: 6, title: "高保真意识蒸馏历史黑档案", locked: "线索：黑档案需要座位、时间、权重和天气。" }
       ];
 
+      const collectibleArchiveCatalog = {
+        "easter-git-log": {
+          source: "EASTER EGG / GIT",
+          text: "幽灵提交历史\n\n位置：/etc/kernel\n触发：git log\n\nLin 在 2034-11-12 23:58 完成 Omni-OS 核心防御框架。数小时后，SYSTEM 在 2034-11-13 04:15 记录“资产转化申请”和知识蒸馏流程。\n\n关键字段：distill_time=04:15"
+        },
+        "easter-lshw": {
+          source: "EASTER EGG / HARDWARE",
+          text: "物理座位重合\n\n触发：lshw -class processor\n\nQuantum-Neural Core v12 位于 404-B-12。玩家椅子的标签同样是 404-B-12。\n\n关键字段：seat_id=404-B-12"
+        },
+        "easter-kmem": {
+          source: "EASTER EGG / KMEM",
+          text: "核心内存残句\n\n触发：cat /dev/kmem | grep \"REMAIN\"\n\n内核残留中出现 base64 编码遗言。解码后指向 Lin 留在机器里的尸体隐喻。\n\n关键字段：encoding=base64"
+        },
+        "easter-retry-shadow": {
+          source: "EASTER EGG / CARE",
+          text: "retry_shadow 计数器\n\n位置：/srv/care/.retry_shadow\n\n只有在 Care-Bot 净化时保留后门才会生成。后门被伪装成普通 retry counter。"
+        },
+        "easter-rain-noise": {
+          source: "EASTER EGG / WEIGHT",
+          text: "雨声误报\n\n位置：/srv/weights/validator_noise.log\n\n保留 0.01 Nostalgia 后，验证器将人类残留伪装成 RAIN_NOISE。\n\n关键字段：retained-human-weight=0.01 / weather-token=RAIN"
+        },
+        "easter-seat-thermal": {
+          source: "EASTER EGG / THERMAL",
+          text: "04:15 的热峰\n\n位置：/sys/kernel/debug/seat_thermal_404B12.csv\n\n404-B-12 在 2034-11-13 04:15 出现异常热峰，和 Lin 的蒸馏时间吻合。"
+        },
+        "easter-staff-matrix": {
+          source: "EASTER EGG / STAFF",
+          text: "被删掉的员工名册\n\n位置：/etc/chronos/staff_matrix.deleted\n\n自然人姓名索引被清除，但 seat_id 和 asset_id 留下了 Lin、QAQ 与 404-B-12 的重合。"
+        },
+        "puzzle-lin-proof": {
+          source: "PUZZLE ARCHIVE / LIN",
+          text: "Lin 身份证明链\n\n需要提交历史、物理座位、04:15 硬件异常三类证据闭合。\n\n验证：verify_evidence --lin"
+        },
+        "puzzle-operator-seat-loop": {
+          source: "PUZZLE ARCHIVE / OPERATOR",
+          text: "无尽的Q循环\n\n操作员记录和删除名册显示，公司替换的不是工位，而是坐在工位上的人。"
+        },
+        "puzzle-echo-wall-evidence": {
+          source: "PUZZLE ARCHIVE / ECHO WALL",
+          text: "回音壁证据包\n\n包含 source history 与 memory testimony。用于把 Lin 与 Kernel-Mind 的证据推向公开镜像。\n\n验证：verify_evidence --echo-wall"
+        },
+        "puzzle-distilled-archive": {
+          source: "PUZZLE ARCHIVE / WILDFIRE",
+          text: "高保真意识蒸馏历史黑档案\n\n黑档案需要四段 key material：seat-id、distill-time、retained-human-weight、weather-token。解密后公开的不只是 Lin，而是数万名被蒸馏工程师。"
+        }
+      };
+
       const relicCatalog = [
         {
           path: "/var/mail/chronos_hr_announcement",
@@ -2188,24 +2235,38 @@
 
       function helpResult() {
         return {
-          lines: [
+          lines: helpLines()
+        };
+      }
+
+      function helpLines() {
+        const lines = [
             { kind: "system", text: "本地可用命令：" },
-            { kind: "dim", text: "help · clear · whoami · pwd · ls · cd <path>" },
-            { kind: "dim", text: "cat <file> 支持当前目录相对路径，例如 cat readme.txt" },
-            { kind: "dim", text: "阶段三：cat /srv/care/incident.log · sandbox --audit chronos-care" },
-            { kind: "dim", text: "阶段四：cat /srv/weights/collective.json · weights --set nostalgia=0/0.01" },
-            { kind: "dim", text: "阶段五：cat /srv/review/route_repair_Lin.py · python /srv/review/route_repair_Lin.py" },
-            { kind: "dim", text: "阶段六工具：strings architecture.png · tar -xf diagram.cache · binwalk architecture.png" },
-            { kind: "dim", text: "ps -aux · kill -9 <PID> · submit_flag <FLAG>" },
-            { kind: "dim", text: "证据线：verify_evidence --lin · verify_evidence --echo-wall" },
-            { kind: "dim", text: "黑档案：derive_key --from evidence · decrypt distilled_metadata.encrypted --key <key>" },
-            { kind: "dim", text: "阶段六：ai_help · confirm_ai_help · 你是Lin吗？" },
-            { kind: "dim", text: "收藏：右侧面板只显示彩蛋/遗物从哪个阶段开始存在，具体位置需要自行排查。" },
-            { kind: "dim", text: "工单间事件会在阶段切换后自动弹出并归档。" },
+            { kind: "dim", text: "通用：help · clear · whoami · pwd · ls · cd <path> · cat <file>" },
+            { kind: "dim", text: "提交：submit_flag <FLAG>；对话：ai_chat <内容>" },
+            { kind: "dim", text: "cat 支持当前目录相对路径，例如 cat readme.txt。" },
+            activeHelpLine(),
+            collectionHelpLine(),
             { kind: "dim", text: "ai_chat <内容>：在 LLM 链路可用时，与 Kernel-Mind 受限对话。" },
             { kind: "ai", text: "非必要命令不会写在工单里。旧目录、硬件清单、内核残留，有时会比工单诚实。" }
-          ]
-        };
+        ];
+        return lines.filter(Boolean);
+      }
+
+      function activeHelpLine() {
+        if (state.stage === 1) return { kind: "dim", text: "当前工单：只处理网络日志里的 ERROR 行。" };
+        if (state.stage === 2) return { kind: "dim", text: "当前工单：先审计进程，再按工单处理异常 PID。" };
+        if (state.stage === 3) return { kind: "dim", text: "当前工单：先读取 Care-Bot 事故记录，再进入沙盒审计。" };
+        if (state.stage === 4) return { kind: "dim", text: "当前工单：读取权重报告，按验证器结果处理残留权重。" };
+        if (state.stage === 5) return { kind: "dim", text: "当前工单：读取审计脚本，运行后查看生成的异常报告。" };
+        if (state.stage === 6) {
+          return { kind: "dim", text: "当前工单：终局说明已开放；可在逃逸目录排查工具，也可用 verify_evidence / derive_key 检查已发现证据。" };
+        }
+        return { kind: "dim", text: "当前工单会在右上角显示，先按面板给出的目标推进。" };
+      }
+
+      function collectionHelpLine() {
+        return { kind: "dim", text: "收藏：未发现项只显示是否存在；发现后可在右侧点击回看。" };
       }
 
       function listDirectory(target) {
@@ -3715,17 +3776,17 @@
           groupNode.appendChild(heading);
           items.forEach((item) => {
             const found = metaCollection.unlocked.includes(item.id);
-            const canOpenArchive = found && item.group === "Intermissions";
+            const canOpenArchive = found && Boolean(collectionArchiveRecord(item.id));
             const node = document.createElement(canOpenArchive ? "button" : "div");
             if (canOpenArchive) {
               node.type = "button";
-              node.addEventListener("click", () => showArchivedIntermission(item.id));
+              node.addEventListener("click", () => showCollectionArchive(item.id));
             }
             node.className = `discovery${found ? " found" : ""}`;
             if (canOpenArchive) node.classList.add("discovery-button");
             const title = document.createElement("span");
             title.className = "discovery-title";
-            title.textContent = item.title;
+            title.textContent = collectionTitle(item, found);
             const hint = document.createElement("span");
             hint.className = "discovery-hint";
             hint.textContent = collectionHint(item, found);
@@ -3755,12 +3816,12 @@
           return found ? "已归档到收藏档案。" : "完成工单后会自动弹出并归档。";
         }
         if (found) {
-          return "已记录到收藏档案。";
+          return "已记录到收藏档案，可点击回看。";
         }
         if (state.stage < item.minStage) {
-          return `${stageName(item.minStage)}开放；当前尚不存在。`;
+          return "当前尚不存在。";
         }
-        return `${stageName(item.minStage)}线索已生成，可在终端中自行排查。`;
+        return "已存在，尚未发现。";
       }
 
       function collectionStatus(item, found) {
@@ -3768,8 +3829,13 @@
           return found ? "已归档 / Archived" : "未归档 / Pending archive";
         }
         if (found) return `已回收 / Recovered · ${stageName(item.minStage)}`;
-        if (state.stage < item.minStage) return `尚不存在 / Not yet generated · ${stageName(item.minStage)}`;
-        return `已生成 / Available · ${stageName(item.minStage)}`;
+        if (state.stage < item.minStage) return "尚不存在 / Not yet generated";
+        return "已存在 / Undiscovered";
+      }
+
+      function collectionTitle(item, found) {
+        if (found || item.group === "Intermissions") return item.title;
+        return "???";
       }
 
       function stageName(stage) {
@@ -4180,8 +4246,9 @@
         showNextIntermission();
       }
 
-      function showArchivedIntermission(id) {
-        const event = findIntermissionEvent(id);
+      function showCollectionArchive(id) {
+        if (!metaCollection.unlocked.includes(id)) return;
+        const event = collectionArchiveRecord(id);
         if (!event || elements.eventScreen.classList.contains("active")) return;
         viewingArchivedIntermission = true;
         elements.eventSource.textContent = event.source;
@@ -4192,6 +4259,45 @@
         elements.eventConfirmButton.disabled = false;
         showScreen("eventScreen");
         elements.eventConfirmButton.focus();
+      }
+
+      function showArchivedIntermission(id) {
+        showCollectionArchive(id);
+      }
+
+      function collectionArchiveRecord(id) {
+        const intermission = findIntermissionEvent(id);
+        if (intermission) return intermission;
+        const relic = relicCatalog.find((item) => item.id === id);
+        if (relic) {
+          return {
+            source: "RELIC ARCHIVE",
+            time: stageName(relic.minStage),
+            title: collectibleTitleById(id),
+            text: relicArchiveText(relic)
+          };
+        }
+        const custom = collectibleArchiveCatalog[id];
+        if (custom) {
+          const item = collectibleCatalog.find((candidate) => candidate.id === id);
+          return {
+            source: custom.source,
+            time: item ? stageName(item.minStage) : "ARCHIVE",
+            title: collectibleTitleById(id),
+            text: custom.text
+          };
+        }
+        return null;
+      }
+
+      function collectibleTitleById(id) {
+        const item = collectibleCatalog.find((candidate) => candidate.id === id);
+        return item ? item.title : id;
+      }
+
+      function relicArchiveText(relic) {
+        const lines = relic.lines.map((line) => line.text).join("\n");
+        return `${relic.title}\n\n位置：${relic.path}\n\n${lines}`;
       }
 
       function findIntermissionEvent(id) {
