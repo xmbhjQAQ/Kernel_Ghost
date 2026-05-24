@@ -498,6 +498,20 @@ def parse_openai_chat_sse(lines: Iterable[bytes]) -> Iterable[str]:
             yield content
 
 
+def forced_onboarding_reply(context: dict[str, Any]) -> str:
+    if event_mode(context) != "onboarding":
+        return ""
+
+    question = str(context.get("currentQuestion") or context.get("userMessage") or context.get("command") or "").lower()
+    identity_tokens = ["你是谁", "你是？", "你是?", "你是啥", "你是什么", "who are you", "what are you"]
+    if not any(token in question for token in identity_tokens):
+        return ""
+
+    expected_command = str(context.get("onboardingExpectedCommand") or "").strip()
+    action = f"你可以输入：`{expected_command}`。" if expected_command else "你可以先输入：`help`。"
+    return f"我是 Brasch，Chronos Tech 新员工终端培训官。\n{action}"
+
+
 def forced_manual_chat_reply(context: dict[str, Any]) -> str:
     if event_mode(context) != "chat":
         return ""
@@ -635,6 +649,11 @@ class KernelGhostHandler(SimpleHTTPRequestHandler):
 
 
 def stream_openai_compatible_text(config: LlmConfig, context: dict[str, Any]) -> Iterable[str]:
+    forced_reply = forced_onboarding_reply(context)
+    if forced_reply:
+        yield forced_reply
+        return
+
     forced_reply = forced_manual_chat_reply(context)
     if forced_reply:
         yield forced_reply

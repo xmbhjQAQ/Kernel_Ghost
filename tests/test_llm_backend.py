@@ -8,6 +8,7 @@ from kernel_ghost_server import (
     build_chat_messages,
     event_mode,
     forced_manual_chat_reply,
+    forced_onboarding_reply,
     infer_anomaly_candidates,
     manual_chat_policy,
     parse_openai_chat_sse,
@@ -159,6 +160,30 @@ class PromptTests(unittest.TestCase):
         self.assertIn("去 Web 工作台“百科”查询", system)
         self.assertEqual(payload["expectedCommand"], "ls")
         self.assertEqual(payload["currentQuestion"], "ls 是什么意思？")
+
+    def test_onboarding_identity_question_has_deterministic_brasch_reply(self):
+        reply = forced_onboarding_reply(
+            {
+                "eventName": "onboarding_help",
+                "userMessage": "你是？",
+                "onboardingExpectedCommand": "help",
+            }
+        )
+
+        self.assertIn("我是 Brasch", reply)
+        self.assertIn("`help`", reply)
+        self.assertNotIn("Kernel-Mind", reply)
+
+    def test_onboarding_non_identity_question_uses_llm_prompt(self):
+        reply = forced_onboarding_reply(
+            {
+                "eventName": "onboarding_help",
+                "userMessage": "ls 是什么意思？",
+                "onboardingExpectedCommand": "ls",
+            }
+        )
+
+        self.assertEqual(reply, "")
 
     def test_manual_chat_prompt_allows_help_without_leaking_flags(self):
         messages = build_chat_messages(
