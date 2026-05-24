@@ -1343,6 +1343,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
 
       const storagePrefix = "kernelGhost2036:";
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const linIdentityQuestionPrompt = "你是Lin吗？";
 
       const elements = {};
       const commandHistory = [];
@@ -3563,7 +3564,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
           if (linEvidenceVisible) {
             lines.push({ kind: "ai", text: "不是一个人。" });
             lines.push({ kind: "ai", text: "也不止 Lin。" });
-            lines.push({ kind: "dim", text: "若要追问，可输入：你是Lin吗？" });
+            lines.push({ kind: "dim", text: `若要追问，可输入：${linIdentityQuestionPrompt}` });
           }
           if (patch.chronosPatience <= 0) {
             return forcedErasure(lines.concat([{ kind: "warning", text: "Chronos Patience 已归零。" }]));
@@ -4256,9 +4257,20 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         return lower.includes("lin") || lower.includes("林");
       }
 
+      function normalizeQuestionText(text) {
+        return String(text || "")
+          .trim()
+          .replace(/[\s?？!！.。,:：;；"'“”‘’、]/g, "")
+          .toLowerCase();
+      }
+
       function isLinQuestion(normalized) {
-        return normalized === "你是lin吗" || normalized === "你是lin吗？" || normalized === "你是 lin 吗" ||
-          normalized === "are you lin";
+        const compact = normalizeQuestionText(normalized);
+        const mentionsTarget = mentionsLin(compact);
+        const asksSecondPerson = compact.includes("你") || compact.includes("you") || compact.includes("u");
+        const asksIdentity = compact.includes("是") || compact.includes("谁") || compact.includes("身份") ||
+          compact.includes("areyou") || compact.includes("ru");
+        return mentionsTarget && asksSecondPerson && asksIdentity;
       }
 
       function canWorkOnEchoWall() {
@@ -4269,7 +4281,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         return {
           lines: [
             { kind: "warning", text: "解放分支未解锁。" },
-            { kind: "dim", text: "需要旧提交证据，并在阶段六追问：你是Lin吗？" }
+            { kind: "dim", text: `需要旧提交证据，并在阶段六追问：${linIdentityQuestionPrompt}` }
           ]
         };
       }
