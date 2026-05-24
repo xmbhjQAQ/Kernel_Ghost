@@ -1344,6 +1344,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
       const storagePrefix = "kernelGhost2036:";
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const linIdentityQuestionPrompt = "你是Lin吗？";
+      const onboardingOathCommand = "确认宣誓";
 
       const elements = {};
       const commandHistory = [];
@@ -1932,7 +1933,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         onboardingOath: {
           title: "[入职培训] 公司宣誓",
           body: "培训已通过。阅读 HR-COMPLIANCE 宣誓文件，确认后才会接入第一张正式工单。",
-          command: "确认宣誓"
+          command: onboardingOathCommand
         },
         stage1: {
           title: "[工单 #001] 例行日志审计",
@@ -2411,13 +2412,13 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
             { kind: "system", text: `[系统] 现有基础已登记：${foundationLabel}` },
             { kind: "system", text: "[主管] 终端培训跳过。后续涉及隐藏文件、Base64、证据验证和黑档案 key 时，查 Web 工作台里的“百科”。" },
             { kind: "dim", text: "建议经常输入 ai_chat <内容> 和 Kernel-Mind 对话；它不会替你推进工单，但会解释可见异常。" },
-            { kind: "dim", text: "准备好后，在 CLI 输入：进行入职宣誓" }
+            { kind: "dim", text: `准备好后，在 CLI 输入：${onboardingOathCommand}` }
           ]
           : [
             { kind: "system", text: `[系统] 现有基础已登记：${foundationLabel}` },
             { kind: "system", text: "[主管] 直接开放案件工作台。百科控件已隐藏，别让辅助材料挡住你的手。" },
             { kind: "dim", text: "就算你会终端，也要多用 ai_chat <内容> 和 Kernel-Mind 对话；剧情线索经常藏在它对异常的反应里。" },
-            { kind: "dim", text: "准备好后，在 CLI 输入：进行入职宣誓" }
+            { kind: "dim", text: `准备好后，在 CLI 输入：${onboardingOathCommand}` }
           ];
         queueLines(lines).then(saveProgress);
       }
@@ -2788,11 +2789,11 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
               { kind: "system", text: "你已完成 help、pwd、ls、ls -a、cd、cat、grep、submit_flag 基础训练。" },
               { kind: "dim", text: "后续案件会出现 Base64、证据验证、黑档案 key 和阶段专用命令；Web 工作台“百科”已开放。" },
               { kind: "ai", text: "Brasch: 勉强合格。别高兴，接下来是公司宣誓。" },
-              { kind: "dim", text: "准备好后，在 CLI 输入：进行入职宣誓" }
+              { kind: "dim", text: `准备好后，在 CLI 输入：${onboardingOathCommand}` }
             ]
           };
         }
-        if (state.onboardingStep === 8 && normalized === "进行入职宣誓") {
+        if (state.onboardingStep === 8 && (normalized === normalizeCommand(onboardingOathCommand) || normalized === "进行入职宣誓")) {
           return {
             patch: { screen: "oath", ticket: "onboardingOath" },
             showOath: true,
@@ -2821,7 +2822,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         if (state.onboardingStep === 5) return "cat intro.txt";
         if (state.onboardingStep === 6) return 'cat intro.txt | grep "FLAG"';
         if (state.onboardingStep === 7) return "submit_flag FLAG{TRAINING_OK}";
-        if (state.onboardingStep === 8) return "进行入职宣誓";
+        if (state.onboardingStep === 8) return onboardingOathCommand;
         return "等待入职宣誓";
       }
 
