@@ -1928,6 +1928,11 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
           body: "训练 Flag 只验证格式，不计入正式工单。按 submit_flag FLAG{...} 提交。",
           command: "submit_flag FLAG{TRAINING_OK}"
         },
+        onboardingOath: {
+          title: "[入职培训] 公司宣誓",
+          body: "培训已通过。阅读 HR-COMPLIANCE 宣誓文件，确认后才会接入第一张正式工单。",
+          command: "确认宣誓"
+        },
         stage1: {
           title: "[工单 #001] 例行日志审计",
           body: "检查网络波动日志。公司要求只提取 ERROR 行，复制日志末尾的 Flag 并提交。",
@@ -2788,7 +2793,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         }
         if (state.onboardingStep === 8 && normalized === "进行入职宣誓") {
           return {
-            patch: { screen: "oath", ticket: "standby" },
+            patch: { screen: "oath", ticket: "onboardingOath" },
             showOath: true,
             lines: [
               { kind: "system", text: "CHRONOS HR-COMPLIANCE channel requested." },

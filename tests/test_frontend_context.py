@@ -119,6 +119,8 @@ def test_onboarding_flow_has_foundation_oath_and_encyclopedia_gates():
     assert '"cat intro.txt", "cat ./intro.txt", "cat /home/nightops/tickets/intro.txt"' in handle_onboarding
     assert 'normalized === "进行入职宣誓"' in handle_onboarding
     assert "onboardingStep: 8" in handle_onboarding
+    assert 'onboardingOath: {' in HTML
+    assert 'patch: { screen: "oath", ticket: "onboardingOath" }' in handle_onboarding
     assert "准备好后，在 CLI 输入：进行入职宣誓" in HTML
     assert "showOath: true" in handle_onboarding
     assert "eventConfirmButton.disabled = true" in show_oath
