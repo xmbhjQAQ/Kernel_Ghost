@@ -766,3 +766,36 @@ Expanded Brasch onboarding, refined encyclopedia content, added collection hints
 ### Next Steps
 
 - None - task complete
+
+
+## Session 24: Plot flowchart overlay
+
+**Date**: 2026-05-24
+**Task**: Plot flowchart overlay
+**Branch**: `main`
+
+### Summary
+
+Added a cross-playthrough plot route map overlay with hidden-route masking, persistent route knowledge, tests, and browser smoke verification.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `873b0e8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
