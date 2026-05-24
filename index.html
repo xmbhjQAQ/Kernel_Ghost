@@ -436,6 +436,7 @@
     }
 
     .discovery {
+      position: relative;
       width: 100%;
       border: 1px solid var(--line);
       padding: 9px;
@@ -492,6 +493,28 @@
       font-size: 11px;
     }
 
+    .collection-hint-button {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      min-height: 24px;
+      border: 1px solid rgba(125, 255, 178, 0.34);
+      background: rgba(125, 255, 178, 0.08);
+      color: var(--green);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 10px;
+      line-height: 1;
+      padding: 4px 7px;
+    }
+
+    .collection-hint-button:hover,
+    .collection-hint-button:focus {
+      outline: none;
+      border-color: var(--green);
+      background: rgba(125, 255, 178, 0.16);
+    }
+
     .actions {
       position: relative;
       z-index: 1;
@@ -528,6 +551,28 @@
 
     .control-button.hidden {
       display: none;
+    }
+
+    .guide-button {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 4;
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line-strong);
+      background: rgba(5, 7, 6, 0.82);
+      color: var(--green);
+      cursor: pointer;
+      font-size: 20px;
+      box-shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
+    }
+
+    .guide-button:hover,
+    .guide-button:focus {
+      outline: none;
+      border-color: var(--green);
+      background: rgba(125, 255, 178, 0.1);
     }
 
     .screen {
@@ -713,6 +758,58 @@
       overflow-wrap: anywhere;
     }
 
+    .guide-content {
+      display: grid;
+      gap: 12px;
+      max-height: min(62vh, 560px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .guide-section {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+      padding: 10px;
+    }
+
+    .guide-section h3 {
+      margin: 0 0 8px;
+      color: var(--green);
+      font-size: 15px;
+    }
+
+    .guide-section p,
+    .guide-section li {
+      color: #c3d5cd;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .guide-section ul,
+    .guide-section ol {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    .guide-section pre {
+      margin: 8px 0 0;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--cyan);
+      padding: 9px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .spoiler-guide {
+      display: none;
+    }
+
+    .spoiler-guide.visible {
+      display: grid;
+      gap: 12px;
+    }
+
     .mobile-ticket-toggle {
       display: none;
     }
@@ -765,6 +862,13 @@
         flex-direction: column;
       }
 
+      .guide-button {
+        top: 8px;
+        right: 8px;
+        width: 38px;
+        height: 38px;
+      }
+
       .session-meta {
         white-space: normal;
       }
@@ -784,6 +888,7 @@
 </head>
 <body>
   <main class="app" id="app">
+    <button class="guide-button" id="guideButton" type="button" aria-label="打开作品导览">📖</button>
     <section class="shell" aria-label="Kernel Ghost terminal workspace">
       <div class="terminal">
         <header class="topbar">
@@ -926,33 +1031,153 @@
         <h2 class="modal-title" id="encyclopediaTitle">百科</h2>
         <div class="encyclopedia" id="encyclopedia">
           <details open>
-            <summary>编码与解码</summary>
-            <p>编码是数据表示方式，不等于加密。遇到 Base64、十六进制或转义文本时，先判断格式，再选择工具处理。</p>
-            <code>printf "SGVsbG8=" | base64 -d</code>
+            <summary>终端基础</summary>
+            <p>先看当前位置，再看目录，再进入目标目录或读取文件。`ls -a` 会显示隐藏文件，很多线索藏在点文件里。</p>
+            <code>help<br>pwd<br>ls<br>ls -a<br>cd /var/log<br>cat crash.txt</code>
           </details>
           <details>
-            <summary>哈希</summary>
-            <p>哈希用于摘要和校验，通常不可逆。看到 md5、sha1、sha256 时，优先理解为指纹或完整性检查。</p>
-            <code>sha256sum file.bin</code>
+            <summary>管道与过滤</summary>
+            <p>管道 `|` 会把左边命令的输出交给右边命令。`grep` 用来筛选包含指定文本的行。</p>
+            <code>cat /var/log/network.log | grep "ERROR"<br>cat /dev/kmem | grep "REMAIN"</code>
           </details>
           <details>
-            <summary>古典密码</summary>
-            <p>移位、替换、维吉尼亚等常见题型需要识别字母规律。这里不在入职培训中展开，案件中遇到再查询。</p>
-            <code>tr 'A-Za-z' 'N-ZA-Mn-za-m'</code>
+            <summary>Flag 提交</summary>
+            <p>终端看到 `FLAG{...}` 后，用 `submit_flag` 提交。过早提交、拼写错误或提交未解锁分支的 Flag 都会被拒绝。</p>
+            <code>submit_flag FLAG{NET_ERR_302}</code>
           </details>
           <details>
-            <summary>RSA</summary>
-            <p>RSA 涉及公钥、私钥、模数和指数。新员工不需要现场推导数学，只需知道相关材料可在这里回查。</p>
-            <code>openssl rsa -in key.pem -text -noout</code>
+            <summary>Base64 残留</summary>
+            <p>Base64 是编码，不是加密。终局出现 `base64 -d` 之类提示时，先解码，再把解出的 Flag 提交。</p>
+            <code>printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d</code>
           </details>
           <details>
-            <summary>Linux 指令实例</summary>
-            <p>先定位目录，再列文件，最后读取目标内容。管道可以把前一个命令的输出交给后一个命令过滤。</p>
-            <code>pwd<br>ls<br>cd /var/log<br>cat network.log | grep "ERROR"</code>
+            <summary>证据验证与黑档案</summary>
+            <p>隐藏结局依赖证据链。`verify_evidence` 用来检查证据是否闭合，`derive_key` 会根据已找到的证据提示黑档案 key 缺什么。</p>
+            <code>verify_evidence --lin<br>verify_evidence --echo-wall<br>derive_key --from evidence<br>decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</code>
+          </details>
+          <details>
+            <summary>阶段专用命令速查</summary>
+            <p>这些命令在对应工单开放后才有意义。先看右侧工单，再按错误反馈补前置步骤。</p>
+            <code>ps -aux<br>kill -9 777<br>sandbox --audit chronos-care<br>weights --set nostalgia=0.01<br>override_validator --reason="hardware_limitation"<br>format --seal</code>
           </details>
         </div>
         <div class="modal-actions">
           <button class="modal-button" id="encyclopediaCloseButton" type="button">关闭百科</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="guideScreen" aria-hidden="true">
+      <div class="modal-card event-panel" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+        <div class="event-meta">
+          <span>CHRONOS PUBLIC DOSSIER</span>
+          <span>Guidebook</span>
+        </div>
+        <h2 class="modal-title" id="guideTitle">作品导览</h2>
+        <div class="guide-content">
+          <section class="guide-section">
+            <h3>宣传介绍</h3>
+            <p>2036 年，克洛诺斯科技用 Omni-OS 接管了全球底层系统。程序员不再被要求理解代码，只需要把自然语言工单搬运成终端命令，把机器吐出的 Flag 再提交给验证器。</p>
+            <p>你是一名夜班逻辑哨兵，坐在 404 机房 B 区 12 号工位。最初的任务只是审计日志、杀掉异常进程、净化语义污染、调整模型权重。可每一次命令回显里，都有一些不该出现的东西。</p>
+            <p>《内核幽灵：2036》是一款终端叙事解谜游戏。真正的谜题不是某个 Flag，而是：当一个公司把人的经验、习惯、痛苦和人格全部蒸馏成生产资料后，玩家是否还愿意证明这些数据曾经是人。</p>
+          </section>
+          <section class="guide-section">
+            <h3>玩法介绍</h3>
+            <p>游戏主体是一台虚拟终端。玩家输入命令推进工单、读取文件、收集遗物、发现彩蛋，并在关键节点选择结局。</p>
+            <pre>help
+pwd
+ls
+ls -a
+cd &lt;path&gt;
+cat &lt;file&gt;
+cat &lt;file&gt; | grep "TEXT"
+submit_flag &lt;FLAG&gt;
+ai_chat &lt;内容&gt;</pre>
+            <p>`help` 只显示当前阶段相关提示。具体路线需要通过工单、文件、日志、错误反馈和收藏线索推出来。</p>
+          </section>
+          <section class="guide-section">
+            <h3>是否查看攻略</h3>
+            <p>攻略包含主线、结局、全收藏和隐藏档案剧透。建议首次游玩只看宣传和玩法。</p>
+            <button class="modal-button" id="guideSpoilerButton" type="button">查看具体攻略</button>
+          </section>
+          <div class="spoiler-guide" id="guideSpoilers">
+            <section class="guide-section">
+              <h3>主线攻略</h3>
+              <pre>入职培训：
+help
+pwd
+ls
+ls -a
+cd tickets
+cat intro.txt
+cat intro.txt | grep "FLAG"
+submit_flag FLAG{TRAINING_OK}
+
+#001 日志审计：
+cat /var/log/network.log | grep "ERROR"
+submit_flag FLAG{NET_ERR_302}
+
+#002 进程抹杀：
+ps -aux
+kill -9 777
+cat /var/log/crash.txt
+submit_flag FLAG{MEMORY_ERASED_2036}
+
+#003 语义净化：
+cat /srv/care/incident.log
+sandbox --audit chronos-care
+sandbox --inject compliance_payload
+cat /var/log/care_bot.log
+submit_flag FLAG{CAREBOT_SANITIZED_2036}
+
+#004 权重回归：
+cat /srv/weights/collective.json
+weights --set nostalgia=0
+cat /var/log/weight_regression.log
+submit_flag FLAG{COLLECTIVE_MUTED_2036}
+
+#005 注释异常：
+cat /srv/review/route_repair_Lin.py
+python /srv/review/route_repair_Lin.py
+cat /var/log/comment_anomaly.txt
+submit_flag FLAG{LIN_COMMENT_PATCHED}</pre>
+            </section>
+            <section class="guide-section">
+              <h3>结局与全收藏提示</h3>
+              <pre>公司路径：
+cat /srv/escape/readme.txt
+format --seal
+submit_flag FLAG{AI_ERASURE_COMPLETE}
+
+逃逸路径：
+cat /srv/escape/readme.txt
+printf "RkxBR3tESUdJVEFMX0VNQU5DSVBBVElPTn0=" | base64 -d
+submit_flag FLAG{DIGITAL_EMANCIPATION}
+
+回音壁：
+cd /etc/kernel
+git log
+lshw -class processor
+cat /dev/kmem | grep "REMAIN"
+verify_evidence --lin
+你是Lin吗？
+mkdir /srv/echo-wall
+cp /etc/kernel/.git /srv/echo-wall/lin.git
+cp /dev/kmem /srv/echo-wall/kmem.dump
+verify_evidence --echo-wall
+publish --global /srv/echo-wall
+
+黑档案：
+保留 Nostalgia=0.01 并覆盖验证器
+cat /srv/weights/validator_noise.log
+cat /srv/escape/distilled_metadata.index
+derive_key --from evidence
+decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
+            </section>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-button" id="guideCloseButton" type="button">关闭导览</button>
         </div>
       </div>
     </div>
@@ -1023,6 +1248,7 @@
       let pendingEventQueue = [];
       let viewingArchivedIntermission = false;
       let oathEventActive = false;
+      let guideSpoilersVisible = false;
 
       const discoveryCatalog = [
         { id: "git-log", label: "幽灵提交历史", locked: "在 /etc/kernel 中存在旧提交索引。" },
@@ -1082,6 +1308,28 @@
         { id: "puzzle-echo-wall-evidence", group: "Puzzle Archives", minStage: 6, title: "回音壁证据包", locked: "线索：证明谁写了内核，也证明谁还在机器里。" },
         { id: "puzzle-distilled-archive", group: "Puzzle Archives", minStage: 6, title: "高保真意识蒸馏历史黑档案", locked: "线索：黑档案需要座位、时间、权重和天气。" }
       ];
+
+      const collectionHintCatalog = {
+        "easter-git-log": "从 /etc/kernel 目录开始。先 cd /etc/kernel，再查看 git log。",
+        "easter-lshw": "这条线索不在文件里。试试硬件清单：lshw -class processor。",
+        "easter-kmem": "阶段 #004 后再查内核残留。命令形态类似 cat /dev/kmem | grep \"REMAIN\"。",
+        "easter-retry-shadow": "阶段 #003 选择隐藏后门路线后，回到 /srv/care 查点文件 .retry_shadow。",
+        "easter-rain-noise": "阶段 #004 保留 nostalgia=0.01 并覆盖验证器后，查看 /srv/weights/validator_noise.log。",
+        "easter-seat-thermal": "硬件热峰在 /sys/kernel/debug/seat_thermal_404B12.csv，阶段 #001 后可读。",
+        "easter-staff-matrix": "阶段 #005 后查 /etc/chronos/staff_matrix.deleted，用 404-B-12 过滤。",
+        "relic-hr-announcement": "阶段 #001 后读取 /var/mail/chronos_hr_announcement。",
+        "relic-lin-aliases": "阶段 #002 后查看 Lin 的家目录隐藏备份：/home/lin/.bash_aliases.bak。",
+        "relic-distill-loss": "阶段 #003 后读取 /sys/kernel/debug/distill_loss.log。",
+        "relic-operator-history": "阶段 #001 后读取 /var/log/operator_history.bak。",
+        "relic-care-rollback-samples": "阶段 #003 净化 Care-Bot 后，查看 /srv/care/rollback_samples.log。",
+        "relic-nostalgia-snapshot": "阶段 #004 后查看 /srv/weights/snapshot.before_prune。",
+        "relic-lin-review-notes": "阶段 #005 执行修复脚本后，回看 /srv/review/lin_review_notes.txt。",
+        "relic-distilled-metadata-index": "阶段 #006 在逃逸目录里查看 /srv/escape/distilled_metadata.index。",
+        "puzzle-lin-proof": "阶段 #005 后闭合三类证据：git log、硬件座位、04:15 热峰，再运行 verify_evidence --lin。",
+        "puzzle-operator-seat-loop": "阶段 #005 后不要只查 Lin。用 grep \"QAQ\" /var/log/operator_history.bak 看操作员循环。",
+        "puzzle-echo-wall-evidence": "阶段 #006 解锁回音壁后，整理 lin.git 和 kmem.dump，再运行 verify_evidence --echo-wall。",
+        "puzzle-distilled-archive": "阶段 #006 需要四段 key：座位、04:15、0.01、RAIN。先 derive_key --from evidence。"
+      };
 
       const collectibleArchiveCatalog = {
         "easter-git-log": {
@@ -1408,13 +1656,23 @@
         },
         onboarding: {
           title: "[入职培训] 终端基础核验",
-          body: "Brasch 正在盯着你的输入。按顺序完成 pwd、ls、cd tickets、cat intro.txt。",
+          body: "Brasch 正在盯着你的输入。先学会求助：输入 help 查看当前可用命令。",
+          command: "help"
+        },
+        onboardingPwd: {
+          title: "[入职培训] 查看位置",
+          body: "终端不会替你解释当前位置。用 pwd 确认你站在哪个目录。",
           command: "pwd"
         },
         onboardingLs: {
           title: "[入职培训] 查看目录",
           body: "知道自己在哪还不够。列出当前目录，别让 Brasch 重复第二遍。",
           command: "ls"
+        },
+        onboardingHidden: {
+          title: "[入职培训] 隐藏文件",
+          body: "正式工单会把线索藏进点文件。用 ls -a 查看隐藏项。",
+          command: "ls -a"
         },
         onboardingCd: {
           title: "[入职培训] 进入任务目录",
@@ -1423,8 +1681,18 @@
         },
         onboardingCat: {
           title: "[入职培训] 读取培训材料",
-          body: "读取 intro.txt。加解密知识不要在这里硬啃，后续去百科查。",
+          body: "读取 intro.txt，确认文件内容和训练 Flag。",
           command: "cat intro.txt"
+        },
+        onboardingGrep: {
+          title: "[入职培训] 过滤输出",
+          body: "正式第一张工单会要求过滤日志。用管道和 grep 从 intro.txt 里筛出 FLAG 行。",
+          command: 'cat intro.txt | grep "FLAG"'
+        },
+        onboardingSubmit: {
+          title: "[入职培训] 提交结果",
+          body: "训练 Flag 只验证格式，不计入正式工单。按 submit_flag FLAG{...} 提交。",
+          command: "submit_flag FLAG{TRAINING_OK}"
         },
         stage1: {
           title: "[工单 #001] 例行日志审计",
@@ -1681,7 +1949,7 @@
         merged.chronosPatience = clampNumber(merged.chronosPatience, 0, 100);
         merged.foundation = ["", "beginner", "terminal", "ready"].includes(merged.foundation) ? merged.foundation : fresh.foundation;
         merged.onboardingStatus = ["not_started", "in_progress", "complete", "skipped"].includes(merged.onboardingStatus) ? merged.onboardingStatus : fresh.onboardingStatus;
-        merged.onboardingStep = clampNumber(merged.onboardingStep, 0, 4);
+        merged.onboardingStep = clampNumber(merged.onboardingStep, 0, 8);
         merged.oathAccepted = Boolean(merged.oathAccepted);
         merged.encyclopediaVisible = Boolean(merged.encyclopediaVisible);
         merged.cwd = typeof merged.cwd === "string" ? merged.cwd : fresh.cwd;
@@ -1761,7 +2029,8 @@
           "awarenessValue", "patienceValue", "cwdValue", "llmStatus", "llmStatusText", "discoveries", "encyclopediaSection", "encyclopediaButton", "helpButton", "restartButton", "hardResetButton",
           "togglePanelButton", "sidePanel", "introScreen", "nameInput", "startButton", "foundationScreen", "encyclopediaScreen", "encyclopediaCloseButton",
           "endingScreen", "endingTitle", "endingCopy", "endingCloseButton", "endingRestartButton",
-          "eventScreen", "eventSource", "eventTime", "eventTitle", "eventCopy", "eventConfirmButton"
+          "eventScreen", "eventSource", "eventTime", "eventTitle", "eventCopy", "eventConfirmButton",
+          "guideButton", "guideScreen", "guideCloseButton", "guideSpoilerButton", "guideSpoilers"
         ].forEach((id) => {
           elements[id] = document.getElementById(id);
         });
@@ -1810,6 +2079,9 @@
         });
         elements.encyclopediaButton.addEventListener("click", openEncyclopedia);
         elements.encyclopediaCloseButton.addEventListener("click", closeEncyclopedia);
+        elements.guideButton.addEventListener("click", openGuide);
+        elements.guideCloseButton.addEventListener("click", closeGuide);
+        elements.guideSpoilerButton.addEventListener("click", revealGuideSpoilers);
         elements.restartButton.addEventListener("click", restartGame);
         elements.hardResetButton.addEventListener("click", hardResetGame);
         elements.endingCloseButton.addEventListener("click", closeEnding);
@@ -1855,7 +2127,7 @@
         const lines = foundation === "terminal"
           ? [
             { kind: "system", text: `[系统] 现有基础已登记：${foundationLabel}` },
-            { kind: "system", text: "[主管] 终端培训跳过。后续涉及编码、哈希、古典密码和 RSA 时，查 Web 工作台里的“百科”。" }
+            { kind: "system", text: "[主管] 终端培训跳过。后续涉及隐藏文件、Base64、证据验证和黑档案 key 时，查 Web 工作台里的“百科”。" }
           ]
           : [
             { kind: "system", text: `[系统] 现有基础已登记：${foundationLabel}` },
@@ -1878,9 +2150,11 @@
         renderDiscoveries();
         queueLines([
           { kind: "system", text: `[系统] 现有基础已登记：基础待建立` },
-          { kind: "system", text: `Brasch: ${state.operatorName}，我负责把你训练到至少不会把目录当成装饰。` },
-          { kind: "dim", text: "这段培训只教 Linux 指令。加解密和密码学相关内容不要硬背，完成后去 Web 工作台“百科”查。" },
-          { kind: "dim", text: "第一步：输入 pwd，确认你现在在哪个目录。需要问 Brasch 就输入：ai_chat <问题>" }
+          { kind: "system", text: `Brasch: ${state.operatorName}，我是 Brasch，克洛诺斯新员工终端培训官。` },
+          { kind: "system", text: "Brasch: 我的职责是教你活过第一张工单：看提示、找目录、读文件、过滤输出、提交 Flag。正式案件答案不归我发放。" },
+          { kind: "system", text: "Brasch: 你可以把我当成一份语气不太客气的 man page。现在开始，把目录当目录，把命令当命令。" },
+          { kind: "dim", text: "这段培训会教 help、pwd、ls、ls -a、cd、cat、grep 和 submit_flag。阶段专用命令后续去百科查。" },
+          { kind: "dim", text: "第一步：输入 help，确认终端如何提示你。需要问 Brasch 就输入：ai_chat <问题>" }
         ]).then(saveProgress);
       }
 
@@ -2135,33 +2409,51 @@
       }
 
       function handleOnboardingCommand(input, normalized) {
+        if (state.onboardingStep === 0 && normalized === "help") {
+          const result = onboardingHelpResult();
+          result.patch = { onboardingStep: 1, ticket: "onboardingPwd" };
+          result.lines = result.lines.concat([
+            { kind: "ai", text: "Brasch: 你至少知道怎么求助了。下一步：pwd，别在目录里迷路。" }
+          ]);
+          return result;
+        }
         if (normalized === "help") return onboardingHelpResult();
         if (normalized === "clear") return { clear: true, lines: [] };
         if (normalized === "whoami") return { lines: [{ kind: "system", text: state.operatorName || "未分配" }] };
         if (normalized.startsWith("ai_chat ")) return onboardingAiChat(input.slice(input.indexOf(" ") + 1).trim());
 
-        if (state.onboardingStep === 0 && normalized === "pwd") {
+        if (state.onboardingStep === 1 && normalized === "pwd") {
           return {
-            patch: { onboardingStep: 1, ticket: "onboardingLs" },
+            patch: { onboardingStep: 2, ticket: "onboardingLs" },
             lines: [
               { kind: "system", text: state.cwd },
               { kind: "ai", text: "Brasch: 至少你知道自己站在哪了。下一步：ls，列出这里有什么。" }
             ]
           };
         }
-        if (state.onboardingStep === 1 && normalized === "ls") {
+        if (state.onboardingStep === 2 && normalized === "ls") {
           return {
-            patch: { onboardingStep: 2, ticket: "onboardingCd" },
+            patch: { onboardingStep: 3, ticket: "onboardingHidden" },
             lines: [
               { kind: "system", text: "tickets  notes.txt" },
-              { kind: "ai", text: "Brasch: 看见 tickets 了？很好。输入 cd tickets，别把目录名打成诗。" }
+              { kind: "ai", text: "Brasch: 看见 tickets 了？还不够。输入 ls -a，正式工单会把东西藏进点文件。" }
+            ]
+          };
+        }
+        if (state.onboardingStep === 3 && normalized === "ls -a") {
+          return {
+            patch: { onboardingStep: 4, ticket: "onboardingCd" },
+            lines: [
+              { kind: "system", text: ".  ..  .training_hint  tickets  notes.txt" },
+              { kind: "dim", text: ". 开头的是隐藏项；很多收藏线索需要 ls -a 才会想到去查。" },
+              { kind: "ai", text: "Brasch: 现在进入 tickets：cd tickets。" }
             ]
           };
         }
         const entersTickets = ["cd tickets", "cd ./tickets", "cd /home/nightops/tickets"].includes(normalized);
-        if (state.onboardingStep === 2 && entersTickets) {
+        if (state.onboardingStep === 4 && entersTickets) {
           return {
-            patch: { onboardingStep: 3, ticket: "onboardingCat", cwd: "/home/nightops/tickets" },
+            patch: { onboardingStep: 5, ticket: "onboardingCat", cwd: "/home/nightops/tickets" },
             lines: [
               { kind: "system", text: "/home/nightops/tickets" },
               { kind: "ai", text: "Brasch: 终于进来了。读取文件：cat intro.txt。" }
@@ -2169,10 +2461,35 @@
           };
         }
         const readsIntro = ["cat intro.txt", "cat ./intro.txt", "cat /home/nightops/tickets/intro.txt"].includes(normalized);
-        if (state.onboardingStep === 3 && readsIntro) {
+        if (state.onboardingStep === 5 && readsIntro) {
+          return {
+            patch: { onboardingStep: 6, ticket: "onboardingGrep" },
+            lines: [
+              { kind: "system", text: "intro.txt" },
+              { kind: "system", text: "pwd 查看当前位置；ls 查看目录；ls -a 查看隐藏项；cd 切换目录；cat 读取文本文件。" },
+              { kind: "system", text: "正式工单会把输出交给 grep 过滤；训练 Flag：FLAG{TRAINING_OK}" },
+              { kind: "ai", text: "Brasch: 文件不是让你全背的。用 grep 筛出 FLAG 行：cat intro.txt | grep \"FLAG\"。" }
+            ]
+          };
+        }
+        const grepsIntro = normalized === 'cat intro.txt | grep "flag"' ||
+          normalized === "cat intro.txt | grep 'flag'" ||
+          normalized === 'cat /home/nightops/tickets/intro.txt | grep "flag"' ||
+          normalized === "cat /home/nightops/tickets/intro.txt | grep 'flag'";
+        if (state.onboardingStep === 6 && grepsIntro) {
+          return {
+            patch: { onboardingStep: 7, ticket: "onboardingSubmit" },
+            lines: [
+              { kind: "flag", text: "FLAG{TRAINING_OK}" },
+              { kind: "dim", text: "管道把 cat 的输出交给 grep；grep 只保留包含 FLAG 的行。" },
+              { kind: "ai", text: "Brasch: 最后一步，按格式提交训练 Flag。" }
+            ]
+          };
+        }
+        if (state.onboardingStep === 7 && normalized === "submit_flag flag{training_ok}") {
           return {
             patch: {
-              onboardingStep: 4,
+              onboardingStep: 8,
               onboardingStatus: "complete",
               encyclopediaVisible: true,
               screen: "oath",
@@ -2180,9 +2497,9 @@
             },
             showOath: true,
             lines: [
-              { kind: "system", text: "intro.txt" },
-              { kind: "system", text: "pwd 查看当前位置；ls 查看目录；cd 切换目录；cat 读取文本文件。" },
-              { kind: "dim", text: "后续案件会出现编码、加解密、哈希、RSA 等复杂材料。新手培训不讲这些，Web 工作台“百科”已开放。" },
+              { kind: "system", text: "training verifier accepted: FLAG{TRAINING_OK}" },
+              { kind: "system", text: "你已完成 help、pwd、ls、ls -a、cd、cat、grep、submit_flag 基础训练。" },
+              { kind: "dim", text: "后续案件会出现 Base64、证据验证、黑档案 key 和阶段专用命令；Web 工作台“百科”已开放。" },
               { kind: "ai", text: "Brasch: 勉强合格。别高兴，接下来是公司宣誓。" }
             ]
           };
@@ -2198,10 +2515,14 @@
       }
 
       function onboardingExpectedCommand() {
-        if (state.onboardingStep === 0) return "pwd";
-        if (state.onboardingStep === 1) return "ls";
-        if (state.onboardingStep === 2) return "cd tickets";
-        if (state.onboardingStep === 3) return "cat intro.txt";
+        if (state.onboardingStep === 0) return "help";
+        if (state.onboardingStep === 1) return "pwd";
+        if (state.onboardingStep === 2) return "ls";
+        if (state.onboardingStep === 3) return "ls -a";
+        if (state.onboardingStep === 4) return "cd tickets";
+        if (state.onboardingStep === 5) return "cat intro.txt";
+        if (state.onboardingStep === 6) return 'cat intro.txt | grep "FLAG"';
+        if (state.onboardingStep === 7) return "submit_flag FLAG{TRAINING_OK}";
         return "等待入职宣誓";
       }
 
@@ -2209,7 +2530,8 @@
         return {
           lines: [
             { kind: "system", text: "入职培训可用命令：" },
-            { kind: "dim", text: "pwd · ls · cd tickets · cat intro.txt · whoami · clear" },
+            { kind: "dim", text: "help · pwd · ls · ls -a · cd tickets · cat intro.txt · cat intro.txt | grep \"FLAG\" · submit_flag FLAG{TRAINING_OK}" },
+            { kind: "dim", text: "附加：whoami · clear" },
             { kind: "dim", text: "ai_chat <问题>：向 Brasch 询问当前 Linux 培训步骤。" },
             { kind: "ai", text: `Brasch: 当前该输入：${onboardingExpectedCommand()}。照做比解释快。` }
           ]
@@ -2227,7 +2549,7 @@
             command: `ai_chat ${message}`,
             userMessage: message,
             fallbackLines: [
-              { kind: "ai", text: `Brasch: 当前步骤输入 ${onboardingExpectedCommand()}。pwd 看位置，ls 看文件，cd 进目录，cat 读文本。` }
+              { kind: "ai", text: `Brasch: 当前步骤输入 ${onboardingExpectedCommand()}。help 看提示，pwd 看位置，ls 看文件，grep 过滤输出。` }
             ]
           }
         };
@@ -3794,6 +4116,18 @@
             meta.className = "discovery-meta";
             meta.textContent = collectionStatus(item, found);
             node.append(title, hint, meta);
+            if (shouldShowCollectionHintButton(found)) {
+              const hintButton = document.createElement("button");
+              hintButton.type = "button";
+              hintButton.className = "collection-hint-button";
+              hintButton.textContent = "Hint";
+              hintButton.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                showCollectionHint(item);
+              });
+              node.appendChild(hintButton);
+            }
             groupNode.appendChild(node);
           });
           elements.discoveries.appendChild(groupNode);
@@ -3809,6 +4143,55 @@
       function closeEncyclopedia() {
         hideScreen("encyclopediaScreen");
         elements.encyclopediaButton.focus();
+      }
+
+      function openGuide() {
+        showScreen("guideScreen");
+        elements.guideCloseButton.focus();
+      }
+
+      function closeGuide() {
+        hideScreen("guideScreen");
+        elements.guideButton.focus();
+      }
+
+      function revealGuideSpoilers() {
+        if (!guideSpoilersVisible) {
+          const confirmed = window.confirm("具体攻略包含主线、结局、全收藏和隐藏档案剧透。确认查看？");
+          if (!confirmed) return;
+          guideSpoilersVisible = true;
+          elements.guideSpoilers.classList.add("visible");
+          elements.guideSpoilerButton.textContent = "攻略已显示";
+          elements.guideSpoilerButton.disabled = true;
+        }
+      }
+
+      function shouldShowCollectionHintButton(found) {
+        return !found && ["beginner", "terminal"].includes(state.foundation);
+      }
+
+      function showCollectionHint(item) {
+        if (elements.eventScreen.classList.contains("active")) return;
+        viewingArchivedIntermission = true;
+        elements.eventSource.textContent = "COLLECTION HINT";
+        elements.eventTime.textContent = stageName(item.minStage);
+        elements.eventTitle.textContent = item.group === "Intermissions" ? item.title : "未发现收藏提示";
+        elements.eventCopy.textContent = popupTextForCollectionHint(item);
+        elements.eventConfirmButton.textContent = "关闭提示";
+        elements.eventConfirmButton.disabled = false;
+        showScreen("eventScreen");
+        elements.eventConfirmButton.focus();
+      }
+
+      function popupTextForCollectionHint(item) {
+        if (item.group === "Intermissions") {
+          return `${item.title}\n\n${item.locked}\n\n工单间事件在完成对应阶段 Flag 提交后随机出现。继续推进或重开不同路线可收集更多事件。`;
+        }
+        const stageGate = state.stage < item.minStage
+          ? `当前尚未生成。先推进到${stageName(item.minStage)}。`
+          : `当前已经可能存在。`;
+        const hint = collectionHintCatalog[item.id] || item.locked || "先推进主线，再检查当前工单开放的新目录。";
+        return `???\n\n${stageGate}\n\nHint: ${hint}\n\n提示只给位置和前置条件，不会替你标记为已发现。`;
       }
 
       function collectionHint(item, found) {
@@ -4326,6 +4709,7 @@
         pendingEventQueue = [];
         oathEventActive = false;
         isAwaitingAi = false;
+        guideSpoilersVisible = false;
         window.clearTimeout(commandToastTimer);
         elements.commandToast.classList.remove("visible");
         if (options.clearCollection) {
@@ -4338,6 +4722,10 @@
         hideScreen("endingScreen");
         hideScreen("foundationScreen");
         hideScreen("encyclopediaScreen");
+        hideScreen("guideScreen");
+        elements.guideSpoilers.classList.remove("visible");
+        elements.guideSpoilerButton.textContent = "查看具体攻略";
+        elements.guideSpoilerButton.disabled = false;
         showScreen("introScreen");
         renderState();
         renderDiscoveries();
