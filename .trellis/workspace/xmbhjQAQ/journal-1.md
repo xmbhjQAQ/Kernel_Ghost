@@ -700,3 +700,36 @@ Planned and implemented traceable relic, easter egg, evidence verification, echo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: Refine hints collections and guide
+
+**Date**: 2026-05-24
+**Task**: Refine hints collections and guide
+**Branch**: `main`
+
+### Summary
+
+Made help stage-scoped, masked undiscovered collections, added archive replay for found collectibles, hardened Brasch onboarding prompt, rewrote the story and complete walkthrough guide, and added tests/spec coverage.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `192c631` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
