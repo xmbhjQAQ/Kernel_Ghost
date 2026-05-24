@@ -142,6 +142,19 @@ def test_encyclopedia_control_opens_dedicated_modal():
     assert "scrollIntoView" not in open_encyclopedia
 
 
+def test_long_modal_content_scrolls_inside_viewport():
+    assert ".event-panel {" in HTML
+    assert "max-height: calc(100dvh - 36px);" in HTML
+    assert "display: flex;" in HTML
+    assert "flex-direction: column;" in HTML
+    assert ".encyclopedia {" in HTML
+    assert ".guide-content {" in HTML
+    assert ".plot-map {" in HTML
+    assert "flex: 1 1 auto;" in HTML
+    assert "min-height: 0;" in HTML
+    assert "max-height: none;" in HTML
+
+
 def test_onboarding_terminal_context_is_cleared_before_gameplay():
     start_work_orders = js_function_body("startWorkOrdersAfterOath")
 
