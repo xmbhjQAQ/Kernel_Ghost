@@ -281,3 +281,57 @@ def test_collection_masks_undiscovered_items_and_opens_found_archives():
     assert "metaCollection.unlocked.includes(id)" in show_archive
     assert "relicCatalog.find" in archive_record
     assert "collectibleArchiveCatalog[id]" in archive_record
+
+
+def test_plot_flowchart_control_opens_dedicated_modal():
+    bind_events = js_function_body("bindEvents")
+    open_plot = js_function_body("openPlotMap")
+    close_plot = js_function_body("closePlotMap")
+
+    assert 'id="plotButton"' in HTML
+    assert 'id="plotScreen"' in HTML
+    assert 'id="plotMap"' in HTML
+    assert 'elements.plotButton.addEventListener("click", openPlotMap)' in bind_events
+    assert 'elements.plotCloseButton.addEventListener("click", closePlotMap)' in bind_events
+    assert 'renderPlotMap()' in open_plot
+    assert 'showScreen("plotScreen")' in open_plot
+    assert 'hideScreen("plotScreen")' in close_plot
+
+
+def test_plot_flowchart_masks_hidden_routes_and_derives_current_position():
+    render_plot_node = js_function_body("renderPlotNode")
+    is_known = js_function_body("isPlotNodeKnown")
+    current_node = js_function_body("currentPlotNodeId")
+    hint_text = js_function_body("plotHintText")
+
+    assert "const plotRouteCatalog = [" in HTML
+    assert 'route: "echo"' in HTML
+    assert 'route: "wildfire"' in HTML
+    assert 'title.textContent = known ? node.title : "???"' in render_plot_node
+    assert 'description.textContent = known ? node.description : "???"' in render_plot_node
+    assert 'node.group === "main"' in is_known
+    assert 'plotArchive.routes.includes(node.route)' in is_known
+    assert 'plotArchive.endings.includes(node.ending)' in is_known
+    assert 'if (state.ending) return `ending-${state.ending}`' in current_node
+    assert 'return `stage${state.stage}`' in current_node
+    assert "隐藏线路仍需要旧提交和身份证据" in hint_text
+
+
+def test_plot_flowchart_persists_cross_run_and_clears_on_hard_reset():
+    load_archive = js_function_body("loadPlotArchive")
+    save_archive = js_function_body("savePlotArchive")
+    update_archive = js_function_body("updatePlotArchiveFromState")
+    known_routes = js_function_body("knownPlotRoutesFromState")
+    reset_session = js_function_body("resetGameSession")
+
+    assert 'let plotArchive = { routes: [], endings: [] }' in HTML
+    assert 'window.localStorage.getItem(`${storagePrefix}plotArchive`)' in load_archive
+    assert "uniqueKnownPlotIds(parsed.routes, plotRouteIds)" in load_archive
+    assert 'window.localStorage.setItem(`${storagePrefix}plotArchive`' in save_archive
+    assert "savePlotArchive()" in update_archive
+    assert 'routes.push("stage6", "company", "escape")' in known_routes
+    assert 'state.askedLin && state.hiddenDiscoveries.includes("git-log")' in known_routes
+    assert 'state.hiddenDiscoveries.includes("distilled-index")' in known_routes
+    assert 'plotArchive = { routes: [], endings: [] }' in reset_session
+    assert 'window.localStorage.removeItem(`${storagePrefix}plotArchive`)' in reset_session
+    assert 'hideScreen("plotScreen")' in reset_session

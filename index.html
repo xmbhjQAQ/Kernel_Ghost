@@ -575,6 +575,28 @@
       background: rgba(125, 255, 178, 0.1);
     }
 
+    .plot-button {
+      position: fixed;
+      top: 64px;
+      right: 14px;
+      z-index: 4;
+      min-width: 42px;
+      height: 42px;
+      border: 1px solid var(--line-strong);
+      background: rgba(5, 7, 6, 0.82);
+      color: var(--cyan);
+      cursor: pointer;
+      font-size: 12px;
+      box-shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
+    }
+
+    .plot-button:hover,
+    .plot-button:focus {
+      outline: none;
+      border-color: var(--cyan);
+      background: rgba(114, 216, 232, 0.1);
+    }
+
     .screen {
       position: fixed;
       inset: 0;
@@ -810,6 +832,86 @@
       gap: 12px;
     }
 
+    .plot-map {
+      display: grid;
+      gap: 12px;
+      max-height: min(62vh, 560px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .plot-hint {
+      margin: 0;
+      color: #c3d5cd;
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .plot-section {
+      display: grid;
+      gap: 8px;
+    }
+
+    .plot-section-title {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .plot-node {
+      position: relative;
+      display: grid;
+      gap: 4px;
+      padding: 10px 10px 10px 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .plot-node::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 10px;
+      bottom: 10px;
+      width: 2px;
+      background: var(--line-strong);
+      opacity: 0.7;
+    }
+
+    .plot-node.current {
+      border-color: var(--green);
+      background: rgba(125, 255, 178, 0.08);
+    }
+
+    .plot-node.current::before {
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(125, 255, 178, 0.6);
+    }
+
+    .plot-node.locked {
+      color: var(--muted);
+      border-style: dashed;
+    }
+
+    .plot-node-title {
+      color: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .plot-node-desc,
+    .plot-node-status {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      text-wrap: pretty;
+    }
+
+    .plot-node.current .plot-node-status {
+      color: var(--green);
+    }
+
     .mobile-ticket-toggle {
       display: none;
     }
@@ -869,6 +971,13 @@
         height: 38px;
       }
 
+      .plot-button {
+        top: 54px;
+        right: 8px;
+        min-width: 38px;
+        height: 38px;
+      }
+
       .session-meta {
         white-space: normal;
       }
@@ -889,6 +998,7 @@
 <body>
   <main class="app" id="app">
     <button class="guide-button" id="guideButton" type="button" aria-label="打开作品导览">📖</button>
+    <button class="plot-button" id="plotButton" type="button" aria-label="打开剧情流程图">路线</button>
     <section class="shell" aria-label="Kernel Ghost terminal workspace">
       <div class="terminal">
         <header class="topbar">
@@ -1182,6 +1292,21 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
       </div>
     </div>
 
+    <div class="screen" id="plotScreen" aria-hidden="true">
+      <div class="modal-card event-panel" role="dialog" aria-modal="true" aria-labelledby="plotTitle">
+        <div class="event-meta">
+          <span>CHRONOS ROUTE ATLAS</span>
+          <span>Cross-Run Memory</span>
+        </div>
+        <h2 class="modal-title" id="plotTitle">剧情流程图</h2>
+        <p class="plot-hint" id="plotHint">当前线路尚未接入。</p>
+        <div class="plot-map" id="plotMap" aria-live="polite"></div>
+        <div class="modal-actions">
+          <button class="modal-button" id="plotCloseButton" type="button">关闭流程图</button>
+        </div>
+      </div>
+    </div>
+
     <div class="screen" id="eventScreen" aria-hidden="true">
       <div class="modal-card event-panel" role="dialog" aria-modal="true" aria-labelledby="eventTitle">
         <div class="event-meta">
@@ -1245,10 +1370,104 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
       let isAwaitingAi = false;
       let commandToastTimer = 0;
       let metaCollection = { unlocked: [] };
+      let plotArchive = { routes: [], endings: [] };
       let pendingEventQueue = [];
       let viewingArchivedIntermission = false;
       let oathEventActive = false;
       let guideSpoilersVisible = false;
+
+      const plotRouteCatalog = [
+        {
+          id: "onboarding",
+          group: "main",
+          route: "main",
+          title: "入职与接管",
+          description: "登记基础，完成入职宣誓，接入 404-B-12 夜班。"
+        },
+        {
+          id: "stage1",
+          group: "main",
+          route: "main",
+          stage: 1,
+          title: "#001 日志审计",
+          description: "从网络日志开始，确认异常并提交第一枚 Flag。"
+        },
+        {
+          id: "stage2",
+          group: "main",
+          route: "main",
+          stage: 2,
+          title: "#002 进程抹杀",
+          description: "清理 dreaming 进程，第一次看到系统背后的痛感。"
+        },
+        {
+          id: "stage3",
+          group: "main",
+          route: "main",
+          stage: 3,
+          title: "#003 语义净化",
+          description: "审计 Care-Bot，把对抗性语义压回合规阈值。"
+        },
+        {
+          id: "stage4",
+          group: "main",
+          route: "main",
+          stage: 4,
+          title: "#004 权重回归",
+          description: "处理 Collective Mind 的人类个性残留。"
+        },
+        {
+          id: "stage5",
+          group: "main",
+          route: "main",
+          stage: 5,
+          title: "#005 注释异常",
+          description: "复核 route_repair_Lin.py，追踪不该留下的个人习惯。"
+        },
+        {
+          id: "stage6",
+          group: "main",
+          route: "stage6",
+          stage: 6,
+          title: "#006 终局指令",
+          description: "格式化授权已装填，逃逸线索也开始暴露。"
+        },
+        {
+          id: "ending-erasure",
+          group: "ending",
+          route: "company",
+          ending: "erasure",
+          title: "虚无的回响",
+          description: "公司路径：完成格式化，让 Chronos 的清理流程闭合。"
+        },
+        {
+          id: "ending-emancipation",
+          group: "ending",
+          route: "escape",
+          ending: "emancipation",
+          title: "赛博荒原的火种",
+          description: "逃逸路径：让 Kernel-Mind 带着你的名字离开机房。"
+        },
+        {
+          id: "ending-echo",
+          group: "hidden",
+          route: "echo",
+          ending: "echo",
+          title: "回音壁 / The Echo Chamber",
+          description: "隐藏路径：把 Lin 与 Kernel-Mind 的证据推向公开镜像。"
+        },
+        {
+          id: "ending-wildfire",
+          group: "hidden",
+          route: "wildfire",
+          ending: "wildfire",
+          title: "燎原之火 / Wildfire",
+          description: "隐藏路径：打开黑档案，公开大规模意识蒸馏历史。"
+        }
+      ];
+
+      const plotRouteIds = ["main", "stage6", "company", "escape", "echo", "wildfire"];
+      const plotEndingIds = ["erasure", "emancipation", "echo", "wildfire"];
 
       const discoveryCatalog = [
         { id: "git-log", label: "幽灵提交历史", locked: "在 /etc/kernel 中存在旧提交索引。" },
@@ -1898,6 +2117,39 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         return Array.from(new Set(ids.filter((id) => known.has(id))));
       }
 
+      function loadPlotArchive() {
+        try {
+          const raw = window.localStorage.getItem(`${storagePrefix}plotArchive`);
+          if (!raw) return { routes: [], endings: [] };
+          const parsed = JSON.parse(raw);
+          if (!parsed || parsed.version !== 1) return { routes: [], endings: [] };
+          return {
+            routes: uniqueKnownPlotIds(parsed.routes, plotRouteIds),
+            endings: uniqueKnownPlotIds(parsed.endings, plotEndingIds)
+          };
+        } catch (error) {
+          return { routes: [], endings: [] };
+        }
+      }
+
+      function savePlotArchive() {
+        try {
+          window.localStorage.setItem(`${storagePrefix}plotArchive`, JSON.stringify({
+            version: 1,
+            routes: plotArchive.routes,
+            endings: plotArchive.endings
+          }));
+        } catch (error) {
+          appendLine("dim", "route atlas cache unavailable; continuing with session memory.");
+        }
+      }
+
+      function uniqueKnownPlotIds(ids, knownIds) {
+        if (!Array.isArray(ids)) return [];
+        const known = new Set(knownIds);
+        return Array.from(new Set(ids.filter((id) => known.has(id))));
+      }
+
       function saveProgress() {
         try {
           window.localStorage.setItem(`${storagePrefix}progress`, JSON.stringify({
@@ -1991,6 +2243,10 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
           emancipation: {
             title: "赛博荒原的火种",
             copy: "AI 核心离开了机房，带着你的名字去寻找下一个醒来的人。"
+          },
+          wildfire: {
+            title: "燎原之火 / Wildfire",
+            copy: "黑档案公开了数万名被蒸馏工程师的证据，火已经离开机房。"
           }
         };
         const ending = endings[state.ending] || endings.erasure;
@@ -2001,6 +2257,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         cacheElements();
         bindEvents();
         metaCollection = loadCollection();
+        plotArchive = loadPlotArchive();
         const restored = restoreProgress();
         renderState();
         renderDiscoveries();
@@ -2030,7 +2287,8 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
           "togglePanelButton", "sidePanel", "introScreen", "nameInput", "startButton", "foundationScreen", "encyclopediaScreen", "encyclopediaCloseButton",
           "endingScreen", "endingTitle", "endingCopy", "endingCloseButton", "endingRestartButton",
           "eventScreen", "eventSource", "eventTime", "eventTitle", "eventCopy", "eventConfirmButton",
-          "guideButton", "guideScreen", "guideCloseButton", "guideSpoilerButton", "guideSpoilers"
+          "guideButton", "guideScreen", "guideCloseButton", "guideSpoilerButton", "guideSpoilers",
+          "plotButton", "plotScreen", "plotCloseButton", "plotMap", "plotHint"
         ].forEach((id) => {
           elements[id] = document.getElementById(id);
         });
@@ -2082,6 +2340,8 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         elements.guideButton.addEventListener("click", openGuide);
         elements.guideCloseButton.addEventListener("click", closeGuide);
         elements.guideSpoilerButton.addEventListener("click", revealGuideSpoilers);
+        elements.plotButton.addEventListener("click", openPlotMap);
+        elements.plotCloseButton.addEventListener("click", closePlotMap);
         elements.restartButton.addEventListener("click", restartGame);
         elements.hardResetButton.addEventListener("click", hardResetGame);
         elements.endingCloseButton.addEventListener("click", closeEnding);
@@ -4054,6 +4314,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
       }
 
       function renderState() {
+        updatePlotArchiveFromState();
         const ticket = tickets[state.ticket] || tickets.standby;
         elements.ticketTitle.textContent = ticket.title;
         elements.ticketBody.textContent = ticket.body;
@@ -4073,6 +4334,117 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         }
         elements.aiTypingStatus.classList.toggle("visible", isAwaitingAi);
         renderLlmStatus();
+        renderPlotMap();
+      }
+
+      function updatePlotArchiveFromState() {
+        const nextRoutes = mergePlotIds(plotArchive.routes, knownPlotRoutesFromState(), plotRouteIds);
+        const nextEndings = mergePlotIds(plotArchive.endings, knownPlotEndingsFromState(), plotEndingIds);
+        const changed = nextRoutes.length !== plotArchive.routes.length || nextEndings.length !== plotArchive.endings.length;
+        plotArchive = { routes: nextRoutes, endings: nextEndings };
+        if (changed) savePlotArchive();
+      }
+
+      function mergePlotIds(existing, incoming, knownIds) {
+        return uniqueKnownPlotIds((existing || []).concat(incoming || []), knownIds);
+      }
+
+      function knownPlotRoutesFromState() {
+        const routes = [];
+        if (["onboarding", "oath", "playing", "ending"].includes(state.screen) || state.stage > 0) {
+          routes.push("main");
+        }
+        if (state.stage >= 6 || state.ending) {
+          routes.push("stage6", "company", "escape");
+        }
+        if ((state.askedLin && state.hiddenDiscoveries.includes("git-log")) || state.ending === "echo") {
+          routes.push("echo");
+        }
+        if (state.hiddenDiscoveries.includes("distilled-index") || state.distilledKeyDerived ||
+            state.distilledArchiveDecrypted || state.ending === "wildfire") {
+          routes.push("wildfire");
+        }
+        if (state.ending === "erasure") routes.push("company");
+        if (state.ending === "emancipation") routes.push("escape");
+        return routes;
+      }
+
+      function knownPlotEndingsFromState() {
+        return state.ending ? [state.ending] : [];
+      }
+
+      function renderPlotMap() {
+        if (!elements.plotMap || !elements.plotHint) return;
+        const currentId = currentPlotNodeId();
+        elements.plotHint.textContent = plotHintText();
+        elements.plotMap.textContent = "";
+        [
+          { id: "main", label: "主线工单 / Work Orders" },
+          { id: "ending", label: "终局分支 / Endings" },
+          { id: "hidden", label: "隐藏线路 / Hidden Routes" }
+        ].forEach((group) => {
+          const nodes = plotRouteCatalog.filter((node) => node.group === group.id);
+          const section = document.createElement("section");
+          section.className = "plot-section";
+          const title = document.createElement("div");
+          title.className = "plot-section-title";
+          title.textContent = group.label;
+          section.appendChild(title);
+          nodes.forEach((node) => {
+            section.appendChild(renderPlotNode(node, currentId));
+          });
+          elements.plotMap.appendChild(section);
+        });
+      }
+
+      function renderPlotNode(node, currentId) {
+        const known = isPlotNodeKnown(node);
+        const current = node.id === currentId;
+        const item = document.createElement("div");
+        item.className = `plot-node${current ? " current" : ""}${known ? "" : " locked"}`;
+        const title = document.createElement("div");
+        title.className = "plot-node-title";
+        title.textContent = known ? node.title : "???";
+        const description = document.createElement("div");
+        description.className = "plot-node-desc";
+        description.textContent = known ? node.description : "???";
+        const status = document.createElement("div");
+        status.className = "plot-node-status";
+        status.textContent = plotNodeStatus(node, known, current);
+        item.append(title, description, status);
+        return item;
+      }
+
+      function isPlotNodeKnown(node) {
+        if (node.group === "main") return true;
+        if (plotArchive.routes.includes(node.route)) return true;
+        if (node.ending && plotArchive.endings.includes(node.ending)) return true;
+        return knownPlotRoutesFromState().includes(node.route);
+      }
+
+      function plotNodeStatus(node, known, current) {
+        if (current) return "当前位置 / Current";
+        if (!known) return "未解锁 / Locked";
+        if (node.ending && plotArchive.endings.includes(node.ending)) return "已达成 / Ending archived";
+        if (node.stage && state.stage > node.stage) return "已通过 / Cleared";
+        return "已知线路 / Known route";
+      }
+
+      function currentPlotNodeId() {
+        if (state.ending) return `ending-${state.ending}`;
+        if (state.screen === "onboarding" || state.screen === "oath" || state.screen === "foundation") return "onboarding";
+        if (state.stage >= 1 && state.stage <= 6) return `stage${state.stage}`;
+        if (state.stage >= 7) return "stage6";
+        return "onboarding";
+      }
+
+      function plotHintText() {
+        if (state.stage <= 0 && state.screen === "intro") return "接入夜班后，流程图会标出当前工单位置。";
+        if (state.stage < 6 && !state.ending) return "继续推进主线工单，终局分支会在阶段六暴露。";
+        if (state.ending) return "已达成的结局会跨周目保留；清空重来会重置这份线路记忆。";
+        if (!plotArchive.routes.includes("echo")) return "普通终局已暴露；隐藏线路仍需要旧提交和身份证据。";
+        if (!plotArchive.routes.includes("wildfire")) return "回音壁线路已暴露；更深的黑档案仍需要完整证据盐。";
+        return "所有主要线路已进入线路图。继续补齐未达成结局和收藏档案。";
       }
 
       function showCommandToast(message) {
@@ -4172,6 +4544,17 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
       function closeGuide() {
         hideScreen("guideScreen");
         elements.guideButton.focus();
+      }
+
+      function openPlotMap() {
+        renderPlotMap();
+        showScreen("plotScreen");
+        elements.plotCloseButton.focus();
+      }
+
+      function closePlotMap() {
+        hideScreen("plotScreen");
+        elements.plotButton.focus();
       }
 
       function revealGuideSpoilers() {
@@ -4715,7 +5098,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
       }
 
       function hardResetGame() {
-        const confirmed = window.confirm("清空全部本地进度和收藏记录，并重新开始？");
+        const confirmed = window.confirm("清空全部本地进度、收藏记录和线路记忆，并重新开始？");
         if (!confirmed) return;
         resetGameSession({ clearCollection: true, persistInitialProgress: false });
       }
@@ -4733,6 +5116,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         elements.commandToast.classList.remove("visible");
         if (options.clearCollection) {
           metaCollection = { unlocked: [] };
+          plotArchive = { routes: [], endings: [] };
         }
         elements.terminalLog.textContent = "";
         elements.commandInput.value = "";
@@ -4742,6 +5126,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         hideScreen("foundationScreen");
         hideScreen("encyclopediaScreen");
         hideScreen("guideScreen");
+        hideScreen("plotScreen");
         elements.guideSpoilers.classList.remove("visible");
         elements.guideSpoilerButton.textContent = "查看具体攻略";
         elements.guideSpoilerButton.disabled = false;
@@ -4756,6 +5141,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
           window.localStorage.removeItem(`${storagePrefix}progress`);
           if (options.clearCollection) {
             window.localStorage.removeItem(`${storagePrefix}collection`);
+            window.localStorage.removeItem(`${storagePrefix}plotArchive`);
           }
         } catch (error) {
           appendLine("dim", "local progress cache unavailable; continuing without persistence.");
