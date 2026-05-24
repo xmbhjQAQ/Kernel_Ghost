@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 22
+- **Total Sessions**: 23
 - **Last Active**: 2026-05-24
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~735 | Active |
+| `journal-1.md` | ~768 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 23 | 2026-05-24 | Enhance game onboarding and guide UI | `b70519b` | `main` |
 | 22 | 2026-05-24 | Refine hints collections and guide | `192c631` | `main` |
 | 21 | 2026-05-24 | Implement puzzle and easter egg routes | `b5de25c`, `2c82e74`, `dd22906` | `main` |
 | 20 | 2026-05-24 | Design puzzles and easter eggs | `aa42b26` | `main` |

@@ -733,3 +733,36 @@ Made help stage-scoped, masked undiscovered collections, added archive replay fo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: Enhance game onboarding and guide UI
+
+**Date**: 2026-05-24
+**Task**: Enhance game onboarding and guide UI
+**Branch**: `main`
+
+### Summary
+
+Expanded Brasch onboarding, refined encyclopedia content, added collection hints for non-ready players, and added a spoiler-gated guidebook modal.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b70519b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
