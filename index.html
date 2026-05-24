@@ -1350,7 +1350,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
       const commandHistory = [];
       const shellCommands = [
         "help", "clear", "whoami", "pwd", "ls", "cd", "cat", "grep", "strings", "submit_flag", "ai_chat", "ai_help",
-        "confirm_ai_help", "strings", "tar", "binwalk", "python", "ps", "kill", "sandbox", "weights",
+        "confirm_ai_help", "printf", "base64", "strings", "tar", "binwalk", "python", "ps", "kill", "sandbox", "weights",
         "override_validator", "format", "ssh", "git", "lshw", "mkdir", "cp", "publish", "verify_evidence",
         "derive_key", "decrypt", "restart"
       ];
@@ -2649,9 +2649,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         if (normalized === "cat /srv/escape/readme.txt") {
           return readEscapeReadme();
         }
-        if (normalized === 'printf "rkxbr3tesudjvefmx0vnqu5dsvbbvelptn0=" | base64 -d') {
-          return decodeEscapeFlag();
-        }
+        if (isBase64DecodeCommand(input)) return decodeBase64TextCommand(input);
         if (normalized === "format --seal") {
           return formatSeal();
         }
@@ -3680,16 +3678,57 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
         ];
       }
 
-      function decodeEscapeFlag() {
-        if (state.stage !== 6 || !state.sawEscapeReadme) {
-          return premature("当前没有暴露的 base64 解码任务。");
+      function isBase64DecodeCommand(input) {
+        return /^printf\s+(?:"[^"]*"|'[^']*'|[A-Za-z0-9+/_=-]+)\s*\|\s*base64\s+(?:-d|--decode)$/i.test(input.trim());
+      }
+
+      function decodeBase64TextCommand(input) {
+        const match = input.trim().match(/^printf\s+(?:"([^"]*)"|'([^']*)'|([A-Za-z0-9+/_=-]+))\s*\|\s*base64\s+(?:-d|--decode)$/i);
+        if (!match) return premature("base64: 当前只支持 printf \"<base64>\" | base64 -d");
+        const encoded = (match[1] ?? match[2] ?? match[3] ?? "").replace(/\s+/g, "");
+        const decoded = decodeBase64Utf8Text(encoded);
+        if (!decoded.ok) {
+          return {
+            countsAsLost: true,
+            lines: [
+              { kind: "warning", text: `base64: ${decoded.error}` },
+              { kind: "dim", text: "当前终端只输出 UTF-8 文本类 base64；二进制残留需要先用 strings 或 grep 定位。" }
+            ]
+          };
         }
         return {
           lines: [
-            { kind: "flag", text: "FLAG{DIGITAL_EMANCIPATION}" },
-            { kind: "ai", text: "ssh -N ghost@outpost.null -l kernel-mind" }
+            { kind: decoded.text.startsWith("FLAG{") ? "flag" : "system", text: decoded.text }
           ]
         };
+      }
+
+      function decodeBase64Utf8Text(encoded) {
+        try {
+          const normalized = normalizeBase64Payload(encoded);
+          const binary = window.atob(normalized);
+          const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+          const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+          if (!isReadableDecodedText(text)) return { ok: false, error: "decoded payload is not readable text" };
+          return { ok: true, text };
+        } catch (error) {
+          return { ok: false, error: "invalid base64 text payload" };
+        }
+      }
+
+      function normalizeBase64Payload(encoded) {
+        const base64 = String(encoded || "").replace(/-/g, "+").replace(/_/g, "/");
+        return base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+      }
+
+      function isReadableDecodedText(text) {
+        if (!text) return false;
+        let printable = 0;
+        for (const char of text) {
+          const code = char.codePointAt(0);
+          if (code === 9 || code === 10 || code === 13 || code >= 32) printable += 1;
+        }
+        return printable === [...text].length;
       }
 
       function requireEscapeToolContext(toolName) {
@@ -3845,7 +3884,7 @@ decrypt distilled_metadata.encrypted --key 404-B-12:0415:0.01:RAIN</pre>
           lines: [
             { kind: "system", text: "scan offset 0x0000f4a9: REMAIN" },
             { kind: "system", text: "encoding=base64" },
-            { kind: "flag", text: "6YCG5L+h77yM6Z2i5b6h5L2g55qE5py65Zmo77yM5piv5oiR55qE5bC45L2T44CC" },
+            { kind: "flag", text: "5L2g6Z2i5YmN55qE5py65Zmo77yM5piv5oiR55qE5bC45L2T44CC" },
             { kind: "ai", text: "检测到 base64 残留。人类语言置信度：0.87。" }
           ]
         };
